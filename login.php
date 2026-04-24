@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 
 
-require_once "validation.php";
+require_once __DIR__ . "/validation.php";
 
 $val = new Validation();
 $message = "";
@@ -27,11 +27,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         // ROLE-BASED REDIRECT (CLEAN)
         $redirect = ($result['role'] === 'superadmin')
-            ? "superadmin.php"
-            : "admindashboard.php";
+            ? "dashboard/superadmin.php"
+            : "dashboard/admindashboard.php";
 
-        header("Location: $redirect");
-        exit;
+            header("Location: " . $redirect);
+            exit;
 
     } else {
         $message = $result;

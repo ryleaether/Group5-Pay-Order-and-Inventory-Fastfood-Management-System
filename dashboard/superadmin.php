@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once "validation.php";
+require_once __DIR__ . "/../validation.php";
 
 /* SECURITY CHECK */
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'superadmin') {
@@ -120,7 +120,7 @@ $admins = $val->getAllOwners();
 
 </table>
 
-<a class="logout-btn" href="logout.php">Logout</a>
+<a class="logout-btn" href="/logout.php">Logout</a>
 
 <!-- DELETE MODAL -->
 <div id="deleteModal" class="modal">

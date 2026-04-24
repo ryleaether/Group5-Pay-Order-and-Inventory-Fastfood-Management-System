@@ -1,5 +1,5 @@
 <?php
-require_once "validation.php";
+require_once __DIR__ . "/../validation.php";
 
 $val = new Validation();
 

@@ -121,3 +121,33 @@ function loadLiveStats() {
         })
         .catch(err => console.error("Live update error:", err));
 }
+
+/* =========================
+   MENU MODAL CONTROLLER
+========================= */
+
+function openModal() {
+    const modal = document.getElementById("menuModal");
+    if (modal) {
+        modal.classList.add("show");
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById("menuModal");
+    if (modal) {
+        modal.classList.remove("show");
+    }
+}
+
+/* close modal when clicking outside */
+document.addEventListener("click", function (e) {
+    const modal = document.getElementById("menuModal");
+
+    if (!modal) return;
+
+    if (e.target === modal) {
+        modal.classList.remove("show");
+    }
+});
+

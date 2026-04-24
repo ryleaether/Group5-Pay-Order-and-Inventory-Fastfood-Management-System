@@ -1,5 +1,5 @@
 <?php
-require_once "../config/database.php";
+require_once __DIR__ . "/config/database.php";
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -93,6 +93,13 @@ class Validation {
     /* =========================
        DEVICE LIMIT CHECK
     ========================= */
+    // CLEAN OLD SESSIONS (PREVENT FALSE LIMIT)
+    $cleanup = "DELETE FROM admin_sessions WHERE admin_id = :admin_id";
+    $stmt = $this->conn->prepare($cleanup);
+    $stmt->bindParam(":admin_id", $admin['admin_id']);
+    $stmt->execute();
+
+    // NOW CHECK DEVICE COUNT
     $currentDevices = $this->countDevices($admin['admin_id']);
 
     if ($currentDevices >= ($admin['max_devices'] ?? 1)) {
