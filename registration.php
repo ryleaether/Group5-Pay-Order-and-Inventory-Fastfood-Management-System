@@ -99,7 +99,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                            value="<?= htmlspecialchars($_SESSION['old']['email'] ?? '') ?>" required>
                 </div>
 
-                <div class="divider">account credentials</div>
+                <div class="divider">Account Credentials</div>
 
                 <div class="input-group">
                     <span>🔖</span>
