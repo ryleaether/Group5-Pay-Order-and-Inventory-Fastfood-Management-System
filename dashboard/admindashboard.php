@@ -250,7 +250,7 @@ try {
             <li>📦 Inventory</li>
             <li>🔄 Switch to User Dashboard</li>
         </ul>
-        <a class="logout" href="../login.php">Logout</a>
+        <a class="logout" href="../logout.php">Logout</a>
     </div>
 
     <!-- MAIN -->

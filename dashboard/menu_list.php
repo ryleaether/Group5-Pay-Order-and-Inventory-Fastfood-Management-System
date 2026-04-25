@@ -61,7 +61,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <li>📦 Inventory</li>
         </ul>
 
-        <a class="logout" href="../login.php">Logout</a>
+        <a class="logout" href="../logout.php">Logout</a>
     </div>
 
     <!-- MAIN -->
@@ -166,7 +166,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <input type="text" name="category" placeholder="Category" required>
 
             <label style="display:block; margin-top:10px;">
-                <input type="checkbox" name="is_available" checked>
+               <input type="checkbox" name="is_available" value="1" checked>
                 Available
             </label>
 

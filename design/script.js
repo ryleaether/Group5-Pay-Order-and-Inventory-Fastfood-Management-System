@@ -1,8 +1,7 @@
-
 document.addEventListener("DOMContentLoaded", function () {
 
     /* =========================
-       FORM VALIDATION (IMPROVED)
+       FORM VALIDATION
     ========================= */
     const form = document.querySelector("form");
 
@@ -13,7 +12,7 @@ document.addEventListener("DOMContentLoaded", function () {
             let isValid = true;
 
             inputs.forEach(input => {
-
+                if (input.type === "checkbox") return; // skip checkboxes
                 if (input.value.trim() === "") {
                     input.style.border = "2px solid red";
                     input.style.boxShadow = "0 0 5px rgba(255,0,0,0.5)";
@@ -22,7 +21,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     input.style.border = "1px solid #ddd";
                     input.style.boxShadow = "none";
                 }
-
             });
 
             if (!isValid) {
@@ -48,27 +46,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     /* =========================
-       INIT REAL-TIME SYSTEM ONLY IF ELEMENT EXISTS
+       LIVE STATS (SUPERADMIN ONLY)
     ========================= */
     if (document.getElementById("totalAdmins") &&
         document.getElementById("activeDevices")) {
 
-        loadLiveStats(); // initial load
-        setInterval(loadLiveStats, 3000); // auto update every 3s
+        loadLiveStats();
+        setInterval(loadLiveStats, 3000);
     }
 
 });
 
-
 /* =========================
-   MESSAGE SYSTEM (TOAST STYLE)
+   TOAST MESSAGE
 ========================= */
 function showMessage(message, type = "info") {
 
     let msgBox = document.createElement("div");
 
     msgBox.innerText = message;
-
     msgBox.style.position = "fixed";
     msgBox.style.top = "20px";
     msgBox.style.right = "20px";
@@ -77,13 +73,10 @@ function showMessage(message, type = "info") {
     msgBox.style.color = "white";
     msgBox.style.zIndex = "9999";
     msgBox.style.boxShadow = "0 5px 15px rgba(0,0,0,0.3)";
-    msgBox.style.fontFamily = "Arial";
+    msgBox.style.fontFamily = "Poppins, sans-serif";
+    msgBox.style.fontSize = "14px";
 
-    if (type === "error") {
-        msgBox.style.background = "#e74c3c";
-    } else {
-        msgBox.style.background = "#3498db";
-    }
+    msgBox.style.background = type === "error" ? "#e74c3c" : "#3498db";
 
     document.body.appendChild(msgBox);
 
@@ -97,9 +90,8 @@ function showMessage(message, type = "info") {
     }, 2500);
 }
 
-
 /* =========================
-   REAL-TIME SUPER ADMIN DASHBOARD
+   LIVE STATS (SUPERADMIN)
 ========================= */
 function loadLiveStats() {
 
@@ -110,44 +102,28 @@ function loadLiveStats() {
             const admins = document.getElementById("totalAdmins");
             const devices = document.getElementById("activeDevices");
 
-            if (admins) {
-                admins.innerText = data.admins;
-            }
-
-            if (devices) {
-                devices.innerText = data.active_devices;
-            }
+            if (admins)  admins.innerText  = data.admins;
+            if (devices) devices.innerText = data.active_devices;
 
         })
         .catch(err => console.error("Live update error:", err));
 }
 
 /* =========================
-   MENU MODAL CONTROLLER
+   MENU MODAL
 ========================= */
-
 function openModal() {
     const modal = document.getElementById("menuModal");
-    if (modal) {
-        modal.classList.add("show");
-    }
+    if (modal) modal.classList.add("show");
 }
 
 function closeModal() {
     const modal = document.getElementById("menuModal");
-    if (modal) {
-        modal.classList.remove("show");
-    }
+    if (modal) modal.classList.remove("show");
 }
 
-/* close modal when clicking outside */
 document.addEventListener("click", function (e) {
     const modal = document.getElementById("menuModal");
-
     if (!modal) return;
-
-    if (e.target === modal) {
-        modal.classList.remove("show");
-    }
+    if (e.target === modal) modal.classList.remove("show");
 });
-

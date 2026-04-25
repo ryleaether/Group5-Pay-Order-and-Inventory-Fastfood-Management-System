@@ -11,7 +11,7 @@ CREATE TABLE admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login TIMESTAMP NULL
 );
-drop table admins, admin_sessions;
+
 CREATE TABLE admin_sessions (
     session_id VARCHAR(255) PRIMARY KEY,
     admin_id INT NOT NULL,
@@ -27,6 +27,7 @@ INSERT INTO admins (username, email, password, fullname, fastfood_name, role) VA
 NULL,'superadmin');
 
 ALTER TABLE admins ADD max_devices INT DEFAULT 1;
+ALTER TABLE admins ADD dashboard_pin VARCHAR(255) NULL;
 select * from admins;
 
 /* ================================================================
@@ -110,3 +111,4 @@ CREATE TABLE IF NOT EXISTS payments (
     payment_date    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
+

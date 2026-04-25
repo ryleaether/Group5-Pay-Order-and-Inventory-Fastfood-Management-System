@@ -1,17 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-/* =========================
-   GLOBAL RESET
-========================= */
+/* ================= GLOBAL RESET ================= */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* =========================
-   BODY (MODERN BACKGROUND)
-========================= */
+/* ================= BODY ================= */
 body {
     font-family: 'Poppins', sans-serif;
     background: linear-gradient(135deg, #ff1e1e, #ffcc33);
@@ -22,42 +18,13 @@ body {
     padding: 20px;
 }
 
-/* =========================
-   GLASS FORM CONTAINER
-========================= */
-form {
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(12px);
-    padding: 40px 45px;
-    border-radius: 18px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.25);
-    width: 430px;
-    transition: 0.3s ease;
-    animation: fadeIn 0.6s ease-in-out;
-}
-
-/* hover lift */
-form:hover {
-    transform: translateY(-4px);
-}
-
-/* =========================
-   ANIMATION
-========================= */
+/* ================= ANIMATION ================= */
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
 }
 
-/* =========================
-   iPOS BRAND SECTION (IMPORTANT FIX)
-========================= */
+/* ================= BRAND ================= */
 .brand {
     text-align: center;
     margin-bottom: 18px;
@@ -68,7 +35,6 @@ form:hover {
     font-weight: 800;
     letter-spacing: 2px;
     margin-bottom: 5px;
-
     background: linear-gradient(135deg, #ff0000, #ffcc33);
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -80,9 +46,7 @@ form:hover {
     letter-spacing: 1px;
 }
 
-/* =========================
-   FORM TITLE SECTION
-========================= */
+/* ================= HEADINGS ================= */
 h2 {
     text-align: center;
     margin-bottom: 18px;
@@ -92,9 +56,7 @@ h2 {
     letter-spacing: 0.5px;
 }
 
-/* =========================
-   INPUT FIELDS
-========================= */
+/* ================= INPUTS ================= */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -102,27 +64,22 @@ select {
     width: 100%;
     padding: 13px 14px;
     margin: 10px 0 14px 0;
-
     border: 2px solid transparent;
     border-radius: 12px;
     font-size: 14px;
-
     background: #f7f7f7;
     transition: 0.3s ease;
-
     outline: none;
+    font-family: 'Poppins', sans-serif;
 }
 
-/* input focus */
 input:focus {
     border-color: #ff3b3b;
     background: #fff;
     box-shadow: 0 0 14px rgba(255, 0, 0, 0.25);
 }
 
-/* =========================
-   LABELS
-========================= */
+/* ================= LABELS ================= */
 label {
     font-weight: 500;
     color: #444;
@@ -131,41 +88,32 @@ label {
     font-size: 13px;
 }
 
-/* =========================
-   BUTTON (MODERN PREMIUM STYLE)
-========================= */
+/* ================= BUTTON ================= */
 button {
     width: 100%;
     padding: 14px;
     border: none;
     border-radius: 12px;
-
     background: linear-gradient(135deg, #ff0000, #ffcc33);
     color: white;
-
     font-size: 16px;
     font-weight: 600;
-
     cursor: pointer;
     transition: all 0.3s ease;
-
     box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+    font-family: 'Poppins', sans-serif;
 }
 
-/* hover */
 button:hover {
     transform: translateY(-3px) scale(1.02);
     box-shadow: 0 15px 30px rgba(0,0,0,0.3);
 }
 
-/* click */
 button:active {
     transform: scale(0.98);
 }
 
-/* =========================
-   LINKS
-========================= */
+/* ================= LINKS ================= */
 a {
     display: block;
     text-align: center;
@@ -181,9 +129,7 @@ a:hover {
     color: #ffcc00;
 }
 
-/* =========================
-   ERROR / SUCCESS BOX
-========================= */
+/* ================= MESSAGES ================= */
 .error,
 .success {
     padding: 10px;
@@ -195,42 +141,33 @@ a:hover {
 }
 
 .error {
-    background: #ff4d4d;
+    background: #e74c3c;
     color: white;
 }
 
 .success {
-    background: #2ecc71;
+    background: #27ae60;
     color: white;
 }
 
-/* =========================
-   RESPONSIVE DESIGN
-========================= */
-@media (max-width: 500px) {
-    form {
-        width: 95%;
-        padding: 30px;
-    }
-
-    .brand h1 {
-        font-size: 36px;
-    }
+/* ================= MESSAGE (inline, e.g. login feedback) ================= */
+.message {
+    display: block;
+    text-align: center;
+    font-size: 13px;
+    color: #e74c3c;
+    margin-top: 8px;
+    min-height: 18px;
 }
 
-
-/* =========================
-   WRAPPER
-========================= */
+/* ================= LOGIN WRAPPER ================= */
 .login-wrapper {
     display: flex;
     height: 100vh;
     font-family: 'Poppins', sans-serif;
 }
 
-/* =========================
-   LEFT SIDE (LIGHT CLEAN)
-========================= */
+/* LEFT SIDE */
 .login-left {
     flex: 1;
     background: #f7f7f7;
@@ -241,9 +178,7 @@ a:hover {
     padding: 40px;
 }
 
-/* =========================
-   LOGO AREA
-========================= */
+/* LOGO BOX */
 .logo-box {
     display: flex;
     align-items: center;
@@ -251,7 +186,6 @@ a:hover {
     margin-bottom: 25px;
 }
 
-/* CIRCLE LOGO */
 .logo-circle {
     width: 55px;
     height: 55px;
@@ -266,11 +200,11 @@ a:hover {
     box-shadow: 0 8px 20px rgba(0,0,0,0.2);
 }
 
-/* TEXT LOGO */
 .logo-text h2 {
     margin: 0;
     color: #d10000;
     font-size: 22px;
+    text-align: left;
 }
 
 .logo-text p {
@@ -279,15 +213,14 @@ a:hover {
     color: #555;
 }
 
-/* =========================
-   FORM CARD
-========================= */
+/* FORM CARD */
 .login-left form {
     width: 320px;
     background: white;
     padding: 25px;
     border-radius: 14px;
     box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    animation: fadeIn 0.6s ease-in-out;
 }
 
 .login-left form h3 {
@@ -296,9 +229,7 @@ a:hover {
     color: #333;
 }
 
-/* =========================
-   RIGHT SIDE (DARK PREMIUM)
-========================= */
+/* RIGHT SIDE */
 .login-right {
     flex: 1;
     background: linear-gradient(135deg, #111, #1c1c1c);
@@ -309,7 +240,6 @@ a:hover {
     padding: 80px;
 }
 
-/* BIG TITLE */
 .login-right h1 {
     font-size: 52px;
     margin-bottom: 20px;
@@ -318,14 +248,12 @@ a:hover {
     -webkit-text-fill-color: transparent;
 }
 
-/* DESCRIPTION */
 .login-right p {
     color: #ccc;
     line-height: 1.6;
     max-width: 500px;
 }
 
-/* FEATURES */
 .features {
     margin-top: 25px;
     display: flex;
@@ -346,9 +274,7 @@ a:hover {
     transform: translateX(6px);
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* ================= RESPONSIVE ================= */
 @media (max-width: 900px) {
     .login-wrapper {
         flex-direction: column;
@@ -361,22 +287,13 @@ a:hover {
     }
 }
 
-.success {
-    background: #27ae60;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 15px;
-    font-weight: bold;
-}
+@media (max-width: 500px) {
+    .login-left form {
+        width: 95%;
+        padding: 30px;
+    }
 
-.error {
-    background: #e74c3c;
-    color: white;
-    padding: 10px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 15px;
-    font-weight: bold;
+    .brand h1 {
+        font-size: 36px;
+    }
 }

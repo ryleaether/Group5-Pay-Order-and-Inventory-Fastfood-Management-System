@@ -15,17 +15,20 @@ $admin_id = $_SESSION['admin_id'];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $sql = "INSERT INTO menu_items
-            (admin_id, item_name, description, price, stock_quantity, category)
-            VALUES (:admin_id, :name, :desc, :price, :stock, :category)";
+        (admin_id, item_name, description, price, stock_quantity, category, is_available)
+        VALUES (:admin_id, :name, :desc, :price, :stock_quantity, :category, :is_available)";
 
-    $stmt = $conn->prepare($sql);
+        $stmt = $conn->prepare($sql);
 
-    $stmt->bindParam(":admin_id", $admin_id);
-    $stmt->bindParam(":name", $_POST['item_name']);
-    $stmt->bindParam(":desc", $_POST['description']);
-    $stmt->bindParam(":price", $_POST['price']);
-    $stmt->bindParam(":stock", $_POST['stock']);
-    $stmt->bindParam(":category", $_POST['category']);
+        $is_available = isset($_POST['is_available']) ? 1 : 0;
+
+        $stmt->bindParam(":admin_id",      $admin_id);
+        $stmt->bindParam(":name",          $_POST['item_name']);
+        $stmt->bindParam(":desc",          $_POST['description']);
+        $stmt->bindParam(":price",         $_POST['price']);
+        $stmt->bindParam(":stock_quantity",$_POST['stock_quantity']);
+        $stmt->bindParam(":category",      $_POST['category']);
+        $stmt->bindParam(":is_available",  $is_available);
 
     $stmt->execute();
 
