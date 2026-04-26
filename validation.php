@@ -206,7 +206,8 @@ class Validation {
 
         $sql = "SELECT admin_id, username, email, fastfood_name, last_login
                 FROM admins
-                WHERE role = 'owner'";
+                WHERE role = 'owner'
+                ORDER BY admin_id DESC";
 
         $stmt = $this->conn->prepare($sql);
         $stmt->execute();
@@ -252,6 +253,14 @@ public function updateMaxDevices($admin_id, $max) {
     $stmt->bindParam(":id", $admin_id);
 
     return $stmt->execute();
+}
+
+public function adminExists($admin_id) {
+    $sql = "SELECT COUNT(*) FROM admins WHERE admin_id = :id";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindParam(":id", $admin_id);
+    $stmt->execute();
+    return $stmt->fetchColumn() > 0;
 }
 
 }

@@ -9,10 +9,53 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 $val  = new Validation();
+
+/* CHECK IF ACCOUNT STILL EXISTS */
+if (!$val->adminExists($_SESSION['admin_id'])) {
+    // Account deleted, show message
+    echo '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Account Deleted</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+            .modal-content { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+            button { padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        </style>
+    </head>
+    <body>
+        <div class="modal">
+            <div class="modal-content">
+                <h2>Your account has been deleted</h2>
+                <p>You will be redirected to the login page.</p>
+                <button onclick="redirectToLogin()">OK</button>
+            </div>
+        </div>
+        <script>
+            function redirectToLogin() {
+                window.location.href = "../login.php";
+            }
+        </script>
+    </body>
+    </html>';
+    exit;
+}
+
 $db   = new Database();
 $conn = $db->connect();
 
 $admin_id = $_SESSION['admin_id'];
+
+$adminProfile = [];
+try {
+    $stmt = $conn->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
+    $stmt->bindParam(':id', $admin_id);
+    $stmt->execute();
+    $adminProfile = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+} catch (Exception $e) {
+    $adminProfile = [];
+}
 
 // Sidebar renderer
 $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
@@ -386,6 +429,30 @@ try {
 </div><!-- end .dashboard -->
 
 
+<!-- ACCOUNT MODAL -->
+<div id="accountModal" class="modal">
+    <div class="modal-content" style="max-width:420px; text-align:left;">
+        <span class="close" onclick="document.getElementById('accountModal').classList.remove('show')">&times;</span>
+        <h2 style="margin-bottom:12px;">👤 Edit Account</h2>
+        <p style="color:#555; font-size:14px; margin-bottom:18px;">
+            Update your username, email, and password here.
+        </p>
+        <form id="accountForm" onsubmit="submitAccountForm(event)">
+            <div style="display:grid; gap:12px;">
+                <input type="text" name="fullname" placeholder="Full Name" value="<?= htmlspecialchars($adminProfile['fullname'] ?? '') ?>" required>
+                <input type="text" name="fastfood_name" placeholder="Fastfood Name" value="<?= htmlspecialchars($adminProfile['fastfood_name'] ?? '') ?>" required>
+                <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($adminProfile['username'] ?? '') ?>" required>
+                <input type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($adminProfile['email'] ?? '') ?>" required>
+                <input type="password" name="new_password" placeholder="New Password (leave blank to keep current)">
+                <input type="password" name="confirm_password" placeholder="Confirm New Password">
+                <div id="accountMessage" style="display:none; padding:12px; border-radius:10px; font-size:13px;"></div>
+                <button type="submit" class="btn-save" style="width:100%;">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
 <!-- PIN MODAL -->
 <div id="pinModal" class="modal">
     <div class="modal-content" style="max-width:340px; text-align:center;">
@@ -447,7 +514,7 @@ try {
 <script>
 let pinValue = '';
 function openPinModal() {
-    fetch('check_pin.php').then(r=>r.json()).then(data=>{
+    fetch('helpers/admindashboard_helpers.php?action=check_pin').then(r=>r.json()).then(data=>{
         if(data.has_pin){
             pinValue=''; updatePinDots('pinDots',0);
             document.getElementById('pinError').style.display='none';
@@ -461,10 +528,43 @@ function openPinModal() {
         }
     });
 }
+function openAccountModal() {
+    const form = document.getElementById('accountForm');
+    form.reset();
+    document.getElementById('accountMessage').style.display = 'none';
+    form.querySelector('[name="fullname"]').value = <?= json_encode($adminProfile['fullname'] ?? '') ?>;
+    form.querySelector('[name="fastfood_name"]').value = <?= json_encode($adminProfile['fastfood_name'] ?? '') ?>;
+    form.querySelector('[name="username"]').value = <?= json_encode($adminProfile['username'] ?? '') ?>;
+    form.querySelector('[name="email"]').value = <?= json_encode($adminProfile['email'] ?? '') ?>;
+    document.getElementById('accountModal').classList.add('show');
+}
+function submitAccountForm(event) {
+    event.preventDefault();
+    const form = document.getElementById('accountForm');
+    const message = document.getElementById('accountMessage');
+    const data = new URLSearchParams(new FormData(form));
+
+    fetch('helpers/admindashboard_helpers.php?action=update_account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data.toString()
+    })
+    .then(r => r.json())
+    .then(result => {
+        message.style.display = 'block';
+        message.textContent = result.message;
+        message.style.background = result.success ? '#e6ffed' : '#ffe6e6';
+        message.style.color = result.success ? '#1f7a3c' : '#9b1f1f';
+        message.style.border = result.success ? '1px solid #8cd19e' : '1px solid #ea9a9a';
+        if (result.success) {
+            setTimeout(() => location.reload(), 900);
+        }
+    });
+}
 function pinPress(num){ if(pinValue.length>=4)return; pinValue+=num; updatePinDots('pinDots',pinValue.length); if(pinValue.length===4)verifyPin(); }
 function pinBackspace(){ pinValue=pinValue.slice(0,-1); updatePinDots('pinDots',pinValue.length); }
 function verifyPin(){
-    fetch('check_pin.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'pin='+encodeURIComponent(pinValue)})
+    fetch('helpers/admindashboard_helpers.php?action=check_pin',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'pin='+encodeURIComponent(pinValue)})
     .then(r=>r.json()).then(data=>{
         if(data.success){ window.location.href='userdashboard.php'; }
         else { document.getElementById('pinError').style.display='block'; pinValue=''; updatePinDots('pinDots',0); const d=document.getElementById('pinDots'); d.classList.add('pin-shake'); setTimeout(()=>d.classList.remove('pin-shake'),500); }
@@ -473,9 +573,36 @@ function verifyPin(){
 let setupPinStep=1, setupPinFirst='', setupPinCurrent='';
 function setupPinPress(num){ if(setupPinCurrent.length>=4)return; setupPinCurrent+=num; updatePinDots('setupPinDots',setupPinCurrent.length); if(setupPinCurrent.length===4){ setTimeout(()=>{ if(setupPinStep===1){ setupPinFirst=setupPinCurrent; setupPinCurrent=''; setupPinStep=2; document.getElementById('setupPinLabel').textContent='Confirm your PIN'; updatePinDots('setupPinDots',0); } else { if(setupPinCurrent===setupPinFirst){ savePin(setupPinCurrent); } else { document.getElementById('setupPinError').textContent="PINs don\'t match. Try again."; document.getElementById('setupPinError').style.display='block'; setupPinCurrent=''; setupPinFirst=''; setupPinStep=1; document.getElementById('setupPinLabel').textContent='Enter a 4-digit PIN'; updatePinDots('setupPinDots',0); } } },150); } }
 function setupPinBackspace(){ setupPinCurrent=setupPinCurrent.slice(0,-1); updatePinDots('setupPinDots',setupPinCurrent.length); }
-function savePin(pin){ fetch('save_pin.php',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'pin='+encodeURIComponent(pin)}).then(r=>r.json()).then(data=>{ if(data.success){ document.getElementById('setupPinModal').classList.remove('show'); window.location.href='userdashboard.php'; } }); }
+function savePin(pin){ fetch('helpers/admindashboard_helpers.php?action=save_pin',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'pin='+encodeURIComponent(pin)}).then(r=>r.json()).then(data=>{ if(data.success){ document.getElementById('setupPinModal').classList.remove('show'); window.location.href='userdashboard.php'; } }); }
 function updatePinDots(id,count){ document.querySelectorAll('#'+id+' .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<count)); }
-document.addEventListener('click',function(e){ ['pinModal','setupPinModal'].forEach(id=>{ const m=document.getElementById(id); if(m&&e.target===m)m.classList.remove('show'); }); });
+document.addEventListener('click',function(e){ ['pinModal','setupPinModal','accountModal'].forEach(id=>{ const m=document.getElementById(id); if(m&&e.target===m)m.classList.remove('show'); }); });
+
+function bindSidebarActions() {
+    document.querySelectorAll('a[data-action="open-account"]').forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            openAccountModal();
+        });
+    });
+    document.querySelectorAll('a[data-action="open-pin"]').forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            openPinModal();
+        });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindSidebarActions);
+} else {
+    bindSidebarActions();
+}
+
+// Expose modal functions globally for sidebar anchor callbacks
+window.openAccountModal = openAccountModal;
+window.openPinModal = openPinModal;
+window.submitAccountForm = submitAccountForm;
+window.closeModal = closeModal;
 </script>
 
 </body>

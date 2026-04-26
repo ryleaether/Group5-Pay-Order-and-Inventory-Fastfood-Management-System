@@ -4,11 +4,43 @@ require_once __DIR__ . "/../validation.php";
 
 /* SECURITY CHECK */
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'superadmin') {
-    header("Location: login.php");
+    header("Location: ../login.php");
     exit;
 }
 
 $val = new Validation();
+
+/* CHECK IF ACCOUNT STILL EXISTS */
+if (!$val->adminExists($_SESSION['admin_id'])) {
+    // Account deleted, show message
+    echo '<!DOCTYPE html>
+    <html>
+    <head>
+        <title>Account Deleted</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+            .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+            .modal-content { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+            button { padding: 10px 20px; background: #ff0000; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        </style>
+    </head>
+    <body>
+        <div class="modal">
+            <div class="modal-content">
+                <h2>Your account has been deleted</h2>
+                <p>You will be redirected to the login page.</p>
+                <button onclick="redirectToLogin()">OK</button>
+            </div>
+        </div>
+        <script>
+            function redirectToLogin() {
+                window.location.href = "../login.php";
+            }
+        </script>
+    </body>
+    </html>';
+    exit;
+}
 
 /* HANDLE DELETE ADMIN*/
 if (isset($_GET['delete'])) {
@@ -69,6 +101,7 @@ $admins = $val->getAllOwners();
 
 <table>
     <tr>
+        <th>No.</th>
         <th>Username</th>
         <th>Email</th>
         <th>Fastfood</th>
@@ -78,7 +111,7 @@ $admins = $val->getAllOwners();
         <th>Actions</th>
     </tr>
 
-    <?php foreach ($admins as $admin): ?>
+    <?php $i = 1; foreach ($admins as $admin): ?>
 
         <?php
             $isOnline = $val->isAdminOnline($admin['admin_id']);
@@ -86,6 +119,7 @@ $admins = $val->getAllOwners();
         ?>
 
         <tr>
+            <td><?= $i++ ?></td>
             <td><?= $admin['username'] ?></td>
             <td><?= $admin['email'] ?></td>
             <td><?= $admin['fastfood_name'] ?></td>

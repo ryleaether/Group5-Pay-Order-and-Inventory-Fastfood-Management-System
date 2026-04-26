@@ -9,14 +9,16 @@ $messageType = "";
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($_POST['password'] !== $_POST['confirm_password']) {
-        $message     = "Passwords do not match!";
-        $messageType = "error";
         $_SESSION['old'] = [
             'fullname'      => $_POST['fullname'],
             'fastfood_name' => $_POST['fastfood_name'],
             'email'         => $_POST['email'],
             'username'      => $_POST['username']
         ];
+        $_SESSION['error'] = "Passwords do not match!";
+        $_SESSION['error_type'] = "error";
+        header("Location: registration.php");
+        exit;
     } else {
         $result = $val->register(
             $_POST['username'],
@@ -27,21 +29,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         );
 
         if ($result === true) {
-            $message     = "Account created successfully!";
-            $messageType = "success";
             unset($_SESSION['old']);
+            $_SESSION['success'] = "Account created successfully! Please login.";
+            header("Location: login.php");
+            exit;
         } else {
-            $message     = $result;
-            $messageType = "error";
             $_SESSION['old'] = [
                 'fullname'      => $_POST['fullname'],
                 'fastfood_name' => $_POST['fastfood_name'],
                 'email'         => $_POST['email'],
                 'username'      => $_POST['username']
             ];
+            $_SESSION['error'] = "Registration failed. Please try again.";
+            $_SESSION['error_type'] = "error";
+            header("Location: registration.php");
+            exit;
         }
     }
 }
+
+// Handle messages from session
+$message = "";
+$messageType = "";
+if (isset($_SESSION['error'])) {
+    $message = $_SESSION['error'];
+    $messageType = $_SESSION['error_type'] ?? "error";
+    unset($_SESSION['error'], $_SESSION['error_type']);
+}
+if (isset($_SESSION['success'])) {
+    $message = $_SESSION['success'];
+    $messageType = "success";
+    unset($_SESSION['success']);
+}
+
+// Clear saved form values when arriving explicitly from another page
+if (isset($_GET['clear_old'])) {
+    unset($_SESSION['old']);
+}
+
+// Capture old inputs without clearing them so values persist across refresh
+$old = $_SESSION['old'] ?? [];
 ?>
 <!DOCTYPE html>
 <html>
@@ -84,19 +111,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="input-group">
                     <span>👤</span>
                     <input type="text" name="fullname" placeholder="Full Name"
-                           value="<?= htmlspecialchars($_SESSION['old']['fullname'] ?? '') ?>" required>
+                           value="<?= htmlspecialchars($old['fullname'] ?? '') ?>" autocomplete="name" required>
                 </div>
 
                 <div class="input-group">
                     <span>🍔</span>
                     <input type="text" name="fastfood_name" placeholder="Fast Food Name"
-                           value="<?= htmlspecialchars($_SESSION['old']['fastfood_name'] ?? '') ?>" required>
+                           value="<?= htmlspecialchars($old['fastfood_name'] ?? '') ?>" autocomplete="organization" required>
                 </div>
 
                 <div class="input-group">
                     <span>✉️</span>
                     <input type="email" name="email" placeholder="Email Address"
-                           value="<?= htmlspecialchars($_SESSION['old']['email'] ?? '') ?>" required>
+                           value="<?= htmlspecialchars($old['email'] ?? '') ?>" autocomplete="email" required>
                 </div>
 
                 <div class="divider">Account Credentials</div>
@@ -104,24 +131,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <div class="input-group">
                     <span>🔖</span>
                     <input type="text" name="username" placeholder="Username"
-                           value="<?= htmlspecialchars($_SESSION['old']['username'] ?? '') ?>" required>
+                           value="<?= htmlspecialchars($old['username'] ?? '') ?>" autocomplete="username" required>
                 </div>
 
                 <div class="input-group">
                     <span>🔒</span>
-                    <input type="password" name="password" placeholder="Password" required>
+                    <input type="password" name="password" id="password" placeholder="Password" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('password')">👁</button>
                 </div>
 
                 <div class="input-group">
                     <span>🔒</span>
-                    <input type="password" name="confirm_password" placeholder="Confirm Password" required>
+                    <input type="password" name="confirm_password" id="confirm_password" placeholder="Confirm Password" autocomplete="new-password" required>
+                    <button type="button" class="toggle-password" onclick="togglePassword('confirm_password')">👁</button>
                 </div>
 
                 <button type="submit">Create Account</button>
 
             </form>
 
-            <a href="login.php" class="bottom-link">
+            <a href="login.php?clear_old=1" class="bottom-link">
                 Already have an account? <span>Sign in</span>
             </a>
 
@@ -176,6 +205,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
 </div>
+
+<script>
+function togglePassword(fieldId) {
+    const input = document.getElementById(fieldId);
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+    } else {
+        input.type = 'password';
+    }
+}
+</script>
 
 </body>
 </html>

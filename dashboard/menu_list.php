@@ -10,7 +10,52 @@ if (!isset($_SESSION['admin_id'])) {
 $admin_id = $_SESSION['admin_id'];
 $dashboard = new MenuDashboardHelper($admin_id);
 $menu_handler = $dashboard->getMenuItemHandler();
-$items = $menu_handler->getAll();
+
+$db = new Database();
+$conn = $db->connect();
+$adminProfile = [];
+try {
+    $stmt = $conn->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
+    $stmt->bindParam(':id', $admin_id);
+    $stmt->execute();
+    $adminProfile = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+} catch (Exception $e) {
+    $adminProfile = [];
+}
+
+// Handle search and filter
+$search = $_GET['search'] ?? '';
+$category = $_GET['category'] ?? '';
+$status = $_GET['status'] ?? '';
+
+$items = $menu_handler->searchAndFilter($search, $category, $status);
+$categories = $menu_handler->getCategories();
+$allItems = $menu_handler->getAll();
+$hasAnyItems = !empty($allItems);
+
+$noResultsMessage = '';
+if (empty($items)) {
+    if (!$hasAnyItems) {
+        $noResultsMessage = 'No menu items yet. Add your first item!';
+    } else {
+        if ($search !== '' && ($category !== '' || $status !== '')) {
+            $noResultsMessage = 'No menu items match your search and selected filters.';
+        } elseif ($search !== '') {
+            $noResultsMessage = 'No items found matching "' . htmlspecialchars($search) . '". Try another search.';
+        } elseif ($category !== '' && $status !== '') {
+            $statusText = $status === '1' ? 'available' : 'unavailable';
+            $noResultsMessage = 'No ' . $statusText . ' items found in "' . htmlspecialchars($category) . '".';
+        } elseif ($category !== '') {
+            $noResultsMessage = 'No items found in "' . htmlspecialchars($category) . '". Try another category.';
+        } elseif ($status !== '') {
+            $noResultsMessage = $status === '1'
+                ? 'No available items match your current selection.'
+                : 'No unavailable items match your current selection.';
+        } else {
+            $noResultsMessage = 'No menu items match your current filters.';
+        }
+    }
+}
 
 // Sidebar renderer
 $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
@@ -33,6 +78,29 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
         <div class="topbar">
             <h1>🍔 Menu Items</h1>
             <p class="subtitle">Manage your food items</p>
+
+            <!-- SEARCH AND FILTER -->
+            <div class="search-filter">
+                <form method="GET" class="filter-form">
+                    <input type="text" name="search" placeholder="Search items..." value="<?= htmlspecialchars($search) ?>" autocomplete="off">
+                    <select name="category" autocomplete="off">
+                        <option value="">All Categories</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?= htmlspecialchars($cat) ?>" <?= $category === $cat ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cat) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <select name="status" autocomplete="off">
+                        <option value="">All Status</option>
+                        <option value="1" <?= $status === '1' ? 'selected' : '' ?>>Available</option>
+                        <option value="0" <?= $status === '0' ? 'selected' : '' ?>>Unavailable</option>
+                    </select>
+                    <button type="submit">🔍 Search</button>
+                    <a href="menu_list.php" class="clear-btn">Clear</a>
+                </form>
+            </div>
+
             <a href="#" class="btn-add" onclick="openModal('add')">+ Add New Item</a>
         </div>
 
@@ -82,7 +150,9 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
-                <p style="color:#888; grid-column:1/-1;">No menu items yet. Add your first item!</p>
+                <p class="empty-state" style="grid-column:1/-1;">
+                    <?= htmlspecialchars($noResultsMessage) ?>
+                </p>
             <?php endif; ?>
         </div>
 
@@ -119,11 +189,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
                 <!-- RIGHT: Fields -->
                 <div class="modal-fields">
-                    <input type="text"   name="item_name"     placeholder="Item Name"     required>
-                    <textarea            name="description"   placeholder="Description (optional)"></textarea>
-                    <input type="number" name="price"         placeholder="Price (₱)"     step="0.01" min="0" required>
-                    <input type="number" name="stock_quantity"placeholder="Stock Quantity" min="0"    required>
-                    <input type="text"   name="category"      placeholder="Category"       required>
+                    <input type="text"   name="item_name"     placeholder="Item Name"     required autocomplete="off">
+                    <textarea            name="description"   placeholder="Description (optional)" autocomplete="off"></textarea>
+                    <input type="number" name="price"         placeholder="Price (₱)"     step="0.01" min="0" required autocomplete="off">
+                    <input type="number" name="stock_quantity"placeholder="Stock Quantity" min="0"    required autocomplete="off">
+                    <input type="text"   name="category"      placeholder="Category"       required autocomplete="off">
 
                     <label class="check-label">
                         <input type="checkbox" name="is_available" value="1" checked>
@@ -172,11 +242,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
                 <!-- RIGHT: Fields -->
                 <div class="modal-fields">
-                    <input type="text"   name="item_name"      id="edit_name"     placeholder="Item Name"      required>
-                    <textarea            name="description"    id="edit_desc"     placeholder="Description"></textarea>
-                    <input type="number" name="price"          id="edit_price"    placeholder="Price (₱)"      step="0.01" min="0" required>
-                    <input type="number" name="stock_quantity" id="edit_stock"    placeholder="Stock Quantity"  min="0"    required>
-                    <input type="text"   name="category"       id="edit_category" placeholder="Category"        required>
+                    <input type="text"   name="item_name"      id="edit_name"     placeholder="Item Name"      required autocomplete="off">
+                    <textarea            name="description"    id="edit_desc"     placeholder="Description" autocomplete="off"></textarea>
+                    <input type="number" name="price"          id="edit_price"    placeholder="Price (₱)"      step="0.01" min="0" required autocomplete="off">
+                    <input type="number" name="stock_quantity" id="edit_stock"    placeholder="Stock Quantity"  min="0"    required autocomplete="off">
+                    <input type="text"   name="category"       id="edit_category" placeholder="Category"        required autocomplete="off">
 
                     <label class="check-label">
                         <input type="checkbox" name="is_available" id="edit_available" value="1">
@@ -187,6 +257,27 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
             <div id="editUploadStatus" class="upload-status"></div>
             <button type="submit" class="btn-save">💾 Update Item</button>
+        </form>
+    </div>
+</div>
+
+<!-- ================= ACCOUNT MODAL ================= -->
+<div id="accountModal" class="modal">
+    <div class="modal-content" style="max-width:420px; text-align:left;">
+        <span class="close" onclick="document.getElementById('accountModal').classList.remove('show')">&times;</span>
+        <h2 style="margin-bottom:12px;">👤 Edit Account</h2>
+        <p style="color:#555; font-size:14px; margin-bottom:18px;">Update the account information you use to sign in.</p>
+        <form id="accountForm" onsubmit="submitAccountForm(event)">
+            <div style="display:grid; gap:12px;">
+                <input type="text" name="fullname" placeholder="Full Name" value="<?= htmlspecialchars($adminProfile['fullname'] ?? '') ?>" required autocomplete="name">
+                <input type="text" name="fastfood_name" placeholder="Fastfood Name" value="<?= htmlspecialchars($adminProfile['fastfood_name'] ?? '') ?>" required autocomplete="organization">
+                <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($adminProfile['username'] ?? '') ?>" required autocomplete="username">
+                <input type="email" name="email" placeholder="Email" value="<?= htmlspecialchars($adminProfile['email'] ?? '') ?>" required autocomplete="email">
+                <input type="password" name="new_password" placeholder="New Password (leave blank to keep current)" autocomplete="new-password">
+                <input type="password" name="confirm_password" placeholder="Confirm New Password" autocomplete="new-password">
+                <div id="accountMessage" style="display:none; padding:12px; border-radius:10px; font-size:13px;"></div>
+                <button type="submit" class="btn-save" style="width:100%;">Save Changes</button>
+            </div>
         </form>
     </div>
 </div>
@@ -256,10 +347,12 @@ function openModal(type) {
 }
 function closeModal(type) {
     const map = { add: 'menuModal', edit: 'editModal', pin: 'pinModal', setupPin: 'setupPinModal' };
-    document.getElementById(map[type]).classList.remove('show');
+    const modal = document.getElementById(map[type]);
+    if (!modal) return;
+    modal.classList.remove('show');
 }
 document.addEventListener('click', function(e) {
-    ['menuModal','editModal','pinModal','setupPinModal'].forEach(id => {
+    ['menuModal','editModal','pinModal','setupPinModal','accountModal'].forEach(id => {
         const m = document.getElementById(id);
         if (m && e.target === m) m.classList.remove('show');
     });
@@ -361,8 +454,42 @@ function openEditModal(id) {
 let pinValue    = '';
 const PIN_HAS   = <?= json_encode(!empty($_SESSION['dashboard_pin_set'] ?? false)) ?>;
 
+function openAccountModal() {
+    const form = document.getElementById('accountForm');
+    form.reset();
+    document.getElementById('accountMessage').style.display = 'none';
+    form.querySelector('[name="fullname"]').value = <?= json_encode($adminProfile['fullname'] ?? '') ?>;
+    form.querySelector('[name="fastfood_name"]').value = <?= json_encode($adminProfile['fastfood_name'] ?? '') ?>;
+    form.querySelector('[name="username"]').value = <?= json_encode($adminProfile['username'] ?? '') ?>;
+    form.querySelector('[name="email"]').value = <?= json_encode($adminProfile['email'] ?? '') ?>;
+    document.getElementById('accountModal').classList.add('show');
+}
+
+function submitAccountForm(event) {
+    event.preventDefault();
+    const form = document.getElementById('accountForm');
+    const message = document.getElementById('accountMessage');
+    const data = new URLSearchParams(new FormData(form));
+
+    fetch('helpers/admindashboard_helpers.php?action=update_account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data.toString()
+    })
+    .then(r => r.json())
+    .then(result => {
+        message.style.display = 'block';
+        message.textContent = result.message;
+        message.style.background = result.success ? '#e6ffed' : '#ffe6e6';
+        message.style.color = result.success ? '#1f7a3c' : '#9b1f1f';
+        message.style.border = result.success ? '1px solid #8cd19e' : '1px solid #ea9a9a';
+        if (result.success) {
+            setTimeout(() => location.reload(), 900);
+        }
+    });
+}
+
 function openPinModal() {
-    /* Check if admin has set a PIN via AJAX */
     fetch('helpers/admindashboard_helpers.php?action=check_pin')
         .then(r => r.json())
         .then(data => {
@@ -477,6 +604,33 @@ function updatePinDots(containerId, count) {
     dots.forEach((dot, i) => {
         dot.classList.toggle('filled', i < count);
     });
+}
+
+// Expose modal functions so sidebar actions work consistently across pages
+window.openAccountModal = openAccountModal;
+window.openPinModal = openPinModal;
+window.submitAccountForm = submitAccountForm;
+window.closeModal = closeModal;
+
+function bindSidebarActions() {
+    document.querySelectorAll('a[data-action="open-account"]').forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            openAccountModal();
+        });
+    });
+    document.querySelectorAll('a[data-action="open-pin"]').forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            openPinModal();
+        });
+    });
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindSidebarActions);
+} else {
+    bindSidebarActions();
 }
 </script>
 

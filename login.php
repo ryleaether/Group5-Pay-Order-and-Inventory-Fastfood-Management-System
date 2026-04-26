@@ -34,9 +34,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             exit;
 
     } else {
-        $message = $result;
+        $_SESSION['error'] = "Invalid username or password";
+        $_SESSION['old_username'] = $username;
+        header("Location: login.php");
+        exit;
     }
 }
+
+// Handle error messages from session
+$message = "";
+if (isset($_SESSION['error'])) {
+    $message = $_SESSION['error'];
+    unset($_SESSION['error']);
+}
+if (isset($_SESSION['success'])) {
+    $message = $_SESSION['success'];
+    unset($_SESSION['success']);
+}
+
+// Clear the saved username when arriving explicitly from another page
+if (isset($_GET['clear_old'])) {
+    unset($_SESSION['old_username']);
+}
+
+// Capture old username without clearing it, so it stays on refresh
+$old_username = $_SESSION['old_username'] ?? '';
 ?>
 <!DOCTYPE html>
 <html>
@@ -63,14 +85,19 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <form method="POST">
             <h3>Sign in to your account</h3>
 
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
+            <?php if (!empty($message)): ?>
+                <p class="message"><?= htmlspecialchars($message) ?></p>
+            <?php endif; ?>
+
+            <input type="text" name="username" placeholder="Username" value="<?= htmlspecialchars($old_username) ?>" autocomplete="username" required>
+            <div class="password-container">
+                <input type="password" name="password" id="password" placeholder="Password" autocomplete="current-password" required>
+                <button type="button" class="toggle-password" onclick="togglePassword()">👁</button>
+            </div>
 
             <button type="submit">Login</button>
 
-            <p class="message"><?= $message ?? '' ?></p>
-
-            <a href="registration.php">Create account</a>
+            <a href="registration.php?clear_old=1">Create account</a>
         </form>
 
     </div>
@@ -96,6 +123,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
 </div>
+
+<script>
+function togglePassword() {
+    const input = document.getElementById('password');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+    } else {
+        input.type = 'password';
+    }
+}
+</script>
 
 </body>
 </html>

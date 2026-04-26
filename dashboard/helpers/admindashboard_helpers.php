@@ -103,9 +103,48 @@ class MenuItem {
      */
     public function delete($menu_item_id) {
         $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE menu_item_id = :id AND admin_id = :admin_id");
-        $stmt->bindParam(":id",       $menu_item_id);
+        $stmt->bindParam(":id", $menu_item_id);
         $stmt->bindParam(":admin_id", $this->admin_id);
         return $stmt->execute();
+    }
+
+    /**
+     * Search and filter menu items
+     */
+    public function searchAndFilter($search = '', $category = '', $status = '') {
+        $sql = "SELECT * FROM {$this->table} WHERE admin_id = :admin_id";
+        $params = [':admin_id' => $this->admin_id];
+
+        if (!empty($search)) {
+            $sql .= " AND (item_name LIKE :search OR description LIKE :search OR category LIKE :search)";
+            $params[':search'] = '%' . $search . '%';
+        }
+
+        if (!empty($category)) {
+            $sql .= " AND category = :category";
+            $params[':category'] = $category;
+        }
+
+        if ($status !== '') {
+            $sql .= " AND is_available = :status";
+            $params[':status'] = (int)$status;
+        }
+
+        $sql .= " ORDER BY created_at DESC";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Get unique categories for filter dropdown
+     */
+    public function getCategories() {
+        $stmt = $this->conn->prepare("SELECT DISTINCT category FROM {$this->table} WHERE admin_id = :admin_id ORDER BY category");
+        $stmt->bindParam(":admin_id", $this->admin_id);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
 }
 
@@ -382,10 +421,25 @@ class SidebarRenderer {
                         🍔 Menu List
                     </a>
                 </li>
-                <li>🧾 Orders History</li>
-                <li>⏳ Order Queue</li>
-                <li onclick="openPinModal()" style="cursor:pointer;">
-                    🔄 Switch to User Dashboard
+                <li>
+                    <a href="#" onclick="openAccountModal(); return false;" data-action="open-account" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                        👤 Account
+                    </a>
+                </li>
+                <li>
+                    <a href="#" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                        🧾 Orders History
+                    </a>
+                </li>
+                <li>
+                    <a href="#" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                        ⏳ Order Queue
+                    </a>
+                </li>
+                <li>
+                    <a href="#" onclick="openPinModal(); return false;" data-action="open-pin" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                        🔄 Switch to User Dashboard
+                    </a>
                 </li>
             </ul>
             <a class="logout" href="../logout.php">Logout</a>
@@ -443,6 +497,9 @@ class APIHandler {
                 break;
             case 'save_pin':
                 $this->handleSavePin();
+                break;
+            case 'update_account':
+                $this->handleUpdateAccount();
                 break;
 
             default:
@@ -580,6 +637,77 @@ class APIHandler {
         $pin_manager = $this->dashboard->getPINManager();
         $result = $pin_manager->savePIN($pin);
         echo json_encode($result);
+        exit;
+    }
+
+    /**
+     * Handle account update
+     */
+    private function handleUpdateAccount() {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Invalid request method']);
+            exit;
+        }
+
+        $username      = trim($_POST['username'] ?? '');
+        $email         = trim($_POST['email'] ?? '');
+        $fullname      = trim($_POST['fullname'] ?? '');
+        $fastfood_name = trim($_POST['fastfood_name'] ?? '');
+        $new_password  = trim($_POST['new_password'] ?? '');
+        $confirm_pass  = trim($_POST['confirm_password'] ?? '');
+
+        if ($username === '' || $email === '' || $fullname === '' || $fastfood_name === '') {
+            echo json_encode(['success' => false, 'message' => 'Please complete all account fields.']);
+            exit;
+        }
+
+        if ($new_password !== '' && $new_password !== $confirm_pass) {
+            echo json_encode(['success' => false, 'message' => 'New password and confirmation do not match.']);
+            exit;
+        }
+
+        $db = new Database();
+        $conn = $db->connect();
+
+        $check = $conn->prepare(
+            'SELECT admin_id FROM admins WHERE (username = :username OR email = :email) AND admin_id != :id'
+        );
+        $check->bindParam(':username', $username);
+        $check->bindParam(':email', $email);
+        $check->bindParam(':id', $this->admin_id);
+        $check->execute();
+
+        if ($check->fetch()) {
+            echo json_encode(['success' => false, 'message' => 'Username or email is already in use by another account.']);
+            exit;
+        }
+
+        $updateFields = 'username = :username, email = :email, fullname = :fullname, fastfood_name = :fastfood_name';
+        if ($new_password !== '') {
+            $hashed = password_hash($new_password, PASSWORD_BCRYPT);
+            $updateFields .= ', password = :password';
+        }
+
+        $sql = "UPDATE admins SET {$updateFields} WHERE admin_id = :id";
+        $stmt = $conn->prepare($sql);
+        $stmt->bindParam(':username', $username);
+        $stmt->bindParam(':email', $email);
+        $stmt->bindParam(':fullname', $fullname);
+        $stmt->bindParam(':fastfood_name', $fastfood_name);
+        $stmt->bindParam(':id', $this->admin_id);
+        if ($new_password !== '') {
+            $stmt->bindParam(':password', $hashed);
+        }
+
+        if ($stmt->execute()) {
+            $_SESSION['username'] = $username;
+            $_SESSION['fastfood_name'] = $fastfood_name;
+            echo json_encode(['success' => true, 'message' => 'Account details updated successfully.']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Unable to update account. Please try again.']);
+        }
         exit;
     }
 
