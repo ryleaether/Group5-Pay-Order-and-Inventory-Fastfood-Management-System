@@ -122,7 +122,7 @@ class ImageUploader {
 
     public function __construct($admin_id) {
         $this->admin_id = $admin_id;
-        $this->upload_dir = __DIR__ . "/../../uploads/";
+        $this->upload_dir = __DIR__ . "/../uploads/";
     }
 
     /**

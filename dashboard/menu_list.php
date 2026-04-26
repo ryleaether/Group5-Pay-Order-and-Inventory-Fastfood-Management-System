@@ -73,7 +73,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
                                 ✏️ Edit
                             </a>
                             <a class="btn delete"
-                               href="admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
+                               href="helpers/admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
                                onclick="return confirm('Delete this item?')">
                                 🗑️ Delete
                             </a>
@@ -95,7 +95,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
         <span class="close" onclick="closeModal('add')">&times;</span>
         <h2>🍔 Add New Menu Item</h2>
 
-        <form action="admindashboard_helpers.php?action=add_menu" method="POST" id="addForm">
+        <form action="helpers/admindashboard_helpers.php?action=add_menu" method="POST" id="addForm">
             <input type="hidden" name="image_url" id="add_image_url">
 
             <div class="modal-two-col">
