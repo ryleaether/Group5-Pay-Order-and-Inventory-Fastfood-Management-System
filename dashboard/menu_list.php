@@ -1,21 +1,19 @@
 <?php
 session_start();
-require_once __DIR__ . "/../config/database.php";
-require_once __DIR__ . "/../validation.php";
+require_once __DIR__ . "/helpers/admindashboard_helpers.php";
 
 if (!isset($_SESSION['admin_id'])) {
     header("Location: ../login.php");
     exit;
 }
 
-$db       = new Database();
-$conn     = $db->connect();
 $admin_id = $_SESSION['admin_id'];
+$dashboard = new MenuDashboardHelper($admin_id);
+$menu_handler = $dashboard->getMenuItemHandler();
+$items = $menu_handler->getAll();
 
-$stmt = $conn->prepare("SELECT * FROM menu_items WHERE admin_id = :id ORDER BY created_at DESC");
-$stmt->bindParam(":id", $admin_id);
-$stmt->execute();
-$items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Sidebar renderer
+$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 ?>
 <!DOCTYPE html>
 <html>
@@ -27,28 +25,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 <div class="dashboard">
 
-    <!-- SIDEBAR -->
-    <div class="sidebar">
-        <div class="logo">
-            <h2>iPOS</h2>
-            <p><?= htmlspecialchars($_SESSION['fastfood_name'] ?? '') ?></p>
-        </div>
-        <ul>
-            <li>
-                <a href="admindashboard.php" style="text-decoration:none; color:inherit;">
-                    📊 Dashboard
-                </a>
-            </li>
-            <li class="active">🍔 Menu List</li>
-            <li>🧾 Orders History</li>
-            <li>⏳ Order Queue</li>
-            <li>📦 Inventory</li>
-            <li onclick="openPinModal()" style="cursor:pointer;">
-                🔄 Switch to User Dashboard
-            </li>
-        </ul>
-        <a class="logout" href="../logout.php">Logout</a>
-    </div>
+    <?= $sidebar->render('menu') ?>
 
     <!-- MAIN -->
     <div class="main">
@@ -96,7 +73,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 ✏️ Edit
                             </a>
                             <a class="btn delete"
-                               href="delete_menu.php?id=<?= $item['menu_item_id'] ?>"
+                               href="admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
                                onclick="return confirm('Delete this item?')">
                                 🗑️ Delete
                             </a>
@@ -118,7 +95,7 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <span class="close" onclick="closeModal('add')">&times;</span>
         <h2>🍔 Add New Menu Item</h2>
 
-        <form action="add_menu.php" method="POST" id="addForm">
+        <form action="admindashboard_helpers.php?action=add_menu" method="POST" id="addForm">
             <input type="hidden" name="image_url" id="add_image_url">
 
             <div class="modal-two-col">
@@ -167,14 +144,15 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <span class="close" onclick="closeModal('edit')">&times;</span>
         <h2>✏️ Edit Menu Item</h2>
 
-        <form action="edit_menu.php" method="POST" id="editForm">
+        <form action="/dashboard/helpers/admindashboard_helpers.php?action=edit_menu" method="POST" id="editForm">
             <input type="hidden" name="menu_item_id" id="edit_id">
             <input type="hidden" name="image_url"    id="edit_image_url">
 
             <div class="modal-two-col">
 
                 <!-- LEFT: Image -->
-                <div class="img-upload-placeholder" id="editImgPlaceholder" style="display:none;">
+                <div class="img-upload-area" id="editDropZone" onclick="document.getElementById('editImageInput').click()">
+                    <div class="img-upload-placeholder" id="editImgPlaceholder" style="display:none;">
                         <span>📷</span>
                         <p>Click to change image</p>
                         <small>JPG, PNG, WEBP only · Max 2MB</small>
@@ -186,8 +164,11 @@ $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     </div>
                     <img id="editImgPreview" class="img-preview" style="display:none;">
                     <input type="file" id="editImageInput" accept="image/*" style="display:none;"
-                           onchange="handleImageUpload(this, 'edit')">
+                        onchange="handleImageUpload(this, 'edit')">
                 </div>
+
+    <!-- RIGHT: Fields -->
+    <div class="modal-fields">
 
                 <!-- RIGHT: Fields -->
                 <div class="modal-fields">
@@ -302,7 +283,7 @@ function handleImageUpload(input, prefix) {
     const formData = new FormData();
     formData.append('image', file);
 
-    fetch('upload_image.php', { method: 'POST', body: formData })
+    fetch('helpers/admindashboard_helpers.php?action=upload_image', { method: 'POST', body: formData })
         .then(r => r.json())
         .then(data => {
             if (data.success) {
@@ -343,7 +324,7 @@ function handleImageUpload(input, prefix) {
    EDIT MODAL — fetch item data
 =================================================== */
 function openEditModal(id) {
-    fetch('edit_menu.php?id=' + id)
+    fetch('helpers/admindashboard_helpers.php?action=edit_menu&id=' + id)
         .then(r => r.json())
         .then(data => {
             if (!data.success) { alert('Could not load item.'); return; }
@@ -382,7 +363,7 @@ const PIN_HAS   = <?= json_encode(!empty($_SESSION['dashboard_pin_set'] ?? false
 
 function openPinModal() {
     /* Check if admin has set a PIN via AJAX */
-    fetch('check_pin.php')
+    fetch('helpers/admindashboard_helpers.php?action=check_pin')
         .then(r => r.json())
         .then(data => {
             if (data.has_pin) {
@@ -414,7 +395,7 @@ function pinBackspace() {
     updatePinDots('pinDots', pinValue.length);
 }
 function verifyPin() {
-    fetch('check_pin.php', {
+    fetch('helpers/admindashboard_helpers.php?action=check_pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'pin=' + encodeURIComponent(pinValue)
@@ -473,7 +454,7 @@ function setupPinBackspace() {
     updatePinDots('setupPinDots', setupPinCurrent.length);
 }
 function savePin(pin) {
-    fetch('save_pin.php', {
+    fetch('helpers/admindashboard_helpers.php?action=save_pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'pin=' + encodeURIComponent(pin)

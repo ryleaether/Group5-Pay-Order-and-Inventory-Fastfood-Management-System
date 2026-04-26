@@ -1,5 +1,6 @@
 <?php
 session_start();
+require_once __DIR__ . "/helpers/admindashboard_helpers.php";
 require_once __DIR__ . "/../validation.php";
 
 if (!isset($_SESSION['admin_id'])) {
@@ -12,6 +13,9 @@ $db   = new Database();
 $conn = $db->connect();
 
 $admin_id = $_SESSION['admin_id'];
+
+// Sidebar renderer
+$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
 /* =========================
    DEVICE COUNT (existing)
@@ -233,25 +237,7 @@ try {
 <div class="dashboard">
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
-        <div class="logo">
-            <h2>iPOS</h2>
-            <p><?= htmlspecialchars($_SESSION['fastfood_name'] ?? '') ?></p>
-        </div>
-        <ul>
-            <li class="active">📊 Dashboard</li>
-           <li>
-                    <a href="menu_list.php" style="text-decoration:none; color:inherit;">
-                        🍔 Menu List
-                    </a>
-                </li>
-            <li>🧾 Orders History</li>
-            <li>⏳ Order Queue</li>
-            <li>📦 Inventory</li>
-            <li onclick="openPinModal()" style="cursor:pointer;">🔄 Switch to User Dashboard</li>
-        </ul>
-        <a class="logout" href="../logout.php">Logout</a>
-    </div>
+    <?= $sidebar->render('dashboard') ?>
 
     <!-- MAIN -->
     <div class="main">
