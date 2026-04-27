@@ -112,3 +112,24 @@ CREATE TABLE IF NOT EXISTS payments (
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS staffs (
+    staff_id        INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id        INT NOT NULL,
+    fullname        VARCHAR(100) NOT NULL,
+    username        VARCHAR(50) NOT NULL UNIQUE,
+    password        VARCHAR(255) NOT NULL,
+    role            ENUM('cashier', 'kitchen_manager') NOT NULL,
+    is_active       TINYINT(1) NOT NULL DEFAULT 1,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login      TIMESTAMP NULL,
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS staff_sessions (
+    session_id      VARCHAR(255) PRIMARY KEY,
+    staff_id        INT NOT NULL,
+    login_time      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    logout_time     TIMESTAMP NULL,
+    is_active       BOOLEAN DEFAULT 1,
+    FOREIGN KEY (staff_id) REFERENCES staffs(staff_id) ON DELETE CASCADE
+);

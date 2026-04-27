@@ -438,7 +438,7 @@ class SidebarRenderer {
                 </li>
                 <li>
                     <a href="#" onclick="openPinModal(); return false;" data-action="open-pin" style="text-decoration:none; color:inherit; display:block; width:100%;">
-                        🔄 Switch to User Dashboard
+                        🔄 Switch to Cashier Dashboard
                     </a>
                 </li>
             </ul>
