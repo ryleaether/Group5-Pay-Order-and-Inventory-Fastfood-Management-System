@@ -426,13 +426,13 @@ class SidebarRenderer {
                         👤 Account
                     </a>
                 </li>
-                <li>
-                    <a href="#" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                <li class="<?= $active_page === 'history' ? 'active' : '' ?>">
+                    <a href="order_history.php" style="text-decoration:none; color:inherit; display:block; width:100%;">
                         🧾 Orders History
                     </a>
                 </li>
-                <li>
-                    <a href="#" style="text-decoration:none; color:inherit; display:block; width:100%;">
+                <li class="<?= $active_page === 'queue' ? 'active' : '' ?>">
+                    <a href="order_queue.php" style="text-decoration:none; color:inherit; display:block; width:100%;">
                         ⏳ Order Queue
                     </a>
                 </li>
@@ -475,6 +475,10 @@ class APIHandler {
         }
 
         switch ($action) {
+            case 'update_order':
+                $this->handleUpdateOrder();
+                break;
+
             // Menu Item Operations
             case 'add_menu':
                 $this->handleAddMenu();
@@ -505,6 +509,77 @@ class APIHandler {
             default:
                 $this->sendError('Invalid action');
         }
+    }
+
+    /**
+     * Handle updating order status (serve / cancel)
+     */
+    private function handleUpdateOrder() {
+        header('Content-Type: application/json');
+
+        $order_id = intval($_POST['order_id'] ?? 0);
+        $status   = $_POST['status'] ?? '';
+
+        $allowed = ['Preparing', 'Served', 'Cancelled'];
+        if (!$order_id || !in_array($status, $allowed)) {
+            echo json_encode(['success' => false, 'message' => 'Invalid data.']);
+            exit;
+        }
+
+        $db   = new Database();
+        $conn = $db->connect();
+
+        try {
+            $conn->beginTransaction();
+
+            /* Verify order belongs to this admin */
+            $stmt = $conn->prepare("SELECT order_status FROM orders WHERE order_id = :id AND admin_id = :admin_id");
+            $stmt->bindParam(":id",       $order_id);
+            $stmt->bindParam(":admin_id", $this->admin_id);
+            $stmt->execute();
+            $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$order) throw new Exception('Order not found.');
+
+            /* If cancelling, restore stock */
+            if ($status === 'Cancelled') {
+                $stmt = $conn->prepare("SELECT menu_item_id, quantity FROM order_items WHERE order_id = :id");
+                $stmt->bindParam(":id", $order_id);
+                $stmt->execute();
+                $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+                foreach ($items as $item) {
+                    $stmt = $conn->prepare("
+                        UPDATE menu_items SET stock_quantity = stock_quantity + :qty
+                        WHERE menu_item_id = :id AND admin_id = :admin_id
+                    ");
+                    $stmt->bindParam(":qty",      $item['quantity']);
+                    $stmt->bindParam(":id",       $item['menu_item_id']);
+                    $stmt->bindParam(":admin_id", $this->admin_id);
+                    $stmt->execute();
+                }
+
+                /* Update payment status */
+                $stmt = $conn->prepare("UPDATE payments SET payment_status = 'Failed' WHERE order_id = :id");
+                $stmt->bindParam(":id", $order_id);
+                $stmt->execute();
+            }
+
+            /* Update order status */
+            $stmt = $conn->prepare("UPDATE orders SET order_status = :status WHERE order_id = :id AND admin_id = :admin_id");
+            $stmt->bindParam(":status",   $status);
+            $stmt->bindParam(":id",       $order_id);
+            $stmt->bindParam(":admin_id", $this->admin_id);
+            $stmt->execute();
+
+            $conn->commit();
+            echo json_encode(['success' => true]);
+
+        } catch (Exception $e) {
+            $conn->rollBack();
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 
     /**
