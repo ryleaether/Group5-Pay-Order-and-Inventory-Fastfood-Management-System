@@ -71,6 +71,7 @@ $admins = $val->getAllOwners();
 <head>
     <title>Super Admin Dashboard</title>
     <link rel="stylesheet" href="../design/superadmin.css">
+    <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
 </head>
 
 <body>

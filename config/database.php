@@ -4,7 +4,7 @@ class Database {
     private $host = "localhost";
     private $dbname = "ipos_db";
     private $username = "root";
-    private $password = "root";
+    private $password = "";
 
     public $conn;
 

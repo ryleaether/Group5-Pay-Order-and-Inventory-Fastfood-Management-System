@@ -68,6 +68,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 <head>
     <title>Orders History</title>
     <link rel="stylesheet" href="../design/admin.css">
+    <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
 </head>
 <body>
 

@@ -66,10 +66,11 @@ CREATE TABLE IF NOT EXISTS orders (
     order_id        INT AUTO_INCREMENT PRIMARY KEY,
     admin_id        INT NOT NULL,
     customer_id     INT NOT NULL,
-    order_status    ENUM('Queued','Preparing','Served','Cancelled') NOT NULL DEFAULT 'Queued',
+    order_status    ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued',
     total_amount    DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     queue_number    INT NOT NULL DEFAULT 0,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id)    REFERENCES admins(admin_id)       ON DELETE CASCADE,
     FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
 );
@@ -112,24 +113,14 @@ CREATE TABLE IF NOT EXISTS payments (
     FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS staffs (
-    staff_id        INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id        INT NOT NULL,
-    fullname        VARCHAR(100) NOT NULL,
-    username        VARCHAR(50) NOT NULL UNIQUE,
-    password        VARCHAR(255) NOT NULL,
-    role            ENUM('cashier', 'kitchen_manager') NOT NULL,
-    is_active       TINYINT(1) NOT NULL DEFAULT 1,
-    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login      TIMESTAMP NULL,
-    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
-);
+-- theme_data column (run manually if not exists):
+-- ALTER TABLE admins ADD COLUMN theme_data TEXT NULL;
 
-CREATE TABLE IF NOT EXISTS staff_sessions (
-    session_id      VARCHAR(255) PRIMARY KEY,
-    staff_id        INT NOT NULL,
-    login_time      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    logout_time     TIMESTAMP NULL,
-    is_active       BOOLEAN DEFAULT 1,
-    FOREIGN KEY (staff_id) REFERENCES staffs(staff_id) ON DELETE CASCADE
-);
+-- Run this if upgrading from earlier versions:
+-- ALTER TABLE admins ADD COLUMN theme_data TEXT NULL;
+
+-- ── MIGRATION: run these on existing databases ────────────────────────────
+ALTER TABLE admins   ADD COLUMN IF NOT EXISTS theme_data TEXT NULL;
+ALTER TABLE orders   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER TABLE orders   MODIFY COLUMN order_status ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued';
+-- ─────────────────────────────────────────────────────────────────────────

@@ -197,6 +197,7 @@ try {
 <head>
     <title>iPOS Admin Dashboard</title>
     <link rel="stylesheet" href="../design/admin.css">
+    <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <style>
         .section-title {
             font-size: 16px;

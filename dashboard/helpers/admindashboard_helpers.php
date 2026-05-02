@@ -380,7 +380,7 @@ class MenuDashboardHelper {
     }
 }
 
-/**
+/**a
  * ===============================================
  * SidebarRenderer - Render dashboard sidebar
  * ===============================================
@@ -388,62 +388,431 @@ class MenuDashboardHelper {
 class SidebarRenderer {
     private $admin_id;
     private $fastfood_name;
+    private $admin_name;
+    private $username;
+    private $email;
 
-    public function __construct($admin_id, $fastfood_name = '') {
-        $this->admin_id = $admin_id;
+    public function __construct($admin_id, $fastfood_name = '', $admin_name = '', $username = '', $email = '') {
+        $this->admin_id      = $admin_id;
         $this->fastfood_name = $fastfood_name;
+        $this->admin_name    = $admin_name;
+        $this->username      = $username;
+        $this->email         = $email;
     }
 
-    /**
-     * Render the sidebar HTML
-     * @param string $active_page The active page: 'dashboard' or 'menu'
-     */
     public function render($active_page = 'dashboard') {
-        $menu_active = $active_page === 'menu' ? 'active' : '';
-        $dashboard_active = $active_page === 'dashboard' ? 'active' : '';
-        
-        ob_start();
-        ?>
-        <!-- SIDEBAR -->
+        $is          = fn($page) => $active_page === $page ? 'active' : '';
+        $name        = htmlspecialchars($this->fastfood_name ?? '');
+        $adminName   = htmlspecialchars($this->admin_name ?? 'Admin');
+        $username    = htmlspecialchars($this->username ?? '');
+        $email       = htmlspecialchars($this->email ?? '');
+        $initial     = strtoupper(substr(strip_tags($adminName), 0, 1)) ?: 'A';
+
+        ob_start(); ?>
+        <!-- ===== SIDEBAR ===== -->
         <div class="sidebar">
+
+            <!-- Brand / Logo -->
             <div class="logo">
-                <h2>iPOS</h2>
-                <p><?= htmlspecialchars($this->fastfood_name ?? '') ?></p>
+                <div class="logo-icon-box">iP</div>
+                <div class="logo-text">
+                    <h2>iPOS</h2>
+                    <p>I Pay, I Order, I Serve</p>
+                </div>
             </div>
-            <ul>
-                <li class="<?= $dashboard_active ?>">
-                    <a href="admindashboard.php" style="text-decoration:none; color:inherit;">
-                        📊 Dashboard
-                    </a>
-                </li>
-                <li class="<?= $menu_active ?>">
-                    <a href="menu_list.php" style="text-decoration:none; color:inherit;">
-                        🍔 Menu List
-                    </a>
-                </li>
-                <li>
-                    <a href="#" onclick="openAccountModal(); return false;" data-action="open-account" style="text-decoration:none; color:inherit; display:block; width:100%;">
-                        👤 Account
-                    </a>
-                </li>
-                <li class="<?= $active_page === 'history' ? 'active' : '' ?>">
-                    <a href="order_history.php" style="text-decoration:none; color:inherit; display:block; width:100%;">
-                        🧾 Orders History
-                    </a>
-                </li>
-                <li class="<?= $active_page === 'queue' ? 'active' : '' ?>">
-                    <a href="order_queue.php" style="text-decoration:none; color:inherit; display:block; width:100%;">
-                        ⏳ Order Queue
-                    </a>
-                </li>
-                <li>
-                    <a href="#" onclick="openPinModal(); return false;" data-action="open-pin" style="text-decoration:none; color:inherit; display:block; width:100%;">
-                        🔄 Switch to Cashier Dashboard
-                    </a>
-                </li>
-            </ul>
-            <a class="logout" href="../logout.php">Logout</a>
+
+            <!-- Clickable User Profile → Account Dashboard -->
+            <div class="sidebar-profile" onclick="window.location.href='account_pin_gate.php'" title="Click to manage account" style="cursor:pointer;">
+                <div class="user-avatar"><?= $initial ?></div>
+                <div class="user-info">
+                    <div class="user-name"><?= $adminName ?></div>
+                    <div class="user-role">Administrator</div>
+                </div>
+                <span class="profile-edit-btn" title="Account Dashboard">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                    </svg>
+                </span>
+            </div>
+
+            <!-- Navigation -->
+            <div class="sidebar-nav">
+
+                <div class="sidebar-section-label">Main</div>
+                <ul>
+                    <li class="<?= $is('dashboard') ?>">
+                        <a href="admindashboard.php">
+                            <span class="nav-icon">📊</span> Dashboard
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-label">Management</div>
+                <ul>
+                    <li class="<?= $is('menu') ?>">
+                        <a href="menu_list.php">
+                            <span class="nav-icon">🍔</span> Manage Menu
+                        </a>
+                    </li>
+                    <li class="<?= $is('history') ?>">
+                        <a href="order_history.php">
+                            <span class="nav-icon">🧾</span> Order History
+                        </a>
+                    </li>
+                    <li class="<?= $is('staffs') ?>">
+                        <a href="manage_staffs.php">
+                            <span class="nav-icon">👥</span> Manage Staffs
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-section-label">Activity</div>
+                <ul>
+                    <li class="<?= $is('account') ?>">
+                        <a href="account_pin_gate.php">
+                            <span class="nav-icon">👤</span> Account
+                        </a>
+                    </li>
+                    <li class="<?= $is('kitchen') ?>">
+                        <a href="kitchen_pin_gate.php">
+                            <span class="nav-icon">🍳</span> Kitchen Manager
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" onclick="openPinModal('cashier'); return false;" class="activity-link">
+                            <span class="nav-icon">🖥️</span> Cashier / Kiosk
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-divider"></div>
+
+                <ul>
+                    <li>
+                        <a href="../logout.php" class="logout-link">
+                            <span class="nav-icon">🚪</span> Logout
+                        </a>
+                    </li>
+                </ul>
+
+            </div>
         </div>
+
+        <!-- ===== PROFILE EDIT MODAL ===== -->
+        <div id="profileModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeProfileModal()">
+            <div class="modal-box">
+                <div class="modal-header">
+                    <div class="modal-avatar"><?= $initial ?></div>
+                    <div>
+                        <h3>Edit Profile</h3>
+                        <p class="modal-subtitle">Update your account information</p>
+                    </div>
+                    <button class="modal-close" onclick="closeProfileModal()">✕</button>
+                </div>
+                <form id="profileForm" method="POST" action="update_profile.php">
+                    <input type="hidden" name="admin_id" value="<?= (int)$this->admin_id ?>">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" name="full_name" value="<?= $adminName ?>" placeholder="Enter full name" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Restaurant Name</label>
+                            <input type="text" name="fastfood_name" value="<?= $name ?>" placeholder="Restaurant name" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Username</label>
+                            <input type="text" name="username" value="<?= $username ?>" placeholder="Enter username" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" value="<?= $email ?>" placeholder="Enter email">
+                        </div>
+                    </div>
+
+                    <div class="form-divider">Change Password <span>(leave blank to keep current)</span></div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" name="new_password" placeholder="New password">
+                        </div>
+                        <div class="form-group">
+                            <label>Confirm Password</label>
+                            <input type="password" name="confirm_password" placeholder="Confirm new password">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Current Password <span class="required">* required to save</span></label>
+                        <input type="password" name="current_password" placeholder="Enter current password to confirm changes" required>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
+                        <button type="submit" class="btn-save">💾 Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <style>
+        /* ===== SIDEBAR — uses CSS vars, changed by theme ===== */
+        .sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', sans-serif;
+            position: fixed;
+            top: 0; left: 0;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        /* LOGO */
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 1.2rem 1.2rem 1rem;
+        }
+        .logo-icon-box {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent-light, #f87171), var(--accent));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-weight: 800;
+            font-size: 0.85rem;
+            letter-spacing: -0.5px;
+        }
+        .logo-text h2 { color: #fff; font-size: 1.05rem; font-weight: 700; margin: 0; }
+        .logo-text p  { color: rgba(255,255,255,0.45); font-size: 0.65rem; margin: 0; }
+
+        /* USER PROFILE CARD */
+        .sidebar-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0.5rem 0.8rem 0.8rem;
+            padding: 0.75rem 0.9rem;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+            text-decoration: none;
+        }
+        .sidebar-profile:hover {
+            background: rgba(255,255,255,0.13);
+            border-color: rgba(255,255,255,0.2);
+        }
+        .user-avatar {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--accent-light, #f87171), var(--accent));
+            color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .user-info { flex: 1; overflow: hidden; }
+        .user-name  { color: #fff; font-size: 0.88rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-role  { color: rgba(255,255,255,0.45); font-size: 0.68rem; }
+        .profile-edit-btn {
+            color: rgba(255,255,255,0.45);
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.08);
+            border-radius: 7px;
+            padding: 5px;
+            display: flex;
+            transition: background 0.2s, color 0.2s;
+        }
+        .sidebar-profile:hover .profile-edit-btn {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        /* NAV */
+        .sidebar-nav { flex: 1; padding: 0 0.5rem; }
+        .sidebar-nav ul { list-style: none; margin: 0 0 0.4rem; padding: 0; }
+        .sidebar-nav ul li a {
+            display: flex; align-items: center; gap: 10px;
+            padding: 0.6rem 0.9rem;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            border-radius: 9px;
+            font-size: 0.85rem;
+            transition: background 0.15s, color 0.15s;
+        }
+        .sidebar-nav ul li a:hover,
+        .sidebar-nav ul li.active a {
+            background: var(--sidebar-active-bg);
+            color: #fff;
+        }
+        .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+        .activity-link { color: rgba(255,255,255,0.6) !important; }
+        .activity-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
+        .logout-link { color: rgba(255,100,100,0.8) !important; }
+        .logout-link:hover { background: rgba(248,113,113,0.12) !important; color: #f87171 !important; }
+
+        .sidebar-section-label {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.63rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.9rem 1rem 0.3rem;
+        }
+        .sidebar-divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.07);
+            margin: 0.5rem 0.9rem;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 500px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 1.3rem 1.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .modal-avatar {
+            width: 44px; height: 44px;
+            background: linear-gradient(135deg, var(--accent-light, #f87171), var(--accent));
+            color: #fff;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+        .modal-header h3 { margin: 0; font-size: 1rem; color: var(--text-primary); font-weight: 700; }
+        .modal-subtitle  { margin: 2px 0 0; font-size: 0.72rem; color: #999; }
+        .modal-close {
+            margin-left: auto;
+            background: none; border: none;
+            font-size: 1rem; cursor: pointer;
+            color: #aaa; padding: 6px 8px; border-radius: 8px;
+        }
+        .modal-close:hover { background: var(--accent-light); color: var(--text-primary); }
+
+        #profileForm { padding: 1.2rem 1.5rem 1.5rem; }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #4a1030;
+            margin-bottom: 0.3rem;
+        }
+        .form-group .required { color: #be185d; font-weight: 400; }
+        .form-group input {
+            width: 100%; box-sizing: border-box;
+            padding: 0.55rem 0.8rem;
+            border: 1.5px solid #e8d0da;
+            border-radius: 8px;
+            font-size: 0.84rem;
+            color: #2d0a1f;
+            outline: none;
+            transition: border-color 0.2s;
+            background: #fdf7f9;
+        }
+        .form-group input:focus { border-color: #be185d; background: #fff; }
+        .form-group input::placeholder { color: #c4a0b0; }
+
+        .form-divider {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #be185d;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            border-top: 1.5px solid var(--border-color);
+            padding-top: 0.8rem;
+            margin-bottom: 0.8rem;
+        }
+        .form-divider span { color: #aaa; font-weight: 400; text-transform: none; letter-spacing: 0; }
+
+        .form-group label { display: block; font-size: 0.75rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.3rem; }
+        .form-group .required { color: var(--accent); font-weight: 400; }
+        .form-group input {
+            width: 100%; box-sizing: border-box;
+            padding: 0.55rem 0.8rem;
+            border: 1.5px solid var(--border-color);
+            border-radius: 8px; font-size: 0.84rem;
+            color: var(--text-primary); outline: none;
+            transition: border-color 0.2s; background: var(--body-bg);
+        }
+        .form-group input:focus { border-color: var(--accent); background: #fff; }
+        .form-group input::placeholder { color: var(--text-secondary); }
+        .form-divider { font-size: 0.75rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.07em; border-top: 1.5px solid var(--border-color); padding-top: 0.8rem; margin-bottom: 0.8rem; }
+
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.2rem; }
+        .btn-cancel {
+            padding: 0.55rem 1.2rem;
+            border: 1.5px solid var(--border-color);
+            background: #fff; color: var(--text-primary);
+            border-radius: 8px; font-size: 0.84rem; cursor: pointer;
+        }
+        .btn-cancel:hover { background: var(--accent-light); }
+        .btn-save {
+            padding: 0.55rem 1.4rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+            color: #fff; border: none;
+            border-radius: 8px; font-size: 0.84rem; font-weight: 600; cursor: pointer;
+        }
+        .btn-save:hover { opacity: 0.9; }
+        </style>
+
+        <script>
+        function openProfileModal()  {
+            const m = document.getElementById('profileModal');
+            m.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+        function closeProfileModal() {
+            const m = document.getElementById('profileModal');
+            m.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+        // Close with Escape key
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeProfileModal();
+        });
+
+        // Apply saved theme from Account Dashboard
+        (function() {
+            // Theme is now server-side via theme_loader.php — nothing to do here
+        })();
+        </script>
         <?php
         return ob_get_clean();
     }

@@ -27,257 +27,239 @@ foreach ($all_items as $item) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title><?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?> — Cashier</title>
+    <title><?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?> — Order</title>
     <link rel="stylesheet" href="../design/user.css">
+    <?php
+    // Apply saved theme to user/cashier page header accent
+    include __DIR__ . '/helpers/theme_loader.php';
+    ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-<div class="pos-shell">
-
-    <!-- ======== TOP BAR ======== -->
-    <header class="pos-topbar">
-        <div class="pos-brand" id="brandLogo" onclick="handleBrandClick()">
+<!-- ================= HEADER ================= -->
+<div class="u-header">
+    <div class="u-header-left">
+        <!-- Triple-click brand triggers secret admin toggle -->
+        <div class="u-brand" id="brandLogo" onclick="handleBrandClick()" style="cursor:pointer;">
             <?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?>
         </div>
-        <div class="pos-topbar-divider"></div>
-        <div class="pos-cashier-badge">Cashier Mode</div>
-
-        <div class="pos-search-wrap">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input type="text" id="searchInput" placeholder="Search items…" oninput="handleSearch()">
+    </div>
+    <div class="u-header-right">
+        <div class="u-search-wrap">
+            <span class="u-search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Search menu..." oninput="handleSearch()">
         </div>
-
-        <div class="pos-clock" id="posClock">--:--:--</div>
-    </header>
-
-    <!-- ======== LEFT: MENU PANEL ======== -->
-    <main class="pos-menu-panel">
-
-        <!-- Category Tabs -->
-        <div class="pos-cats" id="posCats">
-            <button class="pos-cat-btn active" onclick="filterCategory('all', this)">All</button>
-            <?php foreach ($categories as $cat): ?>
-                <button class="pos-cat-btn" onclick="filterCategory('<?= htmlspecialchars($cat) ?>', this)">
-                    <?= htmlspecialchars($cat) ?>
-                </button>
-            <?php endforeach; ?>
-        </div>
-
-        <!-- Item Grid -->
-        <div class="pos-items-grid" id="itemsGrid">
-            <?php if (!empty($all_items)): ?>
-                <?php foreach ($all_items as $item): ?>
-                    <div class="pos-item-card"
-                         data-category="<?= htmlspecialchars($item['category']) ?>"
-                         data-name="<?= strtolower(htmlspecialchars($item['item_name'])) ?>"
-                         onclick="addToOrder(<?= $item['menu_item_id'] ?>, '<?= addslashes($item['item_name']) ?>', <?= $item['price'] ?>, <?= $item['stock_quantity'] ?>)">
-
-                        <?php if (!empty($item['image_url'])): ?>
-                            <img src="<?= htmlspecialchars($item['image_url']) ?>"
-                                 alt="<?= htmlspecialchars($item['item_name']) ?>"
-                                 class="pos-item-img">
-                        <?php else: ?>
-                            <div class="pos-item-img-placeholder">🍽</div>
-                        <?php endif; ?>
-
-                        <?php if ($item['stock_quantity'] <= 5): ?>
-                            <div class="pos-stock-pill">Only <?= $item['stock_quantity'] ?> left</div>
-                        <?php endif; ?>
-
-                        <div class="pos-item-info">
-                            <div class="pos-item-name"><?= htmlspecialchars($item['item_name']) ?></div>
-                            <?php if (!empty($item['description'])): ?>
-                                <div class="pos-item-desc"><?= htmlspecialchars($item['description']) ?></div>
-                            <?php endif; ?>
-                            <div class="pos-item-bottom">
-                                <div class="pos-item-price">₱<?= number_format($item['price'], 2) ?></div>
-                                <div class="pos-item-add-icon">+</div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <div class="pos-empty">No menu items available right now.</div>
-            <?php endif; ?>
-        </div>
-
-        <div class="pos-empty" id="searchEmpty" style="display:none;">No items match your search.</div>
-    </main>
-
-    <!-- ======== RIGHT: ORDER PANEL ======== -->
-    <aside class="pos-order-panel">
-
-        <!-- Order Header -->
-        <div class="pos-order-header">
-            <div class="pos-order-title">Current Order</div>
-            <div class="pos-order-meta">
-                <span class="pos-order-num" id="orderNumDisplay">#—</span>
-                <div class="pos-order-actions">
-                    <button class="pos-icon-btn danger" title="Clear Order" onclick="clearOrder()">✕</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Order Lines -->
-        <div class="pos-lines" id="orderLines">
-            <div class="pos-order-empty" id="orderEmpty">
-                <div class="pos-order-empty-icon">🧾</div>
-                <p>Tap an item to add it to the order</p>
-            </div>
-        </div>
-
-        <!-- Totals -->
-        <div class="pos-totals" id="orderTotals" style="display:none;">
-            <div class="pos-total-row">
-                <span>Items</span>
-                <span class="val" id="totalItems">0</span>
-            </div>
-            <div class="pos-total-row main">
-                <span>Total</span>
-                <span class="val" id="orderTotal">₱0.00</span>
-            </div>
-        </div>
-
-        <!-- Payment -->
-        <div class="pos-payment" id="paymentSection" style="display:none;">
-            <div class="pos-cash-row">
-                <span class="pos-cash-label">Cash</span>
-                <input type="number" id="cashInput" class="pos-cash-input"
-                       placeholder="0.00" min="0" step="0.01" oninput="calcChange()">
-            </div>
-
-            <div class="pos-quick-cash" id="quickCash">
-                <!-- filled by JS based on total -->
-            </div>
-
-            <div class="pos-change-box" id="changeBox" style="display:none;">
-                <span class="lbl">Change</span>
-                <span class="amt" id="changeAmt">₱0.00</span>
-            </div>
-
-            <p class="pos-error-msg" id="cashError">Cash must be at least equal to the total.</p>
-
-            <button class="pos-charge-btn" id="chargeBtn" onclick="placeOrder()" disabled>
-                Charge — <span id="chargeTotalLabel">₱0.00</span>
-            </button>
-        </div>
-
-    </aside>
-</div>
-
-<!-- ======== RECEIPT MODAL ======== -->
-<div class="pos-overlay" id="receiptOverlay">
-    <div class="pos-receipt-modal">
-        <div class="pos-receipt-badge">Order Placed</div>
-        <h2>Payment Received</h2>
-        <p>Order sent to kitchen</p>
-
-        <div class="pos-queue-card">
-            <div class="pos-queue-cell">
-                <div class="pos-queue-cell-label">Queue #</div>
-                <div class="pos-queue-cell-val" id="receiptQueue">—</div>
-            </div>
-            <div class="pos-queue-card-divider"></div>
-            <div class="pos-queue-cell">
-                <div class="pos-queue-cell-label">Table</div>
-                <div class="pos-queue-cell-val" id="receiptTable">—</div>
-            </div>
-        </div>
-
-        <div class="pos-receipt-items" id="receiptItems"></div>
-
-        <div class="pos-receipt-totals">
-            <div class="pos-receipt-total-row big">
-                <span>Total</span>
-                <span class="val" id="receiptTotal">₱0.00</span>
-            </div>
-            <div class="pos-receipt-total-row">
-                <span>Cash Paid</span>
-                <span class="val" id="receiptCash">₱0.00</span>
-            </div>
-            <div class="pos-receipt-total-row change">
-                <span>Change</span>
-                <span class="val" id="receiptChange">₱0.00</span>
-            </div>
-        </div>
-
-        <button class="pos-new-order-btn" onclick="newOrder()">+ New Order</button>
-        <button class="pos-cancel-order-btn" id="cancelOrderBtn" onclick="cancelCurrentOrder()">
-            Cancel This Order
+        <button class="u-cart-btn" onclick="toggleCart()">
+            🛒 Cart
+            <span class="u-cart-count" id="cartCount">0</span>
         </button>
     </div>
 </div>
 
-<!-- ======== ADMIN TOGGLE MODAL ======== -->
-<div class="pos-admin-overlay" id="adminOverlay">
-    <div class="pos-admin-modal">
-        <div style="font-size:28px; margin-bottom:8px;">🔒</div>
-        <h3>Admin Access</h3>
-        <p>Enter your PIN to switch to admin</p>
-        <div class="pin-dots" id="adminPinDots">
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
-            <div class="pin-dot"></div>
+<!-- ================= CATEGORY TABS ================= -->
+<div class="u-tabs-wrap">
+    <div class="u-tabs" id="categoryTabs">
+        <button class="u-tab active" onclick="filterCategory('all', this)">All</button>
+        <?php foreach ($categories as $cat): ?>
+            <button class="u-tab" onclick="filterCategory('<?= htmlspecialchars($cat) ?>', this)">
+                <?= htmlspecialchars($cat) ?>
+            </button>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- ================= MENU GRID ================= -->
+<div class="u-main">
+    <div class="u-menu-grid" id="menuGrid">
+        <?php if (!empty($all_items)): ?>
+            <?php foreach ($all_items as $item): ?>
+                <div class="u-item-card"
+                     data-category="<?= htmlspecialchars($item['category']) ?>"
+                     data-name="<?= strtolower(htmlspecialchars($item['item_name'])) ?>">
+                    <div class="u-item-img-wrap">
+                        <?php if (!empty($item['image_url'])): ?>
+                            <img src="<?= htmlspecialchars($item['image_url']) ?>"
+                                 alt="<?= htmlspecialchars($item['item_name']) ?>"
+                                 class="u-item-img">
+                        <?php else: ?>
+                            <div class="u-item-img-placeholder">🍽️</div>
+                        <?php endif; ?>
+                        <?php if ($item['stock_quantity'] <= 5): ?>
+                            <div class="u-stock-badge">Only <?= $item['stock_quantity'] ?> left!</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="u-item-info">
+                        <div class="u-item-name"><?= htmlspecialchars($item['item_name']) ?></div>
+                        <?php if (!empty($item['description'])): ?>
+                            <div class="u-item-desc"><?= htmlspecialchars($item['description']) ?></div>
+                        <?php endif; ?>
+                        <div class="u-item-bottom">
+                            <div class="u-item-price">₱<?= number_format($item['price'], 2) ?></div>
+                            <button class="u-add-btn"
+                                    onclick="addToCart(<?= $item['menu_item_id'] ?>, '<?= addslashes($item['item_name']) ?>', <?= $item['price'] ?>, <?= $item['stock_quantity'] ?>)">
+                                + Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div class="u-empty">No menu items available right now.</div>
+        <?php endif; ?>
+    </div>
+    <div class="u-empty" id="searchEmpty" style="display:none;">No items found for your search.</div>
+</div>
+
+<!-- ================= CART DRAWER ================= -->
+<div class="u-cart-backdrop" id="cartBackdrop" onclick="toggleCart()"></div>
+<div class="u-cart-drawer" id="cartDrawer">
+    <div class="u-cart-header">
+        <h3>🛒 Your Order</h3>
+        <button class="u-cart-close" onclick="toggleCart()">✕</button>
+    </div>
+    <div class="u-cart-items" id="cartItems">
+        <div class="u-cart-empty" id="cartEmpty">
+            <div style="font-size:40px;">🛒</div>
+            <p>Your cart is empty</p>
+            <small>Add items from the menu to get started</small>
         </div>
-        <div class="pin-pad">
+    </div>
+    <div class="u-cart-footer">
+        <div class="u-cart-total">
+            <span>Total</span>
+            <span id="cartTotal">₱0.00</span>
+        </div>
+        <button class="u-btn-primary" onclick="openCheckout()" id="checkoutBtn" disabled>
+            Proceed to Checkout
+        </button>
+    </div>
+</div>
+
+<!-- ================= CHECKOUT MODAL ================= -->
+<div id="checkoutModal" class="u-overlay">
+    <div class="u-modal">
+        <button class="u-modal-back" onclick="closeCheckout()">← Back to Cart</button>
+        <h2 style="margin-bottom:4px;">💳 Checkout</h2>
+        <p style="color:#888; font-size:13px; margin-bottom:16px;">Review your order and pay</p>
+        <div class="u-order-summary" id="checkoutSummary"></div>
+        <div class="u-checkout-total">
+            <span>Order Total</span>
+            <span id="checkoutTotal">₱0.00</span>
+        </div>
+        <div class="u-cash-section">
+            <label>Cash Amount (₱)</label>
+            <input type="number" id="cashInput" placeholder="Enter amount paid"
+                   min="0" step="0.01" oninput="calculateChange()">
+            <div class="u-change-row" id="changeRow" style="display:none;">
+                <span>Change</span>
+                <span id="changeAmount" class="u-change-val">₱0.00</span>
+            </div>
+            <p id="cashError" class="u-error" style="display:none;">
+                Amount must be at least equal to the total.
+            </p>
+        </div>
+        <button class="u-btn-primary" onclick="placeOrder()" id="placeOrderBtn" disabled>
+            ✅ Place Order
+        </button>
+        <button class="u-btn-cancel" onclick="cancelCart()">
+            ✕ Cancel Order
+        </button>
+    </div>
+</div>
+
+<!-- ================= RECEIPT MODAL ================= -->
+<div id="receiptModal" class="u-overlay">
+    <div class="u-modal u-receipt">
+        <div style="font-size:56px; margin-bottom:8px;">🎉</div>
+        <h2>Thank you for ordering!</h2>
+        <p style="color:#888; font-size:13px;">Your order has been sent to the kitchen</p>
+
+        <div class="u-queue-box">
+            <div class="u-queue-label">Your Order Number</div>
+            <div class="u-queue-number" id="queueNumber">—</div>
+            <div class="u-queue-label" style="margin-top:8px;">Assigned Table Number</div>
+            <div class="u-table-number" id="assignedTable">—</div>
+        </div>
+
+        <div class="u-receipt-details" id="receiptDetails"></div>
+
+        <div class="u-receipt-total">
+            <div class="u-receipt-row">
+                <span>Total</span><span id="receiptTotal">₱0.00</span>
+            </div>
+            <div class="u-receipt-row">
+                <span>Cash</span><span id="receiptCash">₱0.00</span>
+            </div>
+            <div class="u-receipt-row u-receipt-change">
+                <span>Change</span><span id="receiptChange">₱0.00</span>
+            </div>
+        </div>
+
+        <button class="u-btn-primary" onclick="newOrder()" style="margin-top:20px;">
+            🍔 Order Again
+        </button>
+        <button class="u-btn-cancel-order" id="cancelOrderBtn" onclick="cancelCurrentOrder()" style="margin-top:8px;">
+            ✕ Cancel This Order
+        </button>
+    </div>
+</div>
+
+<!-- ================= SECRET ADMIN TOGGLE ================= -->
+<div id="adminToggleOverlay" class="u-admin-overlay" style="display:none;">
+    <div class="u-admin-modal">
+        <div style="font-size:36px; margin-bottom:10px;">🔐</div>
+        <h3>Admin Access</h3>
+        <p>Enter your PIN to switch back</p>
+        <div id="adminPinDots" style="display:flex; justify-content:center; gap:14px; margin:18px 0;">
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; max-width:240px; margin:0 auto;">
             <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
-                <button type="button" class="pin-key<?= $k === '' ? ' ' : '' ?>"
+                <button type="button"
+                    style="padding:16px; border:1.5px solid #e5e5e5; border-radius:14px; font-size:20px; font-weight:600; background:#f8f8f8; cursor:pointer; font-family:inherit; transition:background 0.15s, transform 0.1s;"
+                    onmousedown="this.style.transform='scale(0.92)'; this.style.background='#edd5e4';"
+                    onmouseup="this.style.transform='scale(1)';"
                     onclick="<?= $k === '⌫' ? 'adminPinBackspace()' : ($k === '' ? '' : "adminPinPress($k)") ?>">
                     <?= $k ?>
                 </button>
             <?php endforeach; ?>
         </div>
-        <p id="adminPinError" style="color:#ef4444; font-size:12px; margin-top:10px; display:none;">Incorrect PIN.</p>
-        <button onclick="hideAdminOverlay()"
-                style="margin-top:14px; background:transparent; border:1px solid rgba(255,255,255,0.1); padding:8px 20px; border-radius:8px; cursor:pointer; font-size:13px; color:#9898a8;">
+        <p id="adminPinError" style="color:#dc3545; font-size:12px; margin-top:10px; display:none;">
+            Incorrect PIN.
+        </p>
+        <button onclick="hideAdminToggle()" style="margin-top:14px; background:none; border:1.5px solid #ddd; padding:9px 24px; border-radius:10px; cursor:pointer; font-size:13px; font-family:inherit; color:#555;">
             Cancel
         </button>
     </div>
 </div>
 
 <script>
-/* ================================================================
+/* ============================================================
    STATE
-================================================================ */
-let order          = {};    // { id: { name, price, qty, stock } }
+============================================================ */
+let cart           = {};
 let activeCategory = 'all';
 let currentOrderId = null;
-let orderCounter   = 1;
 
-/* ================================================================
-   CLOCK
-================================================================ */
-function tickClock() {
-    const now = new Date();
-    document.getElementById('posClock').textContent =
-        now.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-}
-setInterval(tickClock, 1000);
-tickClock();
-
-/* ================================================================
+/* ============================================================
    CATEGORY FILTER & SEARCH
-================================================================ */
+============================================================ */
 function filterCategory(cat, btn) {
     activeCategory = cat;
-    document.querySelectorAll('.pos-cat-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.u-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('searchInput').value = '';
     applyFilters();
 }
 
 function handleSearch() {
-    const q = document.getElementById('searchInput').value.trim();
-    if (q !== '') {
-        document.querySelectorAll('.pos-cat-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('.pos-cat-btn').classList.add('active');
+    if (document.getElementById('searchInput').value.trim() !== '') {
+        document.querySelectorAll('.u-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.u-tab').classList.add('active');
         activeCategory = 'all';
     }
     applyFilters();
@@ -285,7 +267,7 @@ function handleSearch() {
 
 function applyFilters() {
     const query   = document.getElementById('searchInput').value.trim().toLowerCase();
-    const cards   = document.querySelectorAll('.pos-item-card');
+    const cards   = document.querySelectorAll('.u-item-card');
     let   visible = 0;
 
     cards.forEach(card => {
@@ -296,183 +278,157 @@ function applyFilters() {
     });
 
     document.getElementById('searchEmpty').style.display = visible === 0 ? 'block' : 'none';
-    document.getElementById('itemsGrid').style.display    = visible === 0 ? 'none' : '';
+    document.getElementById('menuGrid').style.display    = visible === 0 ? 'none'  : '';
 }
 
-/* ================================================================
-   ORDER MANAGEMENT
-================================================================ */
-function addToOrder(id, name, price, stock) {
-    if (order[id]) {
-        if (order[id].qty >= stock) { showToast('Max stock reached for ' + name, 'error'); return; }
-        order[id].qty++;
+/* ============================================================
+   CART
+============================================================ */
+function addToCart(id, name, price, stock) {
+    if (cart[id]) {
+        if (cart[id].qty >= stock) { showToast('Max stock reached for ' + name, 'error'); return; }
+        cart[id].qty++;
     } else {
-        order[id] = { name, price, qty: 1, stock };
+        cart[id] = { name, price, qty: 1, stock };
     }
-    renderOrder();
-    showToast(name + ' added', 'success');
+    renderCart();
+    showToast(name + ' added!', 'success');
+}
+
+function removeFromCart(id) {
+    delete cart[id];
+    renderCart();
 }
 
 function changeQty(id, delta) {
-    if (!order[id]) return;
-    order[id].qty += delta;
-    if (order[id].qty <= 0) {
-        delete order[id];
-    } else if (order[id].qty > order[id].stock) {
-        order[id].qty = order[id].stock;
-        showToast('Max stock reached!', 'error');
-    }
-    renderOrder();
+    if (!cart[id]) return;
+    cart[id].qty += delta;
+    if (cart[id].qty <= 0)            { delete cart[id]; }
+    else if (cart[id].qty > cart[id].stock) { cart[id].qty = cart[id].stock; showToast('Max stock reached!', 'error'); }
+    renderCart();
 }
 
-function removeLine(id) {
-    delete order[id];
-    renderOrder();
-}
+function renderCart() {
+    const itemsEl     = document.getElementById('cartItems');
+    const emptyEl     = document.getElementById('cartEmpty');
+    const countEl     = document.getElementById('cartCount');
+    const totalEl     = document.getElementById('cartTotal');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const ids         = Object.keys(cart);
 
-function clearOrder() {
-    if (Object.keys(order).length === 0) return;
-    if (!confirm('Clear the current order?')) return;
-    order = {};
-    renderOrder();
-}
+    let totalQty = 0, totalAmount = 0;
+    ids.forEach(id => { totalQty += cart[id].qty; totalAmount += cart[id].price * cart[id].qty; });
 
-function renderOrder() {
-    const linesEl   = document.getElementById('orderLines');
-    const emptyEl   = document.getElementById('orderEmpty');
-    const totalsEl  = document.getElementById('orderTotals');
-    const payEl     = document.getElementById('paymentSection');
-    const ids       = Object.keys(order);
+    countEl.textContent  = totalQty;
+    totalEl.textContent  = '₱' + totalAmount.toFixed(2);
+    checkoutBtn.disabled = ids.length === 0;
 
-    let totalQty = 0, totalAmt = 0;
-    ids.forEach(id => { totalQty += order[id].qty; totalAmt += order[id].price * order[id].qty; });
+    document.querySelectorAll('.u-cart-row').forEach(r => r.remove());
 
-    // Clear existing rows
-    linesEl.querySelectorAll('.pos-line').forEach(r => r.remove());
-
-    if (ids.length === 0) {
-        emptyEl.style.display = 'flex';
-        totalsEl.style.display = 'none';
-        payEl.style.display    = 'none';
-        return;
-    }
-
-    emptyEl.style.display  = 'none';
-    totalsEl.style.display = 'block';
-    payEl.style.display    = 'flex';
+    if (ids.length === 0) { emptyEl.style.display = 'flex'; return; }
+    emptyEl.style.display = 'none';
 
     ids.forEach(id => {
-        const item = order[id];
-        const sub  = item.price * item.qty;
+        const item = cart[id];
         const row  = document.createElement('div');
-        row.className = 'pos-line';
+        row.className = 'u-cart-row';
         row.innerHTML = `
-            <div>
-                <div class="pos-line-name">${item.name}</div>
-                <div class="pos-line-sub">₱${item.price.toFixed(2)} each</div>
+            <div class="u-cart-row-name">${item.name}</div>
+            <div class="u-cart-row-controls">
+                <button class="u-qty-btn" onclick="changeQty(${id}, -1)">−</button>
+                <span class="u-qty-val">${item.qty}</span>
+                <button class="u-qty-btn" onclick="changeQty(${id}, 1)">+</button>
             </div>
-            <div class="pos-line-qty">
-                <button class="pos-qty-btn" onclick="changeQty(${id}, -1)">−</button>
-                <span class="pos-qty-val">${item.qty}</span>
-                <button class="pos-qty-btn" onclick="changeQty(${id}, 1)">+</button>
-            </div>
-            <div class="pos-line-price">₱${sub.toFixed(2)}</div>
+            <div class="u-cart-row-price">₱${(item.price * item.qty).toFixed(2)}</div>
+            <button class="u-cart-remove" onclick="removeFromCart(${id})">✕</button>
         `;
-        row.querySelector('.pos-line-qty').insertAdjacentHTML('afterend',
-            `<button class="pos-icon-btn danger pos-line-del" onclick="removeLine(${id})" title="Remove">✕</button>`);
-        linesEl.appendChild(row);
+        itemsEl.appendChild(row);
     });
-
-    document.getElementById('totalItems').textContent  = totalQty;
-    document.getElementById('orderTotal').textContent  = '₱' + totalAmt.toFixed(2);
-    document.getElementById('chargeTotalLabel').textContent = '₱' + totalAmt.toFixed(2);
-
-    // Update quick cash buttons
-    renderQuickCash(totalAmt);
-
-    // Reset cash input & recalc
-    document.getElementById('cashInput').value = '';
-    document.getElementById('changeBox').style.display  = 'none';
-    document.getElementById('cashError').style.display  = 'none';
-    document.getElementById('chargeBtn').disabled       = true;
 }
 
-function renderQuickCash(total) {
-    const suggestions = [
-        Math.ceil(total / 50) * 50,
-        Math.ceil(total / 100) * 100,
-        Math.ceil(total / 500) * 500,
-        1000
-    ].filter((v, i, a) => v >= total && a.indexOf(v) === i).slice(0, 4);
-
-    const wrap = document.getElementById('quickCash');
-    wrap.innerHTML = '';
-    suggestions.forEach(amt => {
-        const btn = document.createElement('button');
-        btn.className = 'pos-quick-btn';
-        btn.textContent = '₱' + amt.toLocaleString();
-        btn.onclick = () => { document.getElementById('cashInput').value = amt; calcChange(); };
-        wrap.appendChild(btn);
-    });
-
-    // Exact button
-    const exactBtn = document.createElement('button');
-    exactBtn.className = 'pos-quick-btn';
-    exactBtn.textContent = 'Exact';
-    exactBtn.onclick = () => {
-        document.getElementById('cashInput').value = total.toFixed(2);
-        calcChange();
-    };
-    wrap.appendChild(exactBtn);
+function toggleCart() {
+    document.getElementById('cartDrawer').classList.toggle('open');
+    document.getElementById('cartBackdrop').classList.toggle('active');
 }
 
-/* ================================================================
-   CHANGE CALCULATION
-================================================================ */
-function calcChange() {
-    const totalStr = document.getElementById('orderTotal').textContent.replace('₱','');
-    const total    = parseFloat(totalStr) || 0;
+/* ============================================================
+   CHECKOUT
+============================================================ */
+function openCheckout() {
+    const ids = Object.keys(cart);
+    if (ids.length === 0) return;
+
+    let summaryHtml = '', total = 0;
+    ids.forEach(id => {
+        const item = cart[id];
+        const sub  = item.price * item.qty;
+        total += sub;
+        summaryHtml += `<div class="u-summary-row"><span>${item.name} × ${item.qty}</span><span>₱${sub.toFixed(2)}</span></div>`;
+    });
+
+    document.getElementById('checkoutSummary').innerHTML  = summaryHtml;
+    document.getElementById('checkoutTotal').textContent  = '₱' + total.toFixed(2);
+    document.getElementById('cashInput').value            = '';
+    document.getElementById('changeRow').style.display   = 'none';
+    document.getElementById('cashError').style.display   = 'none';
+    document.getElementById('placeOrderBtn').disabled    = true;
+    document.getElementById('placeOrderBtn').textContent = '✅ Place Order';
+
+    document.getElementById('cartDrawer').classList.remove('open');
+    document.getElementById('cartBackdrop').classList.remove('active');
+    document.getElementById('checkoutModal').classList.add('active');
+}
+
+function closeCheckout() {
+    document.getElementById('checkoutModal').classList.remove('active');
+    toggleCart();
+}
+
+function cancelCart() {
+    if (!confirm('Cancel your order and clear the cart?')) return;
+    cart = {};
+    renderCart();
+    document.getElementById('checkoutModal').classList.remove('active');
+    showToast('Order cancelled.', 'info');
+}
+
+function calculateChange() {
+    const total    = parseFloat(document.getElementById('checkoutTotal').textContent.replace('₱',''));
     const cash     = parseFloat(document.getElementById('cashInput').value);
     const errorEl  = document.getElementById('cashError');
-    const changeBox= document.getElementById('changeBox');
-    const chargeBtn= document.getElementById('chargeBtn');
+    const changeRow= document.getElementById('changeRow');
+    const placeBtn = document.getElementById('placeOrderBtn');
 
     if (isNaN(cash) || cash < total) {
-        errorEl.style.display   = 'block';
-        changeBox.style.display = 'none';
-        chargeBtn.disabled      = true;
+        errorEl.style.display = 'block'; changeRow.style.display = 'none'; placeBtn.disabled = true;
         return;
     }
-
-    errorEl.style.display   = 'none';
-    changeBox.style.display = 'flex';
-    chargeBtn.disabled      = false;
-    document.getElementById('changeAmt').textContent = '₱' + (cash - total).toFixed(2);
+    errorEl.style.display = 'none'; changeRow.style.display = 'flex'; placeBtn.disabled = false;
+    document.getElementById('changeAmount').textContent = '₱' + (cash - total).toFixed(2);
 }
 
-/* ================================================================
+/* ============================================================
    PLACE ORDER
-================================================================ */
+============================================================ */
 function placeOrder() {
-    const totalStr = document.getElementById('orderTotal').textContent.replace('₱','');
-    const total    = parseFloat(totalStr) || 0;
-    const cash     = parseFloat(document.getElementById('cashInput').value);
-    const change   = cash - total;
-    const chargeBtn= document.getElementById('chargeBtn');
+    const total   = parseFloat(document.getElementById('checkoutTotal').textContent.replace('₱',''));
+    const cash    = parseFloat(document.getElementById('cashInput').value);
+    const change  = cash - total;
+    const placeBtn= document.getElementById('placeOrderBtn');
 
-    chargeBtn.disabled   = true;
-    chargeBtn.textContent = 'Processing…';
+    placeBtn.disabled    = true;
+    placeBtn.textContent = '⏳ Placing order...';
 
     const payload = {
         cash_paid:    cash,
         change_given: change,
         total:        total,
-        items: Object.keys(order).map(id => ({
+        items: Object.keys(cart).map(id => ({
             menu_item_id: id,
-            name:         order[id].name,
-            price:        order[id].price,
-            qty:          order[id].qty,
-            subtotal:     order[id].price * order[id].qty
+            name:         cart[id].name,
+            price:        cart[id].price,
+            qty:          cart[id].qty,
+            subtotal:     cart[id].price * cart[id].qty
         }))
     };
 
@@ -488,53 +444,59 @@ function placeOrder() {
             showReceipt(data, total, cash, change);
         } else {
             showToast('Order failed: ' + data.message, 'error');
-            chargeBtn.disabled   = false;
-            chargeBtn.textContent = 'Charge — ₱' + total.toFixed(2);
+            placeBtn.disabled    = false;
+            placeBtn.textContent = '✅ Place Order';
         }
     })
     .catch(() => {
         showToast('Connection error. Please try again.', 'error');
-        chargeBtn.disabled   = false;
-        chargeBtn.textContent = 'Charge — ₱' + total.toFixed(2);
+        placeBtn.disabled    = false;
+        placeBtn.textContent = '✅ Place Order';
     });
 }
 
-/* ================================================================
+/* ============================================================
    RECEIPT
-================================================================ */
+============================================================ */
 function showReceipt(data, total, cash, change) {
-    document.getElementById('receiptQueue').textContent  = '#' + data.queue_number;
-    document.getElementById('receiptTable').textContent  = data.table_number;
+    document.getElementById('checkoutModal').classList.remove('active');
+
+    document.getElementById('queueNumber').textContent   = '#' + data.queue_number;
+    document.getElementById('assignedTable').textContent = data.table_number;
     document.getElementById('receiptTotal').textContent  = '₱' + total.toFixed(2);
     document.getElementById('receiptCash').textContent   = '₱' + cash.toFixed(2);
     document.getElementById('receiptChange').textContent = '₱' + change.toFixed(2);
 
-    let html = '';
-    Object.keys(order).forEach(id => {
-        const item = order[id];
-        html += `<div class="pos-receipt-line">
-            <span>${item.name} × ${item.qty}</span>
-            <span>₱${(item.price * item.qty).toFixed(2)}</span>
-        </div>`;
+    let detailsHtml = '';
+    Object.keys(cart).forEach(id => {
+        const item = cart[id];
+        detailsHtml += `
+            <div class="u-receipt-item">
+                <span>${item.name} × ${item.qty}</span>
+                <span>₱${(item.price * item.qty).toFixed(2)}</span>
+            </div>
+        `;
     });
-    document.getElementById('receiptItems').innerHTML = html;
+    document.getElementById('receiptDetails').innerHTML = detailsHtml;
 
+    /* Show cancel button only right after ordering */
     document.getElementById('cancelOrderBtn').style.display = 'block';
-    document.getElementById('receiptOverlay').classList.add('active');
+
+    document.getElementById('receiptModal').classList.add('active');
 }
 
 function newOrder() {
-    order = {};
+    cart = {};
     currentOrderId = null;
-    orderCounter++;
-    document.getElementById('orderNumDisplay').textContent = '#' + orderCounter;
-    renderOrder();
-    document.getElementById('receiptOverlay').classList.remove('active');
+    renderCart();
+    document.getElementById('receiptModal').classList.remove('active');
+    document.getElementById('cashInput').value = '';
 }
 
+/* ── Cancel PLACED order ── */
 function cancelCurrentOrder() {
     if (!currentOrderId) return;
-    if (!confirm('Cancel this order?')) return;
+    if (!confirm('Are you sure you want to cancel this order?')) return;
 
     fetch('helpers/user_order_handler.php?action=cancel_order', {
         method:  'POST',
@@ -544,57 +506,61 @@ function cancelCurrentOrder() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            showToast('Order cancelled.', 'info');
+            showToast('Order cancelled successfully.', 'info');
             document.getElementById('cancelOrderBtn').style.display = 'none';
-            document.getElementById('receiptOverlay').classList.remove('active');
-            order = {};
+            document.getElementById('receiptModal').classList.remove('active');
+            cart = {};
             currentOrderId = null;
-            renderOrder();
+            renderCart();
         } else {
             showToast('Could not cancel: ' + data.message, 'error');
         }
     });
 }
 
-/* ================================================================
-   ADMIN TOGGLE
-================================================================ */
-let brandClickCount = 0, brandClickTimer = null;
+/* ============================================================
+   SECRET ADMIN TOGGLE — click brand 5 times fast
+============================================================ */
+let brandClickCount = 0;
+let brandClickTimer = null;
 
 function handleBrandClick() {
     brandClickCount++;
     clearTimeout(brandClickTimer);
-    if (brandClickCount >= 5) { brandClickCount = 0; showAdminOverlay(); return; }
+
+    if (brandClickCount >= 5) {
+        brandClickCount = 0;
+        showAdminToggle();
+        return;
+    }
+
     brandClickTimer = setTimeout(() => { brandClickCount = 0; }, 2000);
 }
 
-function showAdminOverlay() {
+function showAdminToggle() {
     adminPinValue = '';
     updateAdminPinDots(0);
     document.getElementById('adminPinError').style.display = 'none';
-    document.getElementById('adminOverlay').classList.add('show');
+    document.getElementById('adminToggleOverlay').style.display = 'flex';
 }
 
-function hideAdminOverlay() {
-    document.getElementById('adminOverlay').classList.remove('show');
+function hideAdminToggle() {
+    document.getElementById('adminToggleOverlay').style.display = 'none';
     adminPinValue = '';
     updateAdminPinDots(0);
 }
 
 let adminPinValue = '';
-
 function adminPinPress(num) {
     if (adminPinValue.length >= 4) return;
     adminPinValue += String(num);
     updateAdminPinDots(adminPinValue.length);
     if (adminPinValue.length === 4) verifyAdminPin();
 }
-
 function adminPinBackspace() {
     adminPinValue = adminPinValue.slice(0, -1);
     updateAdminPinDots(adminPinValue.length);
 }
-
 function verifyAdminPin() {
     fetch('helpers/admindashboard_helpers.php?action=check_pin', {
         method:  'POST',
@@ -604,6 +570,9 @@ function verifyAdminPin() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
+            // Clear cashier session lock so admin can re-enter from cashier link
+            fetch('helpers/admindashboard_helpers.php?action=clear_cashier_lock', { method:'POST' })
+                .catch(() => {});
             window.location.href = 'admindashboard.php';
         } else {
             document.getElementById('adminPinError').style.display = 'block';
@@ -612,26 +581,22 @@ function verifyAdminPin() {
         }
     });
 }
-
 function updateAdminPinDots(count) {
     document.querySelectorAll('#adminPinDots .pin-dot')
         .forEach((dot, i) => dot.classList.toggle('filled', i < count));
 }
 
-/* ================================================================
+/* ============================================================
    TOAST
-================================================================ */
+============================================================ */
 function showToast(message, type = 'info') {
     const toast = document.createElement('div');
-    toast.className   = 'pos-toast pos-toast-' + type;
+    toast.className   = 'u-toast u-toast-' + type;
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 2400);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 2500);
 }
-
-/* Init display */
-document.getElementById('orderNumDisplay').textContent = '#' + orderCounter;
 </script>
 
 </body>
