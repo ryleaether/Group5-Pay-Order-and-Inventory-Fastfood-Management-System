@@ -11,7 +11,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'superadmin') {
 $val = new Validation();
 
 /* CHECK IF ACCOUNT STILL EXISTS */
-if (!$val->adminExists($_SESSION['admin_id'])) {
+/* if (!$val->adminExists($_SESSION['admin_id'])) {
     // Account deleted, show message
     echo '<!DOCTYPE html>
     <html>
@@ -40,7 +40,7 @@ if (!$val->adminExists($_SESSION['admin_id'])) {
     </body>
     </html>';
     exit;
-}
+} */
 
 /* HANDLE DELETE ADMIN*/
 if (isset($_GET['delete'])) {
