@@ -1,15 +1,15 @@
 <!-- ================= PIN MODAL ================= -->
 <div id="pinModal" class="modal">
-    <div class="modal-content" style="max-width:340px; text-align:center;">
+    <div class="modal-content" style="max-width:340px; text-align:center; border-radius:20px; padding:32px 28px;">
         <span class="close" onclick="document.getElementById('pinModal').classList.remove('show')">&times;</span>
-        <div style="font-size:36px; margin-bottom:8px;">🔐</div>
-        <h2 style="margin-bottom:6px;">Switch to User Dashboard</h2>
-        <p style="color:#888; font-size:13px; margin-bottom:20px;">Enter your dashboard PIN to continue</p>
+        <div style="font-size:36px; margin-bottom:10px;">🧾</div>
+        <h2 style="margin-bottom:4px; font-size:18px; font-weight:700; color:var(--text-primary);">Switch to Cashier Dashboard</h2>
+        <p style="color:#888; font-size:13px; margin-bottom:20px;">Enter your 4-digit PIN to continue</p>
         <div id="pinDots" style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
             <div class="pin-dot"></div><div class="pin-dot"></div>
             <div class="pin-dot"></div><div class="pin-dot"></div>
         </div>
-        <div class="pin-pad">
+        <div class="pin-pad" style="max-width:220px; margin:0 auto;">
             <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
                 <button type="button" class="pin-key"
                     onclick="<?= $k === '⌫' ? 'pinBackspace()' : ($k === '' ? '' : "pinPress($k)") ?>">
@@ -17,26 +17,30 @@
                 </button>
             <?php endforeach; ?>
         </div>
-        <p id="pinError" style="color:#dc3545; font-size:13px; margin-top:10px; display:none;">
+        <p id="pinError" style="color:#dc2626; font-size:13px; margin-top:12px; display:none;">
             Incorrect PIN. Try again.
         </p>
+        <button onclick="document.getElementById('pinModal').classList.remove('show'); pinValue=''; updatePinDots('pinDots',0);"
+                style="margin-top:14px; background:none; border:1.5px solid var(--border-color); padding:8px 24px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text-secondary); font-family:inherit;">
+            Cancel
+        </button>
     </div>
 </div>
 
 <!-- ================= SETUP PIN MODAL ================= -->
 <div id="setupPinModal" class="modal">
-    <div class="modal-content" style="max-width:340px; text-align:center;">
+    <div class="modal-content" style="max-width:340px; text-align:center; border-radius:20px; padding:32px 28px;">
         <span class="close" onclick="document.getElementById('setupPinModal').classList.remove('show')">&times;</span>
-        <div style="font-size:36px; margin-bottom:8px;">🔑</div>
-        <h2 style="margin-bottom:6px;">Set Up Dashboard PIN</h2>
+        <div style="font-size:36px; margin-bottom:10px;">🔑</div>
+        <h2 style="margin-bottom:4px; font-size:18px; font-weight:700; color:var(--text-primary);">Set Up Cashier PIN</h2>
         <p style="color:#888; font-size:13px; margin-bottom:4px;" id="setupPinLabel">
-            Enter a 4-digit PIN to protect the user dashboard
+            Enter a 4-digit PIN to protect the Cashier Dashboard
         </p>
-        <div id="setupPinDots" style="display:flex; justify-content:center; gap:12px; margin-bottom:20px; margin-top:14px;">
+        <div id="setupPinDots" style="display:flex; justify-content:center; gap:12px; margin:16px 0 20px;">
             <div class="pin-dot"></div><div class="pin-dot"></div>
             <div class="pin-dot"></div><div class="pin-dot"></div>
         </div>
-        <div class="pin-pad">
+        <div class="pin-pad" style="max-width:220px; margin:0 auto;">
             <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
                 <button type="button" class="pin-key"
                     onclick="<?= $k === '⌫' ? 'setupPinBackspace()' : ($k === '' ? '' : "setupPinPress($k)") ?>">
@@ -44,7 +48,11 @@
                 </button>
             <?php endforeach; ?>
         </div>
-        <p id="setupPinError" style="color:#dc3545; font-size:13px; margin-top:10px; display:none;"></p>
+        <p id="setupPinError" style="color:#dc2626; font-size:13px; margin-top:12px; display:none;"></p>
+        <button onclick="document.getElementById('setupPinModal').classList.remove('show'); setupPinStep=1; setupPinFirst=''; setupPinCurrent=''; updatePinDots('setupPinDots',0);"
+                style="margin-top:14px; background:none; border:1.5px solid var(--border-color); padding:8px 24px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text-secondary); font-family:inherit;">
+            Cancel
+        </button>
     </div>
 </div>
 
@@ -62,7 +70,7 @@ window.openPinModal = function() {
             } else {
                 setupPinStep = 1; setupPinFirst = ''; setupPinCurrent = '';
                 updatePinDots('setupPinDots', 0);
-                document.getElementById('setupPinLabel').textContent = 'Enter a 4-digit PIN to protect the user dashboard';
+                document.getElementById('setupPinLabel').textContent = 'Enter a 4-digit PIN to protect the Cashier Dashboard';
                 document.getElementById('setupPinError').style.display = 'none';
                 document.getElementById('setupPinModal').classList.add('show');
             }
@@ -115,20 +123,25 @@ function setupPinPress(num) {
                         method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
                         body:'pin='+encodeURIComponent(setupPinCurrent)
                     }).then(r=>r.json()).then(data => {
-                        if (data.success) { document.getElementById('setupPinModal').classList.remove('show'); window.location.href='userdashboard.php'; }
-                        else { document.getElementById('setupPinError').textContent='Failed to save PIN.'; document.getElementById('setupPinError').style.display='block'; }
+                        if (data.success) {
+                            document.getElementById('setupPinModal').classList.remove('show');
+                            window.location.href = 'userdashboard.php';
+                        } else {
+                            document.getElementById('setupPinError').textContent = 'Failed to save PIN.';
+                            document.getElementById('setupPinError').style.display = 'block';
+                        }
                     });
                 } else {
-                    document.getElementById('setupPinError').textContent="PINs don't match. Try again.";
-                    document.getElementById('setupPinError').style.display='block';
-                    setupPinCurrent=''; setupPinFirst=''; setupPinStep=1;
-                    document.getElementById('setupPinLabel').textContent='Enter a 4-digit PIN to protect the user dashboard';
-                    updatePinDots('setupPinDots',0);
+                    document.getElementById('setupPinError').textContent = "PINs don't match. Try again.";
+                    document.getElementById('setupPinError').style.display = 'block';
+                    setupPinCurrent = ''; setupPinFirst = ''; setupPinStep = 1;
+                    document.getElementById('setupPinLabel').textContent = 'Enter a 4-digit PIN to protect the Cashier Dashboard';
+                    updatePinDots('setupPinDots', 0);
                 }
             }
         }, 150);
     }
 }
-function setupPinBackspace() { setupPinCurrent=setupPinCurrent.slice(0,-1); updatePinDots('setupPinDots',setupPinCurrent.length); }
-function updatePinDots(id,count) { document.querySelectorAll('#'+id+' .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<count)); }
+function setupPinBackspace() { setupPinCurrent = setupPinCurrent.slice(0,-1); updatePinDots('setupPinDots', setupPinCurrent.length); }
+function updatePinDots(id, count) { document.querySelectorAll('#'+id+' .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<count)); }
 </script>

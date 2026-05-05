@@ -176,7 +176,7 @@ $initial   = strtoupper(substr($adminName, 0, 1)) ?: 'A';
             overflow: hidden;
         }
         .theme-swatch:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.15); }
-        .theme-swatch.active { border-color: #333; }
+        .theme-swatch.active { border-color: var(--accent-dark); box-shadow: 0 0 0 1px var(--accent-dark); }
         .theme-swatch .swatch-preview {
             height: 32px;
             border-radius: 6px;
@@ -191,7 +191,7 @@ $initial   = strtoupper(substr($adminName, 0, 1)) ?: 'A';
             position: absolute;
             top: 6px; right: 6px;
             width: 18px; height: 18px;
-            background: #333;
+            background: var(--accent-dark);
             border-radius: 50%;
             display: none;
             align-items: center;
@@ -455,47 +455,45 @@ $initial   = strtoupper(substr($adminName, 0, 1)) ?: 'A';
                 <p style="font-size:13px; color:var(--text-secondary); margin-bottom:18px;">Choose a preset theme or customize your own color palette for the dashboard.</p>
 
                 <!-- Preset Themes -->
+                <?php
+                // Map preset themes by their accent color so we can mark the saved one as active
+                $presets = [
+                    'rose'    => ['dark'=>'#7e1545','accent'=>'#be185d'],
+                    'ocean'   => ['dark'=>'#0c4a6e','accent'=>'#0284c7'],
+                    'forest'  => ['dark'=>'#14532d','accent'=>'#16a34a'],
+                    'amber'   => ['dark'=>'#92400e','accent'=>'#d97706'],
+                    'violet'  => ['dark'=>'#4c1d95','accent'=>'#7c3aed'],
+                    'slate'   => ['dark'=>'#1e293b','accent'=>'#475569'],
+                    'crimson' => ['dark'=>'#7f1d1d','accent'=>'#dc2626'],
+                    'teal'    => ['dark'=>'#134e4a','accent'=>'#0d9488'],
+                ];
+                // Detect which preset matches the saved accent color (case-insensitive)
+                $savedAccent = strtolower($acd ?? '#7e1545');
+                $activeTheme = 'rose'; // default fallback
+                foreach ($presets as $name => $p) {
+                    if (strtolower($p['dark']) === $savedAccent || strtolower($p['accent']) === strtolower($ac ?? '')) {
+                        $activeTheme = $name;
+                        break;
+                    }
+                }
+                ?>
                 <div class="theme-grid">
-                    <div class="theme-swatch active" data-theme="rose" onclick="selectTheme(this,'#7e1545','#be185d','#f5eef4','#2d0a1f')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#7e1545,#be185d);"></div>
-                        <div class="swatch-name">Rose (Default)</div>
+                    <?php foreach ($presets as $name => $p):
+                        $isActive = ($name === $activeTheme);
+                        $labels = ['rose'=>'Rose (Default)','ocean'=>'Ocean Blue','forest'=>'Forest Green','amber'=>'Amber Gold','violet'=>'Royal Violet','slate'=>'Slate Gray','crimson'=>'Crimson Red','teal'=>'Teal Mint'];
+                        $gradients = ['rose'=>'#7e1545,#be185d','ocean'=>'#0c4a6e,#0284c7','forest'=>'#14532d,#16a34a','amber'=>'#92400e,#d97706','violet'=>'#4c1d95,#7c3aed','slate'=>'#1e293b,#475569','crimson'=>'#7f1d1d,#dc2626','teal'=>'#134e4a,#0d9488'];
+                    ?>
+                    <div class="theme-swatch <?= $isActive ? 'active' : '' ?>" data-theme="<?= $name ?>"
+                         onclick="selectTheme(this,'<?= $p['dark'] ?>','<?= $p['accent'] ?>','<?php
+                            $bgs = ['rose'=>'#f5eef4','ocean'=>'#eff8ff','forest'=>'#f0fdf4','amber'=>'#fffbeb','violet'=>'#f5f3ff','slate'=>'#f1f5f9','crimson'=>'#fef2f2','teal'=>'#f0fdfa'];
+                            $txts = ['rose'=>'#2d0a1f','ocean'=>'#0c2340','forest'=>'#052e16','amber'=>'#451a03','violet'=>'#1e0050','slate'=>'#0f172a','crimson'=>'#3b0000','teal'=>'#042f2e'];
+                            echo $bgs[$name];
+                         ?>','<?= $txts[$name] ?>')">
+                        <div class="check-mark" style="background:<?= $p['dark'] ?>;">✓</div>
+                        <div class="swatch-preview" style="background: linear-gradient(135deg,<?= $gradients[$name] ?>);"></div>
+                        <div class="swatch-name"><?= $labels[$name] ?></div>
                     </div>
-                    <div class="theme-swatch" data-theme="ocean" onclick="selectTheme(this,'#0c4a6e','#0284c7','#eff8ff','#0c2340')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#0c4a6e,#0284c7);"></div>
-                        <div class="swatch-name">Ocean Blue</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="forest" onclick="selectTheme(this,'#14532d','#16a34a','#f0fdf4','#052e16')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#14532d,#16a34a);"></div>
-                        <div class="swatch-name">Forest Green</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="amber" onclick="selectTheme(this,'#92400e','#d97706','#fffbeb','#451a03')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#92400e,#d97706);"></div>
-                        <div class="swatch-name">Amber Gold</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="violet" onclick="selectTheme(this,'#4c1d95','#7c3aed','#f5f3ff','#1e0050')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#4c1d95,#7c3aed);"></div>
-                        <div class="swatch-name">Royal Violet</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="slate" onclick="selectTheme(this,'#1e293b','#475569','#f1f5f9','#0f172a')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#1e293b,#475569);"></div>
-                        <div class="swatch-name">Slate Gray</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="crimson" onclick="selectTheme(this,'#7f1d1d','#dc2626','#fef2f2','#3b0000')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#7f1d1d,#dc2626);"></div>
-                        <div class="swatch-name">Crimson Red</div>
-                    </div>
-                    <div class="theme-swatch" data-theme="teal" onclick="selectTheme(this,'#134e4a','#0d9488','#f0fdfa','#042f2e')">
-                        <div class="check-mark">✓</div>
-                        <div class="swatch-preview" style="background: linear-gradient(135deg,#134e4a,#0d9488);"></div>
-                        <div class="swatch-name">Teal Mint</div>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
 
                 <!-- Custom Palette -->
@@ -652,8 +650,14 @@ function saveField() {
 
 // ===== THEME SELECTION =====
 function selectTheme(el, dark, accent, bodyBg, text) {
-    document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.theme-swatch').forEach(s => {
+        s.classList.remove('active');
+        s.style.borderColor = '';
+    });
     el.classList.add('active');
+    el.style.borderColor = dark;
+    // Update checkmark color to this swatch's own dark color immediately
+    el.querySelector('.check-mark').style.background = dark;
     // Update custom palette inputs to match
     document.getElementById('c-sidebar-bg').value  = dark;
     document.getElementById('h-sidebar-bg').value  = dark;

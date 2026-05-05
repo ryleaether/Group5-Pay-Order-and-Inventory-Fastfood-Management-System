@@ -61,10 +61,14 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
             <p class="subtitle">Manage your food items</p>
 
             <div class="search-filter">
-                <form method="GET" class="filter-form">
-                    <input type="text" name="search" placeholder="Search items..."
-                           value="<?= htmlspecialchars($search) ?>" autocomplete="off">
-                    <select name="category" autocomplete="off">
+                <div class="filter-form">
+                    <div style="position:relative; flex:1; min-width:200px;">
+                        <input type="text" id="liveSearch" placeholder="Search items..." autocomplete="off"
+                               value="<?= htmlspecialchars($search) ?>"
+                               style="width:100%; padding-right:36px;">
+                        <span id="searchSpinner" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;font-size:14px;">⏳</span>
+                    </div>
+                    <select id="liveCategory" autocomplete="off">
                         <option value="">All Categories</option>
                         <?php foreach ($categories as $cat): ?>
                             <option value="<?= htmlspecialchars($cat) ?>" <?= $category === $cat ? 'selected' : '' ?>>
@@ -72,20 +76,19 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
                             </option>
                         <?php endforeach; ?>
                     </select>
-                    <select name="status" autocomplete="off">
+                    <select id="liveStatus" autocomplete="off">
                         <option value="">All Status</option>
                         <option value="1" <?= $status === '1' ? 'selected' : '' ?>>Available</option>
                         <option value="0" <?= $status === '0' ? 'selected' : '' ?>>Unavailable</option>
                     </select>
-                    <button type="submit">🔍 Search</button>
-                    <a href="menu_list.php" class="clear-btn">Clear</a>
-                </form>
+                    <button type="button" id="clearFiltersBtn" class="clear-btn">Clear</button>
+                </div>
             </div>
 
             <a href="#" class="btn-add" onclick="openAddModal(); return false;">+ Add New Item</a>
         </div>
 
-        <div class="menu-grid">
+        <div class="menu-grid" id="menuGrid">
             <?php if (!empty($items)): ?>
                 <?php foreach ($items as $item): ?>
                     <div class="menu-card">
@@ -524,10 +527,86 @@ function savePin(pin) {
     });
 }
 
-function updatePinDots(containerId, count) {
-    document.querySelectorAll('#' + containerId + ' .pin-dot')
-        .forEach((dot, i) => dot.classList.toggle('filled', i < count));
-}
+/* ── LIVE SEARCH ── */
+(function() {
+    const searchInput  = document.getElementById('liveSearch');
+    const categorySel  = document.getElementById('liveCategory');
+    const statusSel    = document.getElementById('liveStatus');
+    const clearBtn     = document.getElementById('clearFiltersBtn');
+    const grid         = document.getElementById('menuGrid');
+    const spinner      = document.getElementById('searchSpinner');
+    let   debounceTimer;
+
+    function fetchMenu() {
+        const params = new URLSearchParams({
+            search:   searchInput.value,
+            category: categorySel.value,
+            status:   statusSel.value,
+            ajax:     '1'
+        });
+
+        spinner.style.display = 'inline';
+
+        fetch('helpers/admindashboard_helpers.php?action=search_menu&' + params.toString())
+            .then(r => r.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                if (!data.success) { grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">⚠️ Error loading items.</p>'; return; }
+
+                if (data.items.length === 0) {
+                    grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">' + (data.has_any ? 'No items match your current filters.' : 'No menu items yet. Add your first item!') + '</p>';
+                    return;
+                }
+
+                grid.innerHTML = data.items.map(item => `
+                    <div class="menu-card">
+                        <div class="menu-img-wrap">
+                            ${item.image_url
+                                ? `<img src="${escHtml(item.image_url)}" alt="${escHtml(item.item_name)}" class="menu-img">`
+                                : `<div class="menu-img-placeholder">🍽️</div>`}
+                        </div>
+                        <div class="menu-header">
+                            <h3>${escHtml(item.item_name)}</h3>
+                            <span class="status ${item.is_available == 1 ? 'available' : 'unavailable'}">
+                                ${item.is_available == 1 ? 'Available' : 'Unavailable'}
+                            </span>
+                        </div>
+                        <div class="category">${escHtml(item.category)}</div>
+                        <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
+                        <div class="stock">Stock: ${item.stock_quantity}</div>
+                        <div class="actions">
+                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;">✏️ Edit</a>
+                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=${item.menu_item_id}"
+                               onclick="return confirm('Delete this item?')">🗑️ Delete</a>
+                        </div>
+                    </div>
+                `).join('');
+            })
+            .catch(() => {
+                spinner.style.display = 'none';
+                grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">⚠️ Network error. Please try again.</p>';
+            });
+    }
+
+    function escHtml(str) {
+        return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* Debounce text input (300ms), instant on dropdowns */
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchMenu, 300);
+    });
+    categorySel.addEventListener('change', fetchMenu);
+    statusSel.addEventListener('change', fetchMenu);
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value  = '';
+        categorySel.value  = '';
+        statusSel.value    = '';
+        fetchMenu();
+    });
+})();
 </script>
 
 </body>

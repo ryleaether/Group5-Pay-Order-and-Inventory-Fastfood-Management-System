@@ -849,6 +849,9 @@ class APIHandler {
                 break;
 
             // Menu Item Operations
+            case 'search_menu':
+                $this->handleSearchMenu();
+                break;
             case 'add_menu':
                 $this->handleAddMenu();
                 break;
@@ -948,6 +951,30 @@ class APIHandler {
             $conn->rollBack();
             echo json_encode(['success' => false, 'message' => $e->getMessage()]);
         }
+        exit;
+    }
+
+    /**
+     * Handle live search/filter for menu items (AJAX)
+     */
+    private function handleSearchMenu() {
+        header('Content-Type: application/json');
+
+        $dashboard   = new MenuDashboardHelper($this->admin_id);
+        $menuHandler = $dashboard->getMenuItemHandler();
+
+        $search   = $_GET['search']   ?? '';
+        $category = $_GET['category'] ?? '';
+        $status   = $_GET['status']   ?? '';
+
+        $items   = $menuHandler->searchAndFilter($search, $category, $status);
+        $allItems= $menuHandler->getAll();
+
+        echo json_encode([
+            'success' => true,
+            'items'   => $items,
+            'has_any' => !empty($allItems),
+        ]);
         exit;
     }
 

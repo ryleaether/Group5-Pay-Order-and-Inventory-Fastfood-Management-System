@@ -198,82 +198,6 @@ try {
     <title>iPOS Admin Dashboard</title>
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
-    <style>
-        .section-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #222;
-            margin-bottom: 14px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #ffcc00;
-            display: inline-block;
-        }
-        .content-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 22px;
-            margin-top: 25px;
-        }
-        .dash-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-        .dash-table th {
-            background: linear-gradient(90deg, #ff0000, #ffcc00);
-            color: white;
-            padding: 9px 12px;
-            text-align: left;
-            font-weight: 500;
-        }
-        .dash-table td {
-            padding: 9px 12px;
-            border-bottom: 1px solid #f1f1f1;
-            color: #444;
-        }
-        .dash-table tr:hover td { background: #fff8e6; }
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .badge-queued    { background: #fff3cd; color: #856404; }
-        .badge-preparing { background: #cff4fc; color: #0c5460; }
-        .badge-served    { background: #d1e7dd; color: #0a3622; }
-        .badge-cancelled { background: #f8d7da; color: #842029; }
-        .stock-low  { color: #dc3545; font-weight: 700; }
-        .stock-zero { color: #dc3545; font-weight: 700; }
-        .rank-num {
-            display: inline-block;
-            width: 24px; height: 24px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ff0000, #ffcc00);
-            color: white;
-            text-align: center;
-            line-height: 24px;
-            font-size: 12px;
-            font-weight: 700;
-            margin-right: 6px;
-        }
-        .empty-state {
-            text-align: center;
-            color: #aaa;
-            padding: 20px;
-            font-size: 13px;
-        }
-        .card.today {
-            background: linear-gradient(135deg, #1a1a1a, #333);
-            color: white;
-            border: none;
-        }
-        .card.today h3,
-        .card.today p { color: white; }
-        @media (max-width: 900px) {
-            .content-grid { grid-template-columns: 1fr; }
-        }
-    </style>
 </head>
 
 <body>
@@ -296,33 +220,43 @@ try {
         <div class="cards">
 
             <div class="card">
-                <h3>Active Devices</h3>
-                <p><?= $device_count ?></p>
+                <div class="card-header">
+                    <h3>Total Orders</h3>
+                    <div class="card-icon">📦</div>
+                </div>
+                <div class="card-value">
+                    <p><?= $total_orders ?></p>
+                </div>
             </div>
 
             <div class="card">
-                <h3>Total Menu Items</h3>
-                <p><?= $total_menu ?></p>
+                <div class="card-header">
+                    <h3>Total Income</h3>
+                    <div class="card-icon">💰</div>
+                </div>
+                <div class="card-value">
+                    <p>₱<?= number_format($total_income, 0) ?></p>
+                </div>
             </div>
 
             <div class="card">
-                <h3>Total Orders</h3>
-                <p><?= $total_orders ?></p>
+                <div class="card-header">
+                    <h3>Menu Items</h3>
+                    <div class="card-icon">🍔</div>
+                </div>
+                <div class="card-value">
+                    <p><?= $total_menu ?></p>
+                </div>
             </div>
 
             <div class="card">
-                <h3>Pending Orders</h3>
-                <p><?= $pending_orders ?></p>
-            </div>
-
-            <div class="card income">
-                <h3>Total Income</h3>
-                <p>&#8369;<?= number_format($total_income, 2) ?></p>
-            </div>
-
-            <div class="card today">
-                <h3>Today's Income</h3>
-                <p>&#8369;<?= number_format($today_income, 2) ?></p>
+                <div class="card-header">
+                    <h3>Pending Orders</h3>
+                    <div class="card-icon">⏳</div>
+                </div>
+                <div class="card-value">
+                    <p><?= $pending_orders ?></p>
+                </div>
             </div>
 
         </div>
@@ -330,8 +264,8 @@ try {
         <!-- CONTENT GRID -->
         <div class="content-grid">
 
-            <!-- RECENT ORDERS (spans full width) -->
-            <div class="content-box" style="grid-column: 1 / -1;">
+            <!-- RECENT ORDERS (spans full width left) -->
+            <div class="content-box">
                 <span class="section-title">🧾 Recent Orders</span>
                 <?php if (!empty($recent_orders)): ?>
                     <table class="dash-table">
@@ -351,77 +285,85 @@ try {
                                 <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
                                 <td><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
                                 <td><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
-                                <td>&#8369;<?= number_format($order['total_amount'], 2) ?></td>
+                                <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
                                 <td>
                                     <span class="badge badge-<?= strtolower(htmlspecialchars($order['order_status'])) ?>">
                                         <?= htmlspecialchars($order['order_status']) ?>
                                     </span>
                                 </td>
-                                <td><?= htmlspecialchars(date('M d, h:i A', strtotime($order['created_at']))) ?></td>
+                                <td><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
                             </tr>
                         <?php endforeach; ?>
+                        <?php for ($i = count($recent_orders); $i < 5; $i++): ?>
+                            <tr class="empty-row">
+                                <td colspan="6">&nbsp;</td>
+                            </tr>
+                        <?php endfor; ?>
                         </tbody>
                     </table>
                 <?php else: ?>
-                    <p class="empty-state">No orders yet. Orders will appear here once customers start placing them.</p>
+                    <p class="empty-state">📭 No orders yet. Orders will appear here once customers start placing them.</p>
                 <?php endif; ?>
             </div>
 
-            <!-- LOW STOCK ALERT -->
-            <div class="content-box">
-                <span class="section-title">⚠️ Low Stock Alert</span>
-                <?php if (!empty($low_stock)): ?>
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Category</th>
-                                <th>Remaining</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($low_stock as $item): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($item['item_name']) ?></td>
-                                <td><?= htmlspecialchars($item['category']) ?></td>
-                                <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
-                                    <?= $item['stock_quantity'] == 0 ? 'OUT OF STOCK' : $item['stock_quantity'] . ' left' ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p class="empty-state">&#10003; All items are well-stocked.</p>
-                <?php endif; ?>
-            </div>
+            <!-- TOP SELLING ITEMS + LOW STOCK (side by side) -->
+            <div class="content-grid-row2">
 
             <!-- TOP SELLING ITEMS -->
             <div class="content-box">
-                <span class="section-title">🏆 Top Selling Items</span>
+                <span class="section-title">🏆 Top Items</span>
                 <?php if (!empty($top_items)): ?>
                     <table class="dash-table">
                         <thead>
                             <tr>
                                 <th>#</th>
                                 <th>Item</th>
-                                <th>Units Sold</th>
+                                <th>Sold</th>
                             </tr>
                         </thead>
                         <tbody>
                         <?php foreach ($top_items as $i => $item): ?>
                             <tr>
                                 <td><span class="rank-num"><?= $i + 1 ?></span></td>
-                                <td><?= htmlspecialchars($item['item_name']) ?></td>
+                                <td><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
                                 <td><strong><?= $item['total_sold'] ?></strong></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
                     </table>
                 <?php else: ?>
-                    <p class="empty-state">No sales data yet.</p>
+                    <p class="empty-state">📊 No data yet</p>
                 <?php endif; ?>
             </div>
+
+            <!-- LOW STOCK ALERT -->
+            <div class="content-box">
+                <span class="section-title">⚠️ Low Stock</span>
+                <?php if (!empty($low_stock)): ?>
+                    <table class="dash-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($low_stock as $item): ?>
+                            <tr>
+                                <td><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
+                                <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
+                                    <?= $item['stock_quantity'] == 0 ? '0' : $item['stock_quantity'] ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php else: ?>
+                    <p class="empty-state">✅ Well stocked</p>
+                <?php endif; ?>
+            </div>
+
+            </div><!-- end content-grid-row2 -->
 
         </div><!-- end content-grid -->
 
@@ -459,7 +401,7 @@ try {
     <div class="modal-content" style="max-width:340px; text-align:center;">
         <span class="close" onclick="document.getElementById('pinModal').classList.remove('show')">&times;</span>
         <div style="font-size:36px; margin-bottom:8px;">🔐</div>
-        <h2 style="margin-bottom:6px;">Switch to User Dashboard</h2>
+        <h2 style="margin-bottom:6px;">Switch to Cashier Dashboard</h2>
         <p style="color:#888; font-size:13px; margin-bottom:20px;">Enter your dashboard PIN to continue</p>
         <div id="pinDots" style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
             <div class="pin-dot"></div><div class="pin-dot"></div>
@@ -489,7 +431,7 @@ try {
         <span class="close" onclick="document.getElementById('setupPinModal').classList.remove('show')">&times;</span>
         <div style="font-size:36px; margin-bottom:8px;">🔑</div>
         <h2 style="margin-bottom:6px;">Set Up Dashboard PIN</h2>
-        <p style="color:#888; font-size:13px; margin-bottom:4px;" id="setupPinLabel">Enter a 4-digit PIN to protect the user dashboard</p>
+        <p style="color:#888; font-size:13px; margin-bottom:4px;" id="setupPinLabel">Enter a 4-digit PIN to protect the Cashier Dashboard</p>
         <div id="setupPinDots" style="display:flex; justify-content:center; gap:12px; margin-bottom:20px; margin-top:14px;">
             <div class="pin-dot"></div><div class="pin-dot"></div>
             <div class="pin-dot"></div><div class="pin-dot"></div>
@@ -523,7 +465,7 @@ function openPinModal() {
         } else {
             setupPinStep=1; setupPinFirst=''; setupPinCurrent='';
             updatePinDots('setupPinDots',0);
-            document.getElementById('setupPinLabel').textContent='Enter a 4-digit PIN to protect the user dashboard';
+            document.getElementById('setupPinLabel').textContent='Enter a 4-digit PIN to protect the Cashier Dashboard';
             document.getElementById('setupPinError').style.display='none';
             document.getElementById('setupPinModal').classList.add('show');
         }

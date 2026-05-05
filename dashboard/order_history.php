@@ -69,6 +69,120 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
     <title>Orders History</title>
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
+    <style>
+        .filter-tab {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .filter-tab:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        .filter-tab.active {
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+            color: white;
+            border-color: var(--accent);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .dash-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .dash-table th {
+            background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+            color: white;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .dash-table td {
+            padding: 14px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+        .dash-table tbody tr {
+            transition: all 0.2s ease;
+        }
+        .dash-table tbody tr:hover {
+            background: var(--accent-light);
+            box-shadow: inset 0 0 0 1px var(--border-color);
+        }
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .badge-queued    { background: #fff3cd; color: #856404; }
+        .badge-preparing { background: #cff4fc; color: #0c5460; }
+        .badge-served    { background: #d1e7dd; color: #0a3622; }
+        .badge-cancelled { background: #f8d7da; color: #842029; }
+        .empty-state {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 50px 20px;
+            font-size: 14px;
+        }
+        .content-box {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: box-shadow 0.3s ease;
+        }
+        .content-box:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+        }
+        .filter-section {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            padding: 18px 22px;
+        }
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-right: 4px;
+        }
+        .card.income {
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+            color: white;
+            border: none;
+        }
+        .card.income h3,
+        .card.income p { color: white; }
+        .card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+    </style>
 </head>
 <body>
 
@@ -84,83 +198,97 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
         </div>
 
         <!-- SUMMARY CARDS -->
-        <div class="cards" style="margin-top:20px;">
-            <div class="card income">
-                <h3>Total Income</h3>
-                <p>₱<?= number_format($summary['total_income'], 2) ?></p>
+        <div class="cards" style="margin-top:20px; grid-template-columns: repeat(3, 1fr);">
+            <div class="card income" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
+                <div class="card-header">
+                    <h3 style="color:rgba(255,255,255,0.75);">Total Income</h3>
+                    <div class="card-icon">💰</div>
+                </div>
+                <div class="card-value">
+                    <p style="color:#fff;">₱<?= number_format($summary['total_income'], 2) ?></p>
+                </div>
             </div>
-            <div class="card">
-                <h3>Completed Orders</h3>
-                <p><?= $summary['total_orders'] ?></p>
+            <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
+                <div class="card-header">
+                    <h3 style="color:rgba(255,255,255,0.75);">Completed Orders</h3>
+                    <div class="card-icon">✅</div>
+                </div>
+                <div class="card-value">
+                    <p style="color:#fff;"><?= $summary['total_orders'] ?></p>
+                </div>
             </div>
-            <div class="card">
-                <h3>Orders Shown</h3>
-                <p><?= count($orders) ?></p>
+            <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
+                <div class="card-header">
+                    <h3 style="color:rgba(255,255,255,0.75);">Orders Shown</h3>
+                    <div class="card-icon">📋</div>
+                </div>
+                <div class="card-value">
+                    <p style="color:#fff;"><?= count($orders) ?></p>
+                </div>
             </div>
         </div>
 
         <!-- FILTERS -->
-        <div class="content-box" style="margin-top:20px; padding:16px 22px;">
-            <form method="GET" style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <div class="content-box" style="margin-top:20px;">
+            <div class="filter-section">
 
-                <div style="display:flex; gap:6px;">
+                <div class="filter-group">
+                    <span class="filter-label">📅 Period</span>
                     <?php $periods = ['all' => 'All Time', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month']; ?>
                     <?php foreach ($periods as $val => $label): ?>
-                        <button type="submit" name="period" value="<?= $val ?>"
-                            class="filter-tab <?= $period === $val ? 'active' : '' ?>"
-                            formaction="?" onclick="this.form.period.value='<?= $val ?>'">
+                        <a href="?period=<?= $val ?>&status=<?= htmlspecialchars($status) ?>"
+                            class="filter-tab <?= $period === $val ? 'active' : '' ?>">
                             <?= $label ?>
-                        </button>
+                        </a>
                     <?php endforeach; ?>
                 </div>
 
-                <div style="display:flex; gap:6px;">
+                <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 6px;"></div>
+
+                <div class="filter-group">
+                    <span class="filter-label">🔍 Status</span>
                     <?php $statuses = ['all' => 'All Orders', 'completed' => '✅ Completed', 'cancelled' => '✕ Cancelled']; ?>
                     <?php foreach ($statuses as $val => $label): ?>
-                        <button type="submit" name="status" value="<?= $val ?>"
+                        <a href="?period=<?= htmlspecialchars($period) ?>&status=<?= $val ?>"
                             class="filter-tab <?= $status === $val ? 'active' : '' ?>">
                             <?= $label ?>
-                        </button>
+                        </a>
                     <?php endforeach; ?>
                 </div>
 
-                <!-- Keep the other filter when switching -->
-                <input type="hidden" name="period" value="<?= htmlspecialchars($period) ?>">
-                <input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>">
-            </form>
+            </div>
         </div>
 
         <!-- ORDERS TABLE -->
-        <div class="content-box" style="margin-top:16px; padding:0; overflow:hidden;">
+        <div class="content-box" style="margin-top:16px; overflow:hidden;">
             <?php if (empty($orders)): ?>
-                <p class="empty-state" style="padding:30px;">No orders found for the selected filters.</p>
+                <p class="empty-state">📭 No orders found for the selected filters.</p>
             <?php else: ?>
-                <table class="dash-table">
+                <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
+                <table class="dash-table" style="table-layout:auto; min-width:820px;">
                     <thead>
                         <tr>
-                            <th>Queue #</th>
-                            <th>Table</th>
-                            <th>Items</th>
-                            <th>Total</th>
-                            <th>Cash Paid</th>
-                            <th>Change</th>
-                            <th>Receipt</th>
-                            <th>Status</th>
-                            <th>Date & Time</th>
+                            <th style="white-space:nowrap;">Queue #</th>
+                            <th style="min-width:180px;">Items</th>
+                            <th style="white-space:nowrap;">Total</th>
+                            <th style="white-space:nowrap;">Cash Paid</th>
+                            <th style="white-space:nowrap;">Change</th>
+                            <th style="white-space:nowrap;">Receipt</th>
+                            <th style="white-space:nowrap;">Status</th>
+                            <th style="white-space:nowrap;">Date & Time</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($orders as $order): ?>
                         <tr>
                             <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
-                            <td>Table <?= htmlspecialchars($order['table_number'] ?? '—') ?></td>
-                            <td style="font-size:12px; max-width:200px;">
+                            <td style="font-size:12px; color: var(--text-secondary); max-width:200px; word-break:break-word; white-space:normal;">
                                 <?= htmlspecialchars($order['items_summary'] ?? '—') ?>
                             </td>
-                            <td>₱<?= number_format($order['total_amount'], 2) ?></td>
-                            <td>₱<?= number_format($order['amount_paid'] ?? 0, 2) ?></td>
-                            <td>₱<?= number_format($order['change_given'] ?? 0, 2) ?></td>
-                            <td style="font-size:11px; color:#888;">
+                            <td style="white-space:nowrap;"><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
+                            <td style="white-space:nowrap;">₱<?= number_format($order['amount_paid'] ?? 0, 2) ?></td>
+                            <td style="white-space:nowrap;">₱<?= number_format($order['change_given'] ?? 0, 2) ?></td>
+                            <td style="font-size:11px; color: var(--text-secondary); white-space:nowrap;">
                                 <?= htmlspecialchars($order['receipt_number'] ?? '—') ?>
                             </td>
                             <td>
@@ -168,13 +296,14 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
                                     <?= htmlspecialchars($order['order_status']) ?>
                                 </span>
                             </td>
-                            <td style="font-size:12px;">
+                            <td style="font-size:12px; color: var(--text-secondary); white-space:nowrap;">
                                 <?= date('M d, Y h:i A', strtotime($order['created_at'])) ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                     </tbody>
                 </table>
+                </div>
             <?php endif; ?>
         </div>
 
