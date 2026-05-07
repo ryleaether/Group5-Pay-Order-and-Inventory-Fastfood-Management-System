@@ -473,14 +473,9 @@ class SidebarRenderer {
                             <span class="nav-icon">👤</span> Account
                         </a>
                     </li>
-                    <li class="<?= $is('kitchen') ?>">
-                        <a href="kitchen_pin_gate.php">
-                            <span class="nav-icon">🍳</span> Kitchen Manager
-                        </a>
-                    </li>
-                    <li>
-                        <a href="#" onclick="openPinModal('cashier'); return false;" class="activity-link">
-                            <span class="nav-icon">🖥️</span> Cashier / Kiosk
+                    <li class="<?= $is('staff_gate') ?>">
+                        <a href="staff_gate.php">
+                            <span class="nav-icon">👥</span> Switch to Staff Dashboard
                         </a>
                     </li>
                 </ul>

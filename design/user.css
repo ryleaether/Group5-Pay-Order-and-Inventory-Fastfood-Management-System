@@ -845,7 +845,7 @@ html, body {
 .pin-dot.filled {
     background: var(--accent);
     border-color: var(--accent);
-    box-shadow: 0 0 8px rgba(249,115,22,0.5);
+    box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 .pin-pad {

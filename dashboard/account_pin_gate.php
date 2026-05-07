@@ -90,7 +90,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <?php endforeach; ?>
         </div>
         <p id="gateError" style="color:#dc2626; font-size:13px; margin-top:12px; display:none;">Incorrect PIN. Try again.</p>
-        <a href="admindashboard.php" style="display:inline-block; margin-top:16px; font-size:12px; color:var(--accent); font-weight:600; text-decoration:none;">← Back to Dashboard</a>
+        <a href="helpers/clear_gate.php?gate=account&redirect=admindashboard.php" style="display:inline-block; margin-top:16px; font-size:12px; color:var(--accent); font-weight:600; text-decoration:none;">← Back to Dashboard</a>
     </div>
 </div>
 <style>

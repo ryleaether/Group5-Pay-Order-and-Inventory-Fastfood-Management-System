@@ -59,7 +59,7 @@ $old_username = $_SESSION['old_username'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPOS — Login</title>
-    <link rel="stylesheet" href="../design/mainstyle.css">
+    <link rel="stylesheet" href="design/mainstyle.css">
     <?php include __DIR__ . '/dashboard/helpers/theme_loader.php'; ?>
 </head>
 <body>

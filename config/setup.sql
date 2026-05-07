@@ -124,3 +124,37 @@ ALTER TABLE admins   ADD COLUMN IF NOT EXISTS theme_data TEXT NULL;
 ALTER TABLE orders   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 ALTER TABLE orders   MODIFY COLUMN order_status ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued';
 -- ─────────────────────────────────────────────────────────────────────────
+
+/* ================================================================
+   STAFFS — iPOS Migration
+   Run this on your existing ipos_db database.
+   Safe to run multiple times (uses IF NOT EXISTS / IF NOT EXISTS).
+   ================================================================ */
+
+USE ipos_db;
+
+/* ── staffs table ── */
+CREATE TABLE IF NOT EXISTS staffs (
+    staff_id         INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id         INT NOT NULL,
+    fullname         VARCHAR(100) NOT NULL,
+    role             ENUM('Cashier','Kitchen','Manager','Waiter','Other') NOT NULL DEFAULT 'Cashier',
+    pin              VARCHAR(255) NULL,                  -- bcrypt hashed 4-digit PIN
+    status           ENUM('Active','Inactive') NOT NULL DEFAULT 'Active',
+    shift_start      TIME NULL,                          -- e.g. 08:00:00
+    shift_end        TIME NULL,                          -- e.g. 17:00:00
+    login_fail_count INT NOT NULL DEFAULT 0,             -- increments on bad PIN
+    last_fail_at     TIMESTAMP NULL,                     -- timestamp of last failed login
+    last_login_at    TIMESTAMP NULL,                     -- timestamp of last successful login
+    created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
+);
+
+/* ── Safety ALTERs (if upgrading from the earlier staffs version) ── */
+ALTER TABLE staffs ADD COLUMN IF NOT EXISTS shift_start      TIME NULL;
+ALTER TABLE staffs ADD COLUMN IF NOT EXISTS shift_end        TIME NULL;
+ALTER TABLE staffs ADD COLUMN IF NOT EXISTS login_fail_count INT NOT NULL DEFAULT 0;
+ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_fail_at     TIMESTAMP NULL;
+ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_login_at    TIMESTAMP NULL;
+
+select * from admins;

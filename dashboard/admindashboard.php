@@ -541,6 +541,14 @@ if (document.readyState === 'loading') {
     bindSidebarActions();
 }
 
+// Auto-open admin PIN modal when returning from a staff/kitchen/account gate
+if (new URLSearchParams(window.location.search).get('require_pin') === '1') {
+    // Clean the URL without reloading
+    history.replaceState(null, '', window.location.pathname);
+    // Wait for page to fully render then open
+    window.addEventListener('load', () => setTimeout(openPinModal, 200));
+}
+
 // Expose modal functions globally for sidebar anchor callbacks
 window.openAccountModal = openAccountModal;
 window.openPinModal = openPinModal;

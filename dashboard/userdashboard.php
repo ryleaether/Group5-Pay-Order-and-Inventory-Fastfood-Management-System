@@ -2,14 +2,22 @@
 session_start();
 require_once __DIR__ . "/../config/database.php";
 
-if (!isset($_SESSION['admin_id'])) {
+// Allow access from admin session OR staff session (Cashier role)
+if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Cashier' && isset($_SESSION['staff_admin'])) {
+    $admin_id = (int)$_SESSION['staff_admin'];
+} elseif (isset($_SESSION['admin_id'])) {
+    $admin_id = $_SESSION['admin_id'];
+    if (empty($_SESSION['staff_gate_unlocked'])) {
+        header("Location: staff_gate.php");
+        exit;
+    }
+} else {
     header("Location: ../login.php");
     exit;
 }
 
-$db       = new Database();
-$conn     = $db->connect();
-$admin_id = $_SESSION['admin_id'];
+$db   = new Database();
+$conn = $db->connect();
 
 $stmt = $conn->prepare("
     SELECT * FROM menu_items
@@ -46,7 +54,24 @@ function hexToRgba($hex, $alpha) {
     :root {
         --accent2:    <?= htmlspecialchars($ac) ?>;
         --accent-dim: <?= htmlspecialchars(hexToRgba($ac, 0.15)) ?>;
+        /* Remap dark surface vars to admin's light theme palette */
+        --bg:       <?= htmlspecialchars($bg) ?>;
+        --surface:  #ffffff;
+        --surface2: <?= htmlspecialchars($acl) ?>;
+        --surface3: <?= htmlspecialchars(hexToRgba($ac, 0.08)) ?>;
+        --text:     <?= htmlspecialchars($txt) ?>;
+        --text2:    <?= htmlspecialchars(hexToRgba($txt, 0.65)) ?>;
+        --text3:    <?= htmlspecialchars(hexToRgba($txt, 0.40)) ?>;
+        --border:   <?= htmlspecialchars(hexToRgba($acd, 0.15)) ?>;
     }
+    /* Admin modal specifically — use admin card colors not dark overlay */
+    .pos-admin-modal {
+        background: #ffffff;
+        border-color: <?= htmlspecialchars(hexToRgba($acd, 0.15)) ?>;
+        color: <?= htmlspecialchars($txt) ?>;
+    }
+    .pos-admin-modal h3 { color: <?= htmlspecialchars($txt) ?>; }
+    .pos-admin-modal p  { color: <?= htmlspecialchars(hexToRgba($txt, 0.6)) ?>; }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -233,9 +258,9 @@ function hexToRgba($hex, $alpha) {
 <!-- ======== ADMIN TOGGLE MODAL ======== -->
 <div class="pos-admin-overlay" id="adminOverlay">
     <div class="pos-admin-modal">
-        <div style="font-size:28px; margin-bottom:8px;">🔒</div>
-        <h3>Admin Access</h3>
-        <p>Enter your PIN to switch to admin</p>
+        <div style="font-size:28px; margin-bottom:8px;">🔐</div>
+        <h3>Log Out</h3>
+        <p>Enter your PIN to log out and return to Staff Login</p>
         <div class="pin-dots" id="adminPinDots">
             <div class="pin-dot"></div>
             <div class="pin-dot"></div>
@@ -250,10 +275,10 @@ function hexToRgba($hex, $alpha) {
                 </button>
             <?php endforeach; ?>
         </div>
-        <p id="adminPinError" style="color:#ef4444; font-size:12px; margin-top:10px; display:none;">Incorrect PIN.</p>
+        <p id="adminPinError" style="color:#ef4444; font-size:12px; margin-top:10px; display:none;">Incorrect PIN. Try again.</p>
         <button onclick="hideAdminOverlay()"
-                style="margin-top:14px; background:transparent; border:1px solid rgba(255,255,255,0.1); padding:8px 20px; border-radius:8px; cursor:pointer; font-size:13px; color:#9898a8;">
-            Cancel
+                style="margin-top:14px; background:transparent; border:1px solid rgba(255,255,255,0.15); padding:8px 20px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text2); font-family:inherit;">
+            ← Back to Cashier
         </button>
     </div>
 </div>
@@ -612,7 +637,7 @@ function adminPinBackspace() {
 }
 
 function verifyAdminPin() {
-    fetch('helpers/admindashboard_helpers.php?action=check_pin', {
+    fetch('helpers/staff_helpers.php?action=verify_own_pin', {
         method:  'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body:    'pin=' + encodeURIComponent(adminPinValue)
@@ -620,7 +645,7 @@ function verifyAdminPin() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            window.location.href = 'admindashboard.php';
+            window.location.href = 'staff_login.php';
         } else {
             document.getElementById('adminPinError').style.display = 'block';
             adminPinValue = '';
