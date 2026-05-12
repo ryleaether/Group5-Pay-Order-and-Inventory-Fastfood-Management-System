@@ -325,6 +325,7 @@ class SidebarRenderer {
                 </div>
             </div>
 
+
             <!-- User Profile -->
             <div class="sidebar-profile" onclick="window.location.href='account_pin_gate.php'" title="Click to manage account" style="cursor:pointer;">
                 <div class="user-avatar" style="<?= !empty($this->profile_photo) ? 'background:none;padding:0;overflow:hidden;' : '' ?>">
@@ -348,40 +349,56 @@ class SidebarRenderer {
 
             <!-- Navigation -->
             <div class="sidebar-nav">
+
                 <div class="sidebar-section-label">Main</div>
                 <ul>
                     <li class="<?= $is('dashboard') ?>">
-                        <a href="admindashboard.php"><span class="nav-icon">📊</span> Dashboard</a>
+                        <a href="admindashboard.php">
+                            <span class="nav-icon">📊</span> Dashboard
+                        </a>
                     </li>
                 </ul>
 
                 <div class="sidebar-section-label">Management</div>
                 <ul>
                     <li class="<?= $is('menu') ?>">
-                        <a href="menu_list.php"><span class="nav-icon">🍔</span> Manage Menu</a>
+                        <a href="menu_list.php">
+                            <span class="nav-icon">🍔</span> Manage Menu
+                        </a>
                     </li>
                     <li class="<?= $is('history') ?>">
-                        <a href="order_history.php"><span class="nav-icon">🧾</span> Order History</a>
+                        <a href="order_history.php">
+                            <span class="nav-icon">🧾</span> Order History
+                        </a>
                     </li>
                     <li class="<?= $is('staffs') ?>">
-                        <a href="manage_staffs.php"><span class="nav-icon">👥</span> Manage Staffs</a>
+                        <a href="manage_staffs.php">
+                            <span class="nav-icon">👥</span> Manage Staffs
+                        </a>
                     </li>
                 </ul>
 
                 <div class="sidebar-section-label">Activity</div>
                 <ul>
                     <li class="<?= $is('account') ?>">
-                        <a href="account_pin_gate.php"><span class="nav-icon">👤</span> Account</a>
+                        <a href="account_pin_gate.php">
+                            <span class="nav-icon">👤</span> Account
+                        </a>
                     </li>
-                    <li class="<?= $is('staff_login') ?>">
-                        <a href="staff_login.php"><span class="nav-icon">👥</span> Switch to Staff Dashboard</a>
+                    <li class="<?= $is('staff_gate') ?>">
+                        <a href="staff_gate.php">
+                            <span class="nav-icon">👥</span> Switch to Staff Dashboard
+                        </a>
                     </li>
                 </ul>
 
                 <div class="sidebar-divider"></div>
+
                 <ul>
                     <li>
-                        <a href="../logout.php" class="logout-link"><span class="nav-icon">🚪</span> Logout</a>
+                        <a href="../logout.php" class="logout-link">
+                            <span class="nav-icon">🚪</span> Logout
+                        </a>
                     </li>
                 </ul>
             </div>
@@ -437,17 +454,26 @@ class SidebarRenderer {
                     </div>
                     <div class="modal-actions">
                         <button type="button" class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
-                        <button type="submit" class="btn-save">💾 Save Changes</button>
+                   <button type="submit" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
 
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
         <style>
+        /* ===== SIDEBAR — uses CSS vars, changed by theme ===== */
         .sidebar {
-            width: 240px; min-height: 100vh; background: var(--sidebar-bg);
-            display: flex; flex-direction: column; font-family: 'Segoe UI', sans-serif;
-            position: fixed; top: 0; left: 0; overflow-y: auto; z-index: 100;
+            width: 240px;
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            font-family: 'Segoe UI', sans-serif;
+            position: fixed;
+            top: 0; left: 0;
+            overflow-y: auto;
+            z-index: 100;
         }
         .logo { display: flex; align-items: center; gap: 10px; padding: 1.2rem 1.2rem 1rem; }
         .logo-icon-box {
@@ -458,6 +484,8 @@ class SidebarRenderer {
         }
         .logo-text h2 { color: #fff; font-size: 1.05rem; font-weight: 700; margin: 0; }
         .logo-text p  { color: rgba(255,255,255,0.45); font-size: 0.65rem; margin: 0; }
+
+        /* USER PROFILE CARD */
         .sidebar-profile {
             display: flex; align-items: center; gap: 10px;
             margin: 0.5rem 0.8rem 0.8rem; padding: 0.75rem 0.9rem;
@@ -480,20 +508,32 @@ class SidebarRenderer {
             background: rgba(255,255,255,0.08); border-radius: 7px; padding: 5px;
             display: flex; transition: background 0.2s, color 0.2s;
         }
-        .sidebar-profile:hover .profile-edit-btn { background: rgba(255,255,255,0.15); color: #fff; }
+        .sidebar-profile:hover .profile-edit-btn {
+            background: rgba(255,255,255,0.15);
+            color: #fff;
+        }
+
+        /* NAV */
         .sidebar-nav { flex: 1; padding: 0 0.5rem; }
         .sidebar-nav ul { list-style: none; margin: 0 0 0.4rem; padding: 0; }
         .sidebar-nav ul li a {
-            display: flex; align-items: center; gap: 10px; padding: 0.6rem 0.9rem;
-            color: rgba(255,255,255,0.5); text-decoration: none; border-radius: 9px;
-            font-size: 0.85rem; transition: background 0.15s, color 0.15s;
+            display: flex; align-items: center; gap: 10px;
+            padding: 0.6rem 0.9rem;
+            color: rgba(255,255,255,0.5);
+            text-decoration: none;
+            border-radius: 9px;
+            font-size: 0.85rem;
+            transition: background 0.15s, color 0.15s;
         }
         .sidebar-nav ul li a:hover, .sidebar-nav ul li.active a {
             background: var(--sidebar-active-bg); color: #fff;
         }
         .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+        .activity-link { color: rgba(255,255,255,0.6) !important; }
+        .activity-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
         .logout-link { color: rgba(255,100,100,0.8) !important; }
         .logout-link:hover { background: rgba(248,113,113,0.12) !important; color: #f87171 !important; }
+
         .sidebar-section-label {
             color: rgba(255,255,255,0.3); font-size: 0.63rem; font-weight: 700;
             letter-spacing: 0.1em; text-transform: uppercase; padding: 0.9rem 1rem 0.3rem;
@@ -529,6 +569,33 @@ class SidebarRenderer {
         function closeProfileModal() { const m = document.getElementById('profileModal'); m.style.display = 'none'; document.body.style.overflow = ''; }
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfileModal(); });
         </script>
+        <?php
+       $sidebar_html = ob_get_clean();
+
+        $adminProfile = [];
+        try {
+            $db2   = new Database();
+            $conn2 = $db2->connect();
+            $stmt2 = $conn2->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
+            $stmt2->bindParam(':id', $this->admin_id);
+            $stmt2->execute();
+            $adminProfile = $stmt2->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) { $adminProfile = []; }
+
+        ob_start();
+        echo $sidebar_html;
+        ?>
+        <div class="main" id="mainContent">
+            <?php include __DIR__ . '/../header.php'; ?>
+            <div class="page-content">
+        <?php
+        return ob_get_clean();
+    }
+    public function renderClose() {
+        ob_start(); ?>
+        </div><!-- end page-content -->
+        <?php include __DIR__ . '/../footer.php'; ?>
+        </div><!-- end main -->
         <?php
         return ob_get_clean();
     }
