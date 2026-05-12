@@ -12,7 +12,6 @@ $val  = new Validation();
 
 /* CHECK IF ACCOUNT STILL EXISTS */
 if (!$val->adminExists($_SESSION['admin_id'])) {
-    // Account deleted, show message
     echo '<!DOCTYPE html>
     <html>
     <head>
@@ -57,17 +56,10 @@ try {
     $adminProfile = [];
 }
 
-// Sidebar renderer
 $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
-/* =========================
-   DEVICE COUNT (existing)
-========================= */
 $device_count = $val->countDevices($admin_id);
 
-/* =========================
-   TOTAL MENU ITEMS
-========================= */
 $total_menu = 0;
 try {
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM menu_items WHERE admin_id = :id");
@@ -76,9 +68,6 @@ try {
     $total_menu = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 } catch (Exception $e) { $total_menu = 0; }
 
-/* =========================
-   TOTAL ORDERS
-========================= */
 $total_orders = 0;
 try {
     $stmt = $conn->prepare("SELECT COUNT(*) as total FROM orders WHERE admin_id = :id");
@@ -87,9 +76,6 @@ try {
     $total_orders = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 } catch (Exception $e) { $total_orders = 0; }
 
-/* =========================
-   PENDING / QUEUED ORDERS
-========================= */
 $pending_orders = 0;
 try {
     $stmt = $conn->prepare(
@@ -101,9 +87,6 @@ try {
     $pending_orders = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
 } catch (Exception $e) { $pending_orders = 0; }
 
-/* =========================
-   TOTAL INCOME
-========================= */
 $total_income = 0.00;
 try {
     $stmt = $conn->prepare(
@@ -117,9 +100,6 @@ try {
     $total_income = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.00;
 } catch (Exception $e) { $total_income = 0.00; }
 
-/* =========================
-   TODAY'S INCOME
-========================= */
 $today_income = 0.00;
 try {
     $stmt = $conn->prepare(
@@ -135,9 +115,6 @@ try {
     $today_income = $stmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0.00;
 } catch (Exception $e) { $today_income = 0.00; }
 
-/* =========================
-   RECENT ORDERS (last 5)
-========================= */
 $recent_orders = [];
 try {
     $stmt = $conn->prepare(
@@ -155,9 +132,6 @@ try {
     $recent_orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $recent_orders = []; }
 
-/* =========================
-   LOW STOCK (stock <= 5)
-========================= */
 $low_stock = [];
 try {
     $stmt = $conn->prepare(
@@ -172,9 +146,6 @@ try {
     $low_stock = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) { $low_stock = []; }
 
-/* =========================
-   TOP SELLING ITEMS (top 5)
-========================= */
 $top_items = [];
 try {
     $stmt = $conn->prepare(
@@ -196,179 +167,183 @@ try {
 <html>
 <head>
     <title>iPOS Admin Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
 </head>
 
 <body>
 
-<div class="dashboard">
+<div class="dashboard" id="dashboardRoot">
 
-    <!-- SIDEBAR -->
+    <!-- ═══════════════════════════════
+         SIDEBAR
+    ═══════════════════════════════ -->
     <?= $sidebar->render('dashboard') ?>
+<?php echo '<!-- logo_url: ' . ($_SESSION['logo_url'] ?? 'NOT SET') . ' -->'; ?>
+    <!-- ═══════════════════════════════
+         MAIN WRAPPER
+    ═══════════════════════════════ -->
+   
 
-    <!-- MAIN -->
-    <div class="main">
+        <!-- TOPBAR / WELCOME BANNER -->
+<div class="topbar">
+  <div style="display:flex; align-items:center; gap:18px;">
+    <?php if (!empty($_SESSION['logo_url'])): ?>
+      <?php $logo_src = '/' . ltrim($_SESSION['logo_url'], '/'); ?>
+      <?php $radius = ($_SESSION['logo_shape'] ?? 'circle') === 'circle' ? '50%' : (($_SESSION['logo_shape'] ?? '') === 'rounded' ? '14px' : '4px'); ?>
+      <img src="<?= htmlspecialchars($logo_src) ?>" alt="logo"
+           style="width:80px;height:80px;object-fit:cover;border-radius:<?= $radius ?>;border:3px solid rgba(255,255,255,0.5);flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+    <?php endif; ?>
+    <div>
+      <h1>Welcome back, <?= htmlspecialchars($_SESSION['username'] ?? '') ?> <i class="fa-solid fa-hands-clapping" style="color:#f59e0b;"></i></h1>
+      <p class="subtitle"><?= htmlspecialchars($_SESSION['fastfood_name'] ?? '') ?> · Admin Dashboard</p>
+      <span style="font-size:0.72rem;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.12);padding:2px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;display:inline-block;">
+        <?= htmlspecialchars($_SESSION['business_type'] ?? 'Fast Food Store') ?>
+      </span>
+    </div>
+  </div>
+</div>
 
-        <!-- TOPBAR -->
-        <div class="topbar">
-            <h1>Welcome back, <?= htmlspecialchars($_SESSION['username'] ?? '') ?> 👋</h1>
-            <p class="subtitle"><?= htmlspecialchars($_SESSION['fastfood_name'] ?? '') ?> · Admin Dashboard</p>
-        </div>
+            <!-- STATS CARDS -->
+            <div class="cards">
 
-        <!-- STATS CARDS -->
-        <div class="cards">
-
-            <div class="card">
-                <div class="card-header">
-                    <h3>Total Orders</h3>
-                    <div class="card-icon">📦</div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Total Orders</h3>
+                        <div class="card-icon"><i class="fa-solid fa-box-open"></i></div>
+                    </div>
+                    <div class="card-value">
+                        <p><?= $total_orders ?></p>
+                    </div>
                 </div>
-                <div class="card-value">
-                    <p><?= $total_orders ?></p>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Total Income</h3>
+                    <div class="card-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                    </div>
+                    <div class="card-value">
+                        <p>₱<?= number_format($total_income, 0) ?></p>
+                    </div>
                 </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Menu Items</h3>
+                        <div class="card-icon"><i class="fa-solid fa-utensils"></i></div>
+                    </div>
+                    <div class="card-value">
+                        <p><?= $total_menu ?></p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Pending Orders</h3>
+                        <div class="card-icon"><i class="fa-solid fa-clock"></i></div>
+                    </div>
+                    <div class="card-value">
+                        <p><?= $pending_orders ?></p>
+                    </div>
+                </div>
+
             </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h3>Total Income</h3>
-                    <div class="card-icon">💰</div>
+            <!-- CONTENT GRID -->
+            <div class="content-grid">
+
+                <div class="content-box">
+                  <span class="section-title"><i class="fa-solid fa-receipt"></i> Recent Orders</span>
+                    <?php if (!empty($recent_orders)): ?>
+                        <table class="dash-table">
+                            <thead>
+                                <tr>
+                                    <th>Queue #</th>
+                                    <th>Customer</th>
+                                    <th>Table</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($recent_orders as $order): ?>
+                                <tr>
+                                    <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
+                                    <td><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
+                                    <td><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
+                                    <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
+                                    <td>
+                                        <span class="badge badge-<?= strtolower(htmlspecialchars($order['order_status'])) ?>">
+                                            <?= htmlspecialchars($order['order_status']) ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                            <?php for ($i = count($recent_orders); $i < 5; $i++): ?>
+                                <tr class="empty-row"><td colspan="6">&nbsp;</td></tr>
+                            <?php endfor; ?>
+                            </tbody>
+                        </table>
+                    <?php else: ?>
+                  <p class="empty-state"><i class="fa-solid fa-inbox" style="margin-right:6px;"></i>No orders yet. Orders will appear here once customers start placing them.</p>
+                    <?php endif; ?>
                 </div>
-                <div class="card-value">
-                    <p>₱<?= number_format($total_income, 0) ?></p>
+
+                <div class="content-grid-row2">
+
+                    <div class="content-box">
+                       <span class="section-title"><i class="fa-solid fa-trophy"></i> Top Items</span>
+                        <?php if (!empty($top_items)): ?>
+                            <table class="dash-table">
+                                <thead>
+                                    <tr><th>#</th><th>Item</th><th>Sold</th></tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($top_items as $i => $item): ?>
+                                    <tr>
+                                        <td><span class="rank-num"><?= $i + 1 ?></span></td>
+                                        <td><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
+                                        <td><strong><?= $item['total_sold'] ?></strong></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                       <p class="empty-state"><i class="fa-solid fa-chart-simple" style="margin-right:6px;"></i>No data yet</p>
+                        <?php endif; ?>
+                    </div>
+
+                    <div class="content-box">
+                        <span class="section-title"><i class="fa-solid fa-triangle-exclamation"></i> Low Stock</span>
+                        <?php if (!empty($low_stock)): ?>
+                            <table class="dash-table">
+                                <thead>
+                                    <tr><th>Item</th><th>Qty</th></tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($low_stock as $item): ?>
+                                    <tr>
+                                        <td><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
+                                        <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
+                                            <?= $item['stock_quantity'] == 0 ? '0' : $item['stock_quantity'] ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        <?php else: ?>
+                     <p class="empty-state"><i class="fa-solid fa-circle-check" style="margin-right:6px;"></i>Well stocked</p>
+                        <?php endif; ?>
+                    </div>
+
                 </div>
-            </div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h3>Menu Items</h3>
-                    <div class="card-icon">🍔</div>
-                </div>
-                <div class="card-value">
-                    <p><?= $total_menu ?></p>
-                </div>
-            </div>
+            </div><!-- end content-grid -->
 
-            <div class="card">
-                <div class="card-header">
-                    <h3>Pending Orders</h3>
-                    <div class="card-icon">⏳</div>
-                </div>
-                <div class="card-value">
-                    <p><?= $pending_orders ?></p>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- CONTENT GRID -->
-        <div class="content-grid">
-
-            <!-- RECENT ORDERS (spans full width left) -->
-            <div class="content-box">
-                <span class="section-title">🧾 Recent Orders</span>
-                <?php if (!empty($recent_orders)): ?>
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>Queue #</th>
-                                <th>Customer</th>
-                                <th>Table</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($recent_orders as $order): ?>
-                            <tr>
-                                <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
-                                <td><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
-                                <td><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
-                                <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
-                                <td>
-                                    <span class="badge badge-<?= strtolower(htmlspecialchars($order['order_status'])) ?>">
-                                        <?= htmlspecialchars($order['order_status']) ?>
-                                    </span>
-                                </td>
-                                <td><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        <?php for ($i = count($recent_orders); $i < 5; $i++): ?>
-                            <tr class="empty-row">
-                                <td colspan="6">&nbsp;</td>
-                            </tr>
-                        <?php endfor; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p class="empty-state">📭 No orders yet. Orders will appear here once customers start placing them.</p>
-                <?php endif; ?>
-            </div>
-
-            <!-- TOP SELLING ITEMS + LOW STOCK (side by side) -->
-            <div class="content-grid-row2">
-
-            <!-- TOP SELLING ITEMS -->
-            <div class="content-box">
-                <span class="section-title">🏆 Top Items</span>
-                <?php if (!empty($top_items)): ?>
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Item</th>
-                                <th>Sold</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($top_items as $i => $item): ?>
-                            <tr>
-                                <td><span class="rank-num"><?= $i + 1 ?></span></td>
-                                <td><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
-                                <td><strong><?= $item['total_sold'] ?></strong></td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p class="empty-state">📊 No data yet</p>
-                <?php endif; ?>
-            </div>
-
-            <!-- LOW STOCK ALERT -->
-            <div class="content-box">
-                <span class="section-title">⚠️ Low Stock</span>
-                <?php if (!empty($low_stock)): ?>
-                    <table class="dash-table">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Qty</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($low_stock as $item): ?>
-                            <tr>
-                                <td><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
-                                <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
-                                    <?= $item['stock_quantity'] == 0 ? '0' : $item['stock_quantity'] ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                <?php else: ?>
-                    <p class="empty-state">✅ Well stocked</p>
-                <?php endif; ?>
-            </div>
-
-            </div><!-- end content-grid-row2 -->
-
-        </div><!-- end content-grid -->
-
-    </div><!-- end .main -->
-
+<?= $sidebar->renderClose() ?>
 </div><!-- end .dashboard -->
 
 
@@ -377,9 +352,7 @@ try {
     <div class="modal-content" style="max-width:420px; text-align:left;">
         <span class="close" onclick="document.getElementById('accountModal').classList.remove('show')">&times;</span>
         <h2 style="margin-bottom:12px;">👤 Edit Account</h2>
-        <p style="color:#555; font-size:14px; margin-bottom:18px;">
-            Update your username, email, and password here.
-        </p>
+        <p style="color:#555; font-size:14px; margin-bottom:18px;">Update your username, email, and password here.</p>
         <form id="accountForm" onsubmit="submitAccountForm(event)">
             <div style="display:grid; gap:12px;">
                 <input type="text" name="fullname" placeholder="Full Name" value="<?= htmlspecialchars($adminProfile['fullname'] ?? '') ?>" required>
@@ -394,7 +367,6 @@ try {
         </form>
     </div>
 </div>
-
 
 <!-- PIN MODAL -->
 <div id="pinModal" class="modal">
@@ -486,7 +458,6 @@ function submitAccountForm(event) {
     const form = document.getElementById('accountForm');
     const message = document.getElementById('accountMessage');
     const data = new URLSearchParams(new FormData(form));
-
     fetch('helpers/admindashboard_helpers.php?action=update_account', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -499,9 +470,7 @@ function submitAccountForm(event) {
         message.style.background = result.success ? '#e6ffed' : '#ffe6e6';
         message.style.color = result.success ? '#1f7a3c' : '#9b1f1f';
         message.style.border = result.success ? '1px solid #8cd19e' : '1px solid #ea9a9a';
-        if (result.success) {
-            setTimeout(() => location.reload(), 900);
-        }
+        if (result.success) { setTimeout(() => location.reload(), 900); }
     });
 }
 function pinPress(num){ if(pinValue.length>=4)return; pinValue+=num; updatePinDots('pinDots',pinValue.length); if(pinValue.length===4)verifyPin(); }
@@ -518,20 +487,36 @@ function setupPinPress(num){ if(setupPinCurrent.length>=4)return; setupPinCurren
 function setupPinBackspace(){ setupPinCurrent=setupPinCurrent.slice(0,-1); updatePinDots('setupPinDots',setupPinCurrent.length); }
 function savePin(pin){ fetch('helpers/admindashboard_helpers.php?action=save_pin',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'pin='+encodeURIComponent(pin)}).then(r=>r.json()).then(data=>{ if(data.success){ document.getElementById('setupPinModal').classList.remove('show'); window.location.href='userdashboard.php'; } }); }
 function updatePinDots(id,count){ document.querySelectorAll('#'+id+' .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<count)); }
+
+/* ── SIDEBAR TOGGLE ── */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const main    = document.getElementById('mainContent');
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+    if (main) main.classList.toggle('main-expanded', collapsed);
+    localStorage.setItem('ipos_sidebar_collapsed', collapsed ? '1' : '0');
+}
+
+/* Restore sidebar state on page load */
+document.addEventListener('DOMContentLoaded', function() {
+    const collapsed = localStorage.getItem('ipos_sidebar_collapsed') === '1';
+    if (collapsed) {
+        const sidebar = document.querySelector('.sidebar');
+        const main    = document.getElementById('mainContent');
+        if (sidebar) sidebar.classList.add('sidebar-collapsed');
+        if (main)    main.classList.add('main-expanded');
+    }
+});
+
 document.addEventListener('click',function(e){ ['pinModal','setupPinModal','accountModal'].forEach(id=>{ const m=document.getElementById(id); if(m&&e.target===m)m.classList.remove('show'); }); });
 
 function bindSidebarActions() {
     document.querySelectorAll('a[data-action="open-account"]').forEach(link => {
-        link.addEventListener('click', function(event) {
-            event.preventDefault();
-            openAccountModal();
-        });
+        link.addEventListener('click', function(event) { event.preventDefault(); openAccountModal(); });
     });
     document.querySelectorAll('a[data-action="open-pin"]').forEach(link => {
-        link.addEventListener('click', function(event) {
-            event.preventDefault();
-            openPinModal();
-        });
+        link.addEventListener('click', function(event) { event.preventDefault(); openPinModal(); });
     });
 }
 
@@ -549,11 +534,9 @@ if (new URLSearchParams(window.location.search).get('require_pin') === '1') {
     window.addEventListener('load', () => setTimeout(openPinModal, 200));
 }
 
-// Expose modal functions globally for sidebar anchor callbacks
 window.openAccountModal = openAccountModal;
 window.openPinModal = openPinModal;
 window.submitAccountForm = submitAccountForm;
-window.closeModal = closeModal;
 </script>
 
 </body>

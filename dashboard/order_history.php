@@ -190,8 +190,6 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
     <?= $sidebar->render('history') ?>
 
-    <div class="main">
-
         <div class="topbar">
             <h1>🧾 Orders History</h1>
             <p class="subtitle">All orders — including cancelled</p>
@@ -307,8 +305,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
             <?php endif; ?>
         </div>
 
-    </div>
-</div>
+   <?= $sidebar->renderClose() ?>
+</div><!-- end .dashboard -->
 
 <!-- ================= PIN MODALS (required by sidebar) ================= -->
 <?php include __DIR__ . '/helpers/pin_modals.php'; ?>

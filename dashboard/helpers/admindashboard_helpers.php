@@ -421,6 +421,7 @@ class SidebarRenderer {
                 </div>
             </div>
 
+
             <!-- Clickable User Profile → Account Dashboard -->
             <div class="sidebar-profile" onclick="window.location.href='account_pin_gate.php'" title="Click to manage account" style="cursor:pointer;">
                 <div class="user-avatar"><?= $initial ?></div>
@@ -438,11 +439,11 @@ class SidebarRenderer {
             <!-- Navigation -->
             <div class="sidebar-nav">
 
-                <div class="sidebar-section-label">Main</div>
+              <div class="sidebar-section-label">Main</div>
                 <ul>
-                    <li class="<?= $is('dashboard') ?>">
+                  <li class="<?= $is('dashboard') ?>">
                         <a href="admindashboard.php">
-                            <span class="nav-icon">📊</span> Dashboard
+                            <span class="nav-icon ni-blue"><i class="fa-solid fa-gauge"></i></span> Dashboard
                         </a>
                     </li>
                 </ul>
@@ -451,17 +452,17 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('menu') ?>">
                         <a href="menu_list.php">
-                            <span class="nav-icon">🍔</span> Manage Menu
+                            <span class="nav-icon ni-orange"><i class="fa-solid fa-utensils"></i></span> Manage Menu
                         </a>
                     </li>
                     <li class="<?= $is('history') ?>">
                         <a href="order_history.php">
-                            <span class="nav-icon">🧾</span> Order History
+                            <span class="nav-icon ni-teal"><i class="fa-solid fa-clock-rotate-left"></i></span> Order History
                         </a>
                     </li>
                     <li class="<?= $is('staffs') ?>">
                         <a href="manage_staffs.php">
-                            <span class="nav-icon">👥</span> Manage Staffs
+                            <span class="nav-icon ni-purple"><i class="fa-solid fa-users"></i></span> Manage Staffs
                         </a>
                     </li>
                 </ul>
@@ -470,22 +471,22 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('account') ?>">
                         <a href="account_pin_gate.php">
-                            <span class="nav-icon">👤</span> Account
+                            <span class="nav-icon ni-pink"><i class="fa-solid fa-circle-user"></i></span> Account
                         </a>
                     </li>
-                    <li class="<?= $is('staff_gate') ?>">
-                        <a href="staff_gate.php">
-                            <span class="nav-icon">👥</span> Switch to Staff Dashboard
-                        </a>
-                    </li>
+                   <li class="<?= $is('staff_gate') ?>">
+    <a href="staff_gate.php">
+        <span class="nav-icon ni-yellow"><i class="fa-solid fa-users-between-lines"></i></span> Switch to Staff Dashboard
+    </a>
+</li>
                 </ul>
 
-                <div class="sidebar-divider"></div>
+               <div class="sidebar-divider"></div>
 
                 <ul>
                     <li>
                         <a href="../logout.php" class="logout-link">
-                            <span class="nav-icon">🚪</span> Logout
+                            <span class="nav-icon ni-red"><i class="fa-solid fa-right-from-bracket"></i></span> Logout
                         </a>
                     </li>
                 </ul>
@@ -549,24 +550,25 @@ class SidebarRenderer {
 
                     <div class="modal-actions">
                         <button type="button" class="btn-cancel" onclick="closeProfileModal()">Cancel</button>
-                        <button type="submit" class="btn-save">💾 Save Changes</button>
+                   <button type="submit" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
 
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
         <style>
         /* ===== SIDEBAR — uses CSS vars, changed by theme ===== */
-        .sidebar {
+       .sidebar {
             width: 240px;
-            min-height: 100vh;
+            height: 100vh;
             background: var(--sidebar-bg);
             display: flex;
             flex-direction: column;
             font-family: 'Segoe UI', sans-serif;
             position: fixed;
             top: 0; left: 0;
-            overflow-y: auto;
+            overflow: hidden;
             z-index: 100;
         }
 
@@ -589,6 +591,96 @@ class SidebarRenderer {
         }
         .logo-text h2 { color: #fff; font-size: 1.05rem; font-weight: 700; margin: 0; }
         .logo-text p  { color: rgba(255,255,255,0.45); font-size: 0.65rem; margin: 0; }
+
+      /* BUSINESS CARD */
+     .sidebar-business {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            padding: 0.8rem 1rem 0.9rem;
+            margin: 0 0.8rem 0.5rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 14px;
+            transition: all 0.3s;
+            overflow: visible;
+        }
+        .sidebar-business-logo {
+            filter: drop-shadow(0 3px 8px rgba(0,0,0,0.3));
+            flex-shrink: 0;
+        }
+        .sidebar-business-logo img,
+        .sidebar-business-logo div {
+            transition: width 0.3s, height 0.3s;
+        }
+        .sidebar-business-name {
+            color: #fff;
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin: 4px 0 2px;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+            display: block;
+        }
+        .sidebar-business-badge {
+            font-size: 0.62rem;
+            color: rgba(255,255,255,0.45);
+            background: rgba(255,255,255,0.08);
+            padding: 2px 8px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            transition: opacity 0.2s, max-height 0.3s;
+        }
+
+        /* ── Collapsed state ── */
+        .sidebar-collapsed .sidebar-business {
+            padding: 0.6rem 0.4rem;
+            margin: 0 0.4rem 0.5rem;
+            gap: 0;
+            background: transparent;
+            border-color: transparent;
+        }
+        .sidebar-collapsed .sidebar-business-logo img,
+        .sidebar-collapsed .sidebar-business-logo div {
+            width: 36px !important;
+            height: 36px !important;
+        }
+        .sidebar-collapsed .sidebar-business-name,
+        .sidebar-collapsed .sidebar-business-badge {
+            display: none;
+        }
+        .sidebar-collapsed .logo-text,
+        .sidebar-collapsed .user-info,
+        .sidebar-collapsed .profile-edit-btn,
+        .sidebar-collapsed .sidebar-section-label {
+            display: none;
+        }
+        .sidebar-collapsed .sidebar {
+            width: 70px;
+        }
+        .sidebar-collapsed .user-avatar {
+            margin: 0 auto;
+        }
+        .sidebar-collapsed .sidebar-profile {
+            justify-content: center;
+            padding: 0.6rem;
+        }
+        .sidebar-collapsed .logo {
+            justify-content: center;
+            padding: 1rem 0.5rem;
+        }
+        .sidebar-collapsed .sidebar-nav ul li a {
+            justify-content: center;
+            padding: 0.6rem;
+        }
+        .sidebar-collapsed .sidebar-nav ul li a span:not(.nav-icon) {
+            display: none;
+        }
 
         /* USER PROFILE CARD */
         .sidebar-profile {
@@ -634,28 +726,64 @@ class SidebarRenderer {
             color: #fff;
         }
 
-        /* NAV */
-        .sidebar-nav { flex: 1; padding: 0 0.5rem; }
+      /* NAV */
+        .sidebar-nav {
+            flex: 1;
+            padding: 0 0.5rem;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+        }
         .sidebar-nav ul { list-style: none; margin: 0 0 0.4rem; padding: 0; }
         .sidebar-nav ul li a {
             display: flex; align-items: center; gap: 10px;
-            padding: 0.6rem 0.9rem;
+            padding: 0.6rem 0.7rem;
             color: rgba(255,255,255,0.5);
             text-decoration: none;
             border-radius: 9px;
             font-size: 0.85rem;
             transition: background 0.15s, color 0.15s;
+            overflow: visible;
         }
         .sidebar-nav ul li a:hover,
         .sidebar-nav ul li.active a {
             background: var(--sidebar-active-bg);
             color: #fff;
         }
-        .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+     .nav-icon {
+            width: 30px; height: 30px;
+            min-width: 30px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.12);
+            color: #ffb3c6;
+            border-radius: 7px;
+            flex-shrink: 0;
+            font-size: 0.82rem;
+            transition: background 0.15s, color 0.15s, transform 0.15s;
+        }
+      .sidebar-nav ul li a:hover .nav-icon {
+            background: rgba(255,255,255,0.2);
+            color: #ffb3c6;
+            transform: scale(1.1);
+        }
+        .sidebar-nav ul li.active a .nav-icon {
+            background: rgba(255,255,255,0.2);
+            color: #ffb3c6;
+        }
+
+        /* ── color classes all inherit base ── */
+        .ni-blue, .ni-orange, .ni-teal, .ni-purple,
+        .ni-pink, .ni-yellow, .ni-green, .ni-red {
+            background: rgba(255,255,255,0.12);
+            color: #ffb3c6;
+        }
         .activity-link { color: rgba(255,255,255,0.6) !important; }
         .activity-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
-        .logout-link { color: rgba(255,100,100,0.8) !important; }
-        .logout-link:hover { background: rgba(248,113,113,0.12) !important; color: #f87171 !important; }
+      .logout-link { color: rgba(255,255,255,0.5) !important; }
+        .logout-link:hover { background: var(--sidebar-active-bg) !important; color: #fff !important; }
+        .logout-link .nav-icon { background: rgba(255,255,255,0.12) !important; color: #ffb3c6 !important; }
+        .logout-link:hover .nav-icon { background: rgba(255,255,255,0.2) !important; color: #ffb3c6 !important; }
 
         .sidebar-section-label {
             color: rgba(255,255,255,0.3);
@@ -808,6 +936,33 @@ class SidebarRenderer {
             // Theme is now server-side via theme_loader.php — nothing to do here
         })();
         </script>
+        <?php
+       $sidebar_html = ob_get_clean();
+
+        $adminProfile = [];
+        try {
+            $db2   = new Database();
+            $conn2 = $db2->connect();
+            $stmt2 = $conn2->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
+            $stmt2->bindParam(':id', $this->admin_id);
+            $stmt2->execute();
+            $adminProfile = $stmt2->fetch(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) { $adminProfile = []; }
+
+        ob_start();
+        echo $sidebar_html;
+        ?>
+        <div class="main" id="mainContent">
+            <?php include __DIR__ . '/../header.php'; ?>
+            <div class="page-content">
+        <?php
+        return ob_get_clean();
+    }
+    public function renderClose() {
+        ob_start(); ?>
+        </div><!-- end page-content -->
+        <?php include __DIR__ . '/../footer.php'; ?>
+        </div><!-- end main -->
         <?php
         return ob_get_clean();
     }

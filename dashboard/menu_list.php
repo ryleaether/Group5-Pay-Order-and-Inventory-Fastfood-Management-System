@@ -54,10 +54,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
     <?= $sidebar->render('menu') ?>
 
-    <div class="main">
-
-        <div class="topbar">
-            <h1>🍔 Menu Items</h1>
+       <div class="topbar">
+            <h1><i class="fa-solid fa-utensils" style="font-size:0.85em;margin-right:8px;"></i>Menu Items</h1>
             <p class="subtitle">Manage your food items</p>
 
             <div class="search-filter">
@@ -130,7 +128,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
             <?php endif; ?>
         </div>
 
-    </div>
+ <?= $sidebar->renderClose() ?>
+</div><!-- end .dashboard -->
 </div>
 
 <!-- ================= ADD MODAL ================= -->
@@ -179,7 +178,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 <div id="editModal" class="modal">
     <div class="modal-content modal-wide">
         <span class="close" onclick="closeEditModal()">&times;</span>
-        <h2>✏️ Edit Menu Item</h2>
+       <h2><i class="fa-solid fa-pen-to-square" style="margin-right:6px;"></i>Edit Menu Item</h2>
         <form action="helpers/admindashboard_helpers.php?action=edit_menu" method="POST" id="editForm">
             <input type="hidden" name="menu_item_id" id="edit_id">
             <input type="hidden" name="image_url"    id="edit_image_url">
@@ -293,6 +292,21 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
 <script>
 /* ── MODAL OPEN/CLOSE ── */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const main = document.getElementById('mainContent');
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+    if (main) main.classList.toggle('main-expanded', collapsed);
+    localStorage.setItem('ipos_sidebar_collapsed', collapsed ? '1' : '0');
+}
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('ipos_sidebar_collapsed') === '1') {
+        document.querySelector('.sidebar')?.classList.add('sidebar-collapsed');
+        document.getElementById('mainContent')?.classList.add('main-expanded');
+    }
+});
+
 function openAddModal()       { document.getElementById('menuModal').classList.add('show'); }
 function closeMenuModal()     { document.getElementById('menuModal').classList.remove('show'); }
 function closeEditModal()     { document.getElementById('editModal').classList.remove('show'); }
