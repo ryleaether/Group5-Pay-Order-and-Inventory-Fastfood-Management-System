@@ -354,7 +354,7 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('dashboard') ?>">
                         <a href="admindashboard.php">
-                            <span class="nav-icon">📊</span> Dashboard
+                            <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span> Dashboard
                         </a>
                     </li>
                 </ul>
@@ -363,17 +363,17 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('menu') ?>">
                         <a href="menu_list.php">
-                            <span class="nav-icon">🍔</span> Manage Menu
+                            <span class="nav-icon"><i class="fa-solid fa-utensils"></i></span> Manage Menu
                         </a>
                     </li>
                     <li class="<?= $is('history') ?>">
                         <a href="order_history.php">
-                            <span class="nav-icon">🧾</span> Order History
+                           <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span> Order History
                         </a>
                     </li>
                     <li class="<?= $is('staffs') ?>">
                         <a href="manage_staffs.php">
-                            <span class="nav-icon">👥</span> Manage Staffs
+                           <span class="nav-icon"><i class="fa-solid fa-users"></i></span> Manage Staffs
                         </a>
                     </li>
                 </ul>
@@ -382,12 +382,13 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('account') ?>">
                         <a href="account_pin_gate.php">
-                            <span class="nav-icon">👤</span> Account
+                            <span class="nav-icon"><i class="fa-solid fa-circle-user"></i></span>
+ Account
                         </a>
                     </li>
                     <li class="<?= $is('staff_gate') ?>">
                         <a href="staff_gate.php">
-                            <span class="nav-icon">👥</span> Switch to Staff Dashboard
+                            <span class="nav-icon"><i class="fa-solid fa-arrows-rotate"></i></span> Switch to Staff Dashboard
                         </a>
                     </li>
                 </ul>
@@ -397,7 +398,7 @@ class SidebarRenderer {
                 <ul>
                     <li>
                         <a href="../logout.php" class="logout-link">
-                            <span class="nav-icon">🚪</span> Logout
+                            <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Logout
                         </a>
                     </li>
                 </ul>
@@ -528,7 +529,49 @@ class SidebarRenderer {
         .sidebar-nav ul li a:hover, .sidebar-nav ul li.active a {
             background: var(--sidebar-active-bg); color: #fff;
         }
-        .nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; }
+    .nav-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 7px;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    transition: background 0.2s, width 0.2s, height 0.2s;
+}
+
+.sidebar-nav ul li a:hover .nav-icon,
+.sidebar-nav ul li.active a .nav-icon {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.logout-link .nav-icon {
+    background: rgba(248, 113, 113, 0.15);
+}
+
+.logout-link:hover .nav-icon {
+    background: rgba(248, 113, 113, 0.25) !important;
+}
+
+/* ── Collapsed: remove box, center icon ── */
+.sidebar.collapsed .nav-icon {
+    background: transparent !important;
+    border-radius: 0;
+    width: auto;
+    height: auto;
+    justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-nav ul li a {
+    justify-content: center;
+    padding: 0.6rem 0;
+}
+
+.sidebar.collapsed .logout-link .nav-icon {
+    background: transparent !important;
+}
         .activity-link { color: rgba(255,255,255,0.6) !important; }
         .activity-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }
         .logout-link { color: rgba(255,100,100,0.8) !important; }

@@ -311,5 +311,28 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 <!-- ================= PIN MODALS (required by sidebar) ================= -->
 <?php include __DIR__ . '/helpers/pin_modals.php'; ?>
 
+<script>
+/* ── SIDEBAR TOGGLE ── */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const main    = document.getElementById('mainContent');
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+    if (main) main.classList.toggle('main-expanded', collapsed);
+    localStorage.setItem('ipos_sidebar_collapsed', collapsed ? '1' : '0');
+}
+
+/* Restore sidebar state on page load */
+document.addEventListener('DOMContentLoaded', function () {
+    const collapsed = localStorage.getItem('ipos_sidebar_collapsed') === '1';
+    if (collapsed) {
+        const sidebar = document.querySelector('.sidebar');
+        const main    = document.getElementById('mainContent');
+        if (sidebar) sidebar.classList.add('sidebar-collapsed');
+        if (main)    main.classList.add('main-expanded');
+    }
+});
+</script>
+
 </body>
 </html>
