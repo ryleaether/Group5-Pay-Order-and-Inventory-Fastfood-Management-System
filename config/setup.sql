@@ -158,3 +158,22 @@ ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_fail_at     TIMESTAMP NULL;
 ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_login_at    TIMESTAMP NULL;
 
 select * from admins;
+
+/* ================================================================
+   AUDIT LOG — tracks all admin/superadmin actions
+   Must come after admins table (foreign key dependency).
+   ================================================================ */
+
+CREATE TABLE IF NOT EXISTS audit_log (
+    log_id       INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id     INT DEFAULT NULL,
+    actor_name   VARCHAR(100) NOT NULL DEFAULT '',
+    action       VARCHAR(80) NOT NULL,
+    target_type  VARCHAR(50) DEFAULT NULL,
+    target_id    INT DEFAULT NULL,
+    target_label VARCHAR(200) DEFAULT NULL,
+    detail       TEXT,
+    ip_address   VARCHAR(45) DEFAULT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE SET NULL
+);

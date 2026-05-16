@@ -2,10 +2,10 @@
 
 class Database {
     private $host = "localhost";
-    private $port = "3308";
+    private $port = "3306"; // set to own port too
     private $dbname = "ipos_db";
     private $username = "root";
-    private $password = "root";   // ← set your MySQL root password here if needed
+    private $password = "newpassword";   // ← set your MySQL root password here if needed
 
     public $conn;
 

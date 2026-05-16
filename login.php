@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once __DIR__ . "/validation.php";
+require_once __DIR__ . "/config/audit_helper.php";
 
 $val = new Validation();
 $message = "";
@@ -22,6 +23,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         $_SESSION['role']          = $result['role'];
         $_SESSION['fastfood_name'] = $result['fastfood_name'];
 
+        // ── Audit: successful superadmin login ──
+        if ($result['role'] === 'superadmin') {
+            try {
+                $db   = new Database();
+                $conn = $db->connect();
+                audit_log($conn, $_SESSION, 'superadmin_login', 'superadmin', $result['admin_id'], $result['username'], 'Superadmin logged in successfully');
+            } catch (Exception $e) {}
+        }
+
         $redirect = ($result['role'] === 'superadmin')
             ? "dashboard/superadmin.php"
             : "dashboard/admindashboard.php";
@@ -30,6 +40,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         exit;
 
     } else {
+        // ── Audit: failed login attempt ──
+        try {
+            $db   = new Database();
+            $conn = $db->connect();
+            audit_log($conn, ['admin_id' => null, 'username' => $username], 'failed_login_attempt', null, null, $username, "Failed login attempt for username: {$username}");
+        } catch (Exception $e) {}
+
         $_SESSION['error']        = "Invalid username or password";
         $_SESSION['old_username'] = $username;
         header("Location: login.php");
@@ -59,7 +76,7 @@ $old_username = $_SESSION['old_username'] ?? '';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPOS — Login</title>
-    <link rel="stylesheet" href="design/mainstyle.css">
+    <link rel="stylesheet" href="../design/mainstyle.css">
     <?php include __DIR__ . '/dashboard/helpers/theme_loader.php'; ?>
 </head>
 <body>
