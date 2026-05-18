@@ -414,3 +414,11 @@ button[type="submit"]:active { transform: scale(0.98); }
     .reg-right   { padding: 28px 24px; }
     .form-row    { grid-template-columns: 1fr; }
 }
+
+input[type="password"]::-ms-reveal {
+    display: none;
+}
+
+input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none;
+}

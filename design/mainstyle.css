@@ -286,35 +286,6 @@ select:focus {
     box-shadow: var(--shadow-input);
 }
 
-/* ── Password wrapper ── */
-.password-container {
-    position: relative;
-    margin-bottom: 16px;
-}
-
-.password-container input {
-    margin-bottom: 0;
-    padding-right: 48px;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 13px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    font-size: 15px;
-    color: #c4a0b0;
-    cursor: pointer;
-    padding: 0;
-    width: auto;
-    box-shadow: none;
-    line-height: 1;
-    margin: 0;
-    transition: color 0.18s;
-}
-
 .toggle-password:hover {
     color: var(--accent-dark);
     transform: translateY(-50%) scale(1.08);

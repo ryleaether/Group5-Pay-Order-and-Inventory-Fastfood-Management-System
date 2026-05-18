@@ -1,11 +1,44 @@
 <?php
 $footer_store = htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS');
 $footer_time  = date('D, M j Y • g:i A');
+
+// Pull store info from DB
+$footer_email   = '';
+$footer_phone   = '';
+$footer_address = '';
+
+try {
+    $db_f   = new Database();
+    $conn_f = $db_f->connect();
+    $stmt_f = $conn_f->prepare("
+        SELECT email, phone_number, address, city, province, zip_code
+        FROM admins
+        WHERE admin_id = :id
+    ");
+    $stmt_f->execute([':id' => $_SESSION['admin_id']]);
+    $row_f = $stmt_f->fetch(PDO::FETCH_ASSOC);
+
+    $footer_email = htmlspecialchars($row_f['email'] ?? '');
+    $footer_phone = htmlspecialchars($row_f['phone_number'] ?? '');
+
+    $addr_parts = array_filter([
+        $row_f['address']  ?? '',
+        $row_f['city']     ?? '',
+        $row_f['province'] ?? '',
+        $row_f['zip_code'] ?? '',
+    ]);
+    $footer_address = htmlspecialchars(implode(', ', $addr_parts));
+
+} catch (Exception $e) {
+    $footer_email   = '';
+    $footer_phone   = '';
+    $footer_address = '';
+}
 ?>
 
 <div style="background:#fff;border-top:1.5px solid var(--border-color);padding:32px 40px 0;flex-shrink:0;">
 
- <div style="display:grid;grid-template-columns:2fr 1fr;gap:48px;padding-bottom:28px;">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:48px;padding-bottom:28px;">
 
         <!-- About -->
         <div>
@@ -24,22 +57,37 @@ $footer_time  = date('D, M j Y • g:i A');
         <div>
             <p style="font-size:12px;font-weight:700;color:var(--text-primary);margin:0 0 12px;text-transform:uppercase;letter-spacing:0.08em;border-bottom:2px solid var(--accent);padding-bottom:6px;display:inline-block;">Store Info</p>
             <div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;">
+
+                <!-- Business Name -->
                 <div style="display:flex;align-items:center;gap:8px;">
                     <i class="fa-solid fa-store" style="color:var(--accent);font-size:12px;width:14px;"></i>
                     <span style="font-size:12px;color:var(--text-secondary);"><?= $footer_store ?></span>
                 </div>
+
+                <!-- Contact Number -->
+                <?php if (!empty($footer_phone)): ?>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-clock" style="color:var(--accent);font-size:12px;width:14px;"></i>
-                    <span style="font-size:12px;color:var(--text-secondary);"><?= $footer_time ?></span>
+                    <i class="fa-solid fa-phone" style="color:var(--accent);font-size:12px;width:14px;"></i>
+                    <span style="font-size:12px;color:var(--text-secondary);"><?= $footer_phone ?></span>
                 </div>
+                <?php endif; ?>
+
+                <!-- Email -->
+                <?php if (!empty($footer_email)): ?>
                 <div style="display:flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-user-shield" style="color:var(--accent);font-size:12px;width:14px;"></i>
-                    <span style="font-size:12px;color:var(--text-secondary);">Administrator</span>
+                    <i class="fa-solid fa-envelope" style="color:var(--accent);font-size:12px;width:14px;"></i>
+                    <span style="font-size:12px;color:var(--text-secondary);"><?= $footer_email ?></span>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-code-branch" style="color:var(--accent);font-size:12px;width:14px;"></i>
-                    <span style="font-size:12px;color:var(--text-secondary);">iPOS v1.0.0</span>
+                <?php endif; ?>
+
+                <!-- Address -->
+                <?php if (!empty($footer_address)): ?>
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <i class="fa-solid fa-location-dot" style="color:var(--accent);font-size:12px;width:14px;margin-top:2px;"></i>
+                    <span style="font-size:12px;color:var(--text-secondary);line-height:1.5;"><?= $footer_address ?></span>
                 </div>
+                <?php endif; ?>
+
             </div>
         </div>
 

@@ -26,7 +26,7 @@ try {
 // Fetch extended profile fields (may not exist yet — use try/catch)
 $extProfile = [];
 try {
-    $stmt2 = $conn->prepare("SELECT age, contact_number, home_address, store_address, store_location, store_contact, bir_permit, biz_type, bir_tin, dti_sec, biz_permit, province, zip_code, logo_shape, logo_url FROM admin_extended WHERE admin_id = :id");
+   $stmt2 = $conn->prepare("SELECT age, contact_number, home_address, store_address, store_location, store_contact, bir_permit, biz_type, bir_tin, dti_sec, biz_permit, province, zip_code, logo_shape, logo_url, profile_photo FROM admin_extended WHERE admin_id = :id");
     $stmt2->bindParam(':id', $admin_id);
     $stmt2->execute();
     $extProfile = $stmt2->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -110,6 +110,9 @@ $storeContact = $extProfile['store_contact'] ?? '';
 $birPermit    = $extProfile['bir_permit'] ?? '';
 $logoShape    = $extProfile['logo_shape'] ?? 'circle';
 $logoUrl      = $extProfile['logo_url'] ?? '';
+$profilePhoto = $extProfile['profile_photo'] ?? '';
+// TEMPORARY DEBUG — remove after fixing
+echo '<!-- DEBUG: profilePhoto=[' . $profilePhoto . '] logoUrl=[' . $logoUrl . '] -->';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -130,6 +133,7 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
             grid-template-columns: 1fr 1fr;
             gap: 24px;
             max-width: 1060px;
+            margin: 0 auto;
         }
         .acct-card {
             background: var(--card-bg);
@@ -165,7 +169,7 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
             padding: 24px;
             background: linear-gradient(135deg, var(--accent-dark) 0%, var(--accent) 100%);
             border-radius: var(--radius-lg);
-            margin-bottom: 24px;
+            margin: 0 auto 24px;
             color: white;
             max-width: 1060px;
         }
@@ -369,6 +373,9 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
             font-size: 9px;
         }
         .theme-swatch.active .check-mark { display: flex; }
+        .theme-swatch[data-theme="ipos"] .swatch-preview {
+    background: linear-gradient(135deg, #5C0A2E, #BE185D);
+}
 
         /* Theme grid */
         .theme-grid {
@@ -452,7 +459,6 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
 
     <?php echo $sidebar->render('account'); ?>
 
-    <main class="main">
         <!-- Topbar -->
         <div class="topbar">
             <div>
@@ -464,11 +470,15 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
         <!-- Profile Hero -->
         <div class="profile-hero">
             <div class="profile-hero-avatar" id="heroAvatar" onclick="document.getElementById('heroFileInput').click()" title="Click to change photo">
-                <?php if ($logoUrl): ?>
-                    <img src="<?= htmlspecialchars($logoUrl) ?>" alt="Logo" id="heroAvatarImg">
-                <?php else: ?>
-                    <span id="heroAvatarInitial"><?= htmlspecialchars($initial) ?></span>
-                <?php endif; ?>
+             <?php 
+$heroPhoto = $profilePhoto ?: $logoUrl;
+$heroPhotoUrl = $heroPhoto ? '../' . ltrim($heroPhoto, './') : '';
+?>
+<?php if ($heroPhotoUrl): ?>
+  <img src="<?= htmlspecialchars($heroPhotoUrl) ?>" alt="Profile" id="heroAvatarImg" style="width:100%;height:100%;object-fit:cover;">
+<?php else: ?>
+    <span id="heroAvatarInitial"><?= htmlspecialchars($initial) ?></span>
+<?php endif; ?>
                 <div class="avatar-camera-overlay">
                     <i class="fa-solid fa-camera"></i>
                     <span>CHANGE</span>
@@ -504,9 +514,11 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
                                     cursor:pointer; position:relative;
                                     box-shadow:0 4px 16px rgba(0,0,0,0.12);">
                             <?php
-                            $profilePhoto = $extProfile['profile_photo'] ?? '';
-                            if ($profilePhoto): ?>
-                                <img src="<?= htmlspecialchars($profilePhoto) ?>" id="profileAvatarImg"
+                          $profilePhoto = $extProfile['profile_photo'] ?? '';
+$displayPhoto = $profilePhoto ?: ($extProfile['logo_url'] ?? '');
+$displayPhotoUrl = $displayPhoto ? '../' . ltrim($displayPhoto, './') : '';
+if ($displayPhotoUrl): ?>
+  <img src="<?= htmlspecialchars($displayPhotoUrl) ?>"
                                      style="width:100%;height:100%;object-fit:cover;">
                             <?php else: ?>
                                 <span id="profileAvatarInitial"><?= htmlspecialchars($initial) ?></span>
@@ -704,6 +716,7 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
 
                 <?php
                 $presets = [
+                     'ipos'    => ['dark'=>'#5C0A2E','accent'=>'#BE185D','bg'=>'#FDF2F8','text'=>'#1a0010','label'=>'iPOS Default'],
                     'black'   => ['dark'=>'#1f2937','accent'=>'#374151','bg'=>'#f9fafb','text'=>'#111827','label'=>'Black'],
                     'gold'    => ['dark'=>'#92400e','accent'=>'#d97706','bg'=>'#fffbeb','text'=>'#451a03','label'=>'Gold'],
                     'silver'  => ['dark'=>'#475569','accent'=>'#64748b','bg'=>'#f8fafc','text'=>'#1e293b','label'=>'Silver'],
@@ -714,8 +727,8 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
                     'blue'    => ['dark'=>'#1e40af','accent'=>'#3b82f6','bg'=>'#eff6ff','text'=>'#172554','label'=>'Blue'],
                     'violet'  => ['dark'=>'#5b21b6','accent'=>'#8b5cf6','bg'=>'#f5f3ff','text'=>'#2e1065','label'=>'Violet'],
                 ];
-                $savedAccent = strtolower($ac ?? '');
-                $activeTheme = 'black';
+              $savedAccent = strtolower($ac ?? '');
+$activeTheme = 'ipos';
                 foreach ($presets as $name => $p) {
                     if (strtolower($p['accent']) === $savedAccent || strtolower($p['dark']) === $savedAccent) {
                         $activeTheme = $name;
@@ -807,8 +820,9 @@ $logoUrl      = $extProfile['logo_url'] ?? '';
                 </div>
             </div>
 
-        </div><!-- end acct-wrapper -->
-    </main>
+       </div><!-- end acct-wrapper -->
+
+    <?php echo $sidebar->renderClose(); ?>
 </div>
 
 <!-- WHERE TO APPLY PHOTO MODAL -->
@@ -933,7 +947,8 @@ function profilePhotoChange(input) {
             img.style.cssText = 'width:100%;height:100%;object-fit:cover;position:relative;z-index:1;';
             circle.insertBefore(img, circle.firstChild);
         }
-        // Also update the hero avatar in banner
+
+        // Update hero avatar in banner
         const heroAv = document.getElementById('heroAvatar');
         if (heroAv) {
             const hImg = heroAv.querySelector('img');
@@ -947,7 +962,23 @@ function profilePhotoChange(input) {
                 heroAv.insertBefore(ni, heroAv.querySelector('.avatar-camera-overlay'));
             }
         }
-        // Upload as profile photo
+
+        // Update sidebar profile photo
+        const sidebarAvatarImg = document.querySelector('.sidebar .user-avatar img, .sidebar .admin-avatar img');
+        const sidebarAvatarWrap = document.querySelector('.sidebar .user-avatar, .sidebar .admin-avatar');
+        if (sidebarAvatarImg) {
+            sidebarAvatarImg.src = e.target.result;
+        } else if (sidebarAvatarWrap) {
+            sidebarAvatarWrap.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        }
+
+        // Update topbar/header photo
+        const topbarAvatarImg = document.querySelector('.topbar .user-avatar img, .topbar img[alt="logo"]');
+        if (topbarAvatarImg) {
+            topbarAvatarImg.src = e.target.result;
+        }
+
+        // Upload to server then reload so sidebar refreshes properly
         const fd = new FormData();
         fd.append('logo', file);
         fd.append('_action', 'upload_logo');
@@ -956,7 +987,10 @@ function profilePhotoChange(input) {
         fetch('account_dashboard.php', { method:'POST', body: fd })
             .then(r => r.json())
             .then(data => {
-                if (data.success) showToastAcct('Profile photo updated! 📸', 'success');
+                if (data.success) {
+                    showToastAcct('Profile photo updated! 📸', 'success');
+                    setTimeout(() => location.reload(), 1200);
+                }
                 else showToastAcct(data.message || 'Upload failed', 'error');
             })
             .catch(() => showToastAcct('Upload failed', 'error'));
@@ -964,7 +998,6 @@ function profilePhotoChange(input) {
     reader.readAsDataURL(file);
     input.value = '';
 }
-
 // ===== LOGO SHAPE =====
 let currentShape = '<?= $logoShape ?>';
 function selectShape(shape, el) {
@@ -1078,7 +1111,8 @@ function saveStoreInfo() {
 function selectTheme(el, dark, accent, bodyBg, text) {
     document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
     el.classList.add('active');
-    livePreview({ sidebarBg: dark, accent, accentDark: dark, bodyBg, text });
+    const sidebarDark = darkenHex(dark, 0.3);
+    livePreview({ sidebarBg: sidebarDark, accent, accentDark: dark, bodyBg, text });
 }
 
 function livePreview(p) {
@@ -1095,15 +1129,15 @@ function livePreview(p) {
 function applyTheme() {
     const active = document.querySelector('.theme-swatch.active');
     if (!active) { showToastAcct('Select a theme first', 'info'); return; }
-    const dark    = getComputedStyle(document.documentElement).getPropertyValue('--accent-dark').trim();
-    const accent  = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
-    const bodyBg  = getComputedStyle(document.documentElement).getPropertyValue('--body-bg').trim();
-    const text    = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
-    const accentLight = bodyBg;
-    const borderColor = lightenHex(dark, 0.85);
-    const textSec     = lightenHex(dark, 0.4);
-    const palette = { sidebarBg: dark, accent, accentDark: dark, bodyBg, text, accentLight, borderColor, textSec };
-    livePreview(palette);
+   const dark        = getComputedStyle(document.documentElement).getPropertyValue('--accent-dark').trim();
+const sidebarBg   = getComputedStyle(document.documentElement).getPropertyValue('--sidebar-bg').trim();
+const accent      = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim();
+const bodyBg      = getComputedStyle(document.documentElement).getPropertyValue('--body-bg').trim();
+const text        = getComputedStyle(document.documentElement).getPropertyValue('--text-primary').trim();
+const accentLight = bodyBg;
+const borderColor = lightenHex(dark, 0.85);
+const textSec     = lightenHex(dark, 0.4);
+const palette = { sidebarBg, accent, accentDark: dark, bodyBg, text, accentLight, borderColor, textSec };
     fetch('helpers/account_helpers.php?action=save_theme', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -1123,6 +1157,15 @@ function lightenHex(hex, amount) {
         r = Math.round(r + (255-r)*amount);
         g = Math.round(g + (255-g)*amount);
         b = Math.round(b + (255-b)*amount);
+        return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
+    } catch(e) { return hex; }
+}
+function darkenHex(hex, amount) {
+    try {
+        let r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+        r = Math.round(r * (1 - amount));
+        g = Math.round(g * (1 - amount));
+        b = Math.round(b * (1 - amount));
         return '#' + [r,g,b].map(x=>x.toString(16).padStart(2,'0')).join('');
     } catch(e) { return hex; }
 }
@@ -1231,5 +1274,28 @@ window.openPinModal = function(type) {
         });
 };
 </script>
+<script>
+/* ── SIDEBAR TOGGLE ── */
+function toggleSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const main    = document.getElementById('mainContent');
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+    if (main) main.classList.toggle('main-expanded', collapsed);
+    localStorage.setItem('ipos_sidebar_collapsed', collapsed ? '1' : '0');
+}
+
+/* Restore sidebar state on page load */
+document.addEventListener('DOMContentLoaded', function () {
+    const collapsed = localStorage.getItem('ipos_sidebar_collapsed') === '1';
+    if (collapsed) {
+        const sidebar = document.querySelector('.sidebar');
+        const main    = document.getElementById('mainContent');
+        if (sidebar) sidebar.classList.add('sidebar-collapsed');
+        if (main)    main.classList.add('main-expanded');
+    }
+});
+</script>
+
 </body>
 </html>
