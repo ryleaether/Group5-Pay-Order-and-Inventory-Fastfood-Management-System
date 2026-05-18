@@ -151,7 +151,6 @@ $old_username = $_SESSION['old_username'] ?? '';
                     autocomplete="current-password"
                     required
                 >
-                <button type="button" class="toggle-password" onclick="togglePassword()" title="Show/hide password">👁</button>
             </div>
 
             <button type="submit">Login</button>
@@ -163,13 +162,6 @@ $old_username = $_SESSION['old_username'] ?? '';
     </div>
 
 </div><!-- /login-wrapper -->
-
-<script>
-function togglePassword() {
-    const input = document.getElementById('password');
-    input.type = input.type === 'password' ? 'text' : 'password';
-}
-</script>
 
 </body>
 </html>
