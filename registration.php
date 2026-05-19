@@ -7,12 +7,17 @@ $val         = new Validation();
 $message     = "";
 $messageType = "";
 
+// Clear old input if arriving fresh (not a failed submission redirect)
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && !isset($_GET['retry'])) {
+    unset($_SESSION['old']);
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if ($_POST['password'] !== $_POST['confirm_password']) {
         $_SESSION['old'] = $_POST;
         $_SESSION['error'] = "Passwords do not match!";
-        header("Location: registration.php");
+        header("Location: registration.php?retry=1");
         exit;
     }
 
@@ -26,14 +31,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         if (!in_array($ext, $allowed)) {
             $_SESSION['old']   = $_POST;
             $_SESSION['error'] = "Logo must be JPG, PNG, or WEBP.";
-            header("Location: registration.php");
+            header("Location: registration.php?retry=1");
             exit;
         }
         if ($_FILES['logo']['size'] > $maxSize) {
             $_SESSION['old']   = $_POST;
             $_SESSION['error'] = "Logo must be under 2MB.";
-            header("Location: registration.php");
-            exit;
+            header("Location: registration.php?retry=1");
+exit;
         }
 
         $uploadDir = __DIR__ . '/dashboard/uploads/logos/';
@@ -81,8 +86,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $_SESSION['old']   = $_POST;
         $_SESSION['error'] = is_string($result) ? $result : "Registration failed. Please try again.";
-        header("Location: registration.php");
-        exit;
+        header("Location: registration.php?retry=1");
+exit;
     }
 }
 
@@ -95,6 +100,10 @@ if (isset($_SESSION['success'])) {
     $message     = $_SESSION['success'];
     $messageType = "success";
     unset($_SESSION['success']);
+}
+
+if (isset($_GET['clear_old'])) {
+    unset($_SESSION['old']);
 }
 
 $old = $_SESSION['old'] ?? [];
@@ -196,6 +205,7 @@ ksort($ph_data);
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Register - iPOS</title>
     <link rel="stylesheet" href="design/register.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <?php include __DIR__ . '/dashboard/helpers/theme_loader.php'; ?>
     <style>
         .section-divider {
@@ -207,6 +217,9 @@ ksort($ph_data);
             border-top: 1.5px solid #f0d6e4;
             padding-top: 14px;
             margin: 18px 0 10px;
+            display: flex;
+            align-items: center;
+            gap: 7px;
         }
         .logo-upload-area {
             border: 2px dashed #e8d0da;
@@ -219,7 +232,7 @@ ksort($ph_data);
             margin-bottom: 12px;
         }
         .logo-upload-area:hover { border-color: #be185d; }
-        .logo-upload-icon { font-size: 36px; margin-bottom: 6px; }
+        .logo-upload-icon { font-size: 28px; margin-bottom: 6px; color: #be185d; }
         .logo-upload-area p { font-size: 12px; color: #999; margin: 0; }
         .logo-upload-area small { font-size: 10px; color: #bbb; }
 
@@ -245,7 +258,6 @@ ksort($ph_data);
             color: #be185d;
         }
 
-        /* Select caret for province/city dropdowns */
         .input-group { position: relative; }
         .select-caret {
             position: absolute;
@@ -265,11 +277,7 @@ ksort($ph_data);
     <!-- LEFT PANEL -->
     <div class="reg-left">
         <div class="logo-box">
-            <div class="logo-circle">iP</div>
-            <div class="logo-text">
-                <h2>iPOS</h2>
-                <p>I Pay, I Order, I Serve</p>
-            </div>
+            <?php $logo_size = 42; $logo_show_text = true; include __DIR__ . '/dashboard/helpers/ipos_logo.php'; ?>
         </div>
         <div class="eyebrow-pill">+ Point of Sale</div>
         <h1>Start Managing<br>Your <span>Store Today</span></h1>
@@ -277,28 +285,28 @@ ksort($ph_data);
            from menu management to real-time order tracking, all in one place.</p>
         <div class="reg-steps">
             <div class="step">
-                <div class="step-icon">🍔</div>
+                <div class="step-icon"><i class="fa-solid fa-burger"></i></div>
                 <div class="step-text">
                     <strong>Build Your Menu</strong>
                     <span>Add items, set prices, and manage stock levels easily.</span>
                 </div>
             </div>
             <div class="step">
-                <div class="step-icon">⚡</div>
+                <div class="step-icon"><i class="fa-solid fa-bolt"></i></div>
                 <div class="step-text">
                     <strong>Real-time Order Queue</strong>
                     <span>See incoming orders instantly and serve faster.</span>
                 </div>
             </div>
             <div class="step">
-                <div class="step-icon">📊</div>
+                <div class="step-icon"><i class="fa-solid fa-chart-line"></i></div>
                 <div class="step-text">
                     <strong>Track Your Sales</strong>
                     <span>Monitor income, top items, and daily performance.</span>
                 </div>
             </div>
             <div class="step">
-                <div class="step-icon">🔒</div>
+                <div class="step-icon"><i class="fa-solid fa-shield-halved"></i></div>
                 <div class="step-text">
                     <strong>Secure &amp; Private</strong>
                     <span>Your data is isolated — only you can see your store.</span>
@@ -315,16 +323,22 @@ ksort($ph_data);
             <span class="subtitle">Fastfood Owner Registration</span>
 
             <?php if (!empty($message)): ?>
-                <div class="msg <?= $messageType ?>">
-                    <?= $messageType === 'error' ? '⚠️' : '✅' ?>
-                    <?= htmlspecialchars($message) ?>
-                </div>
-            <?php endif; ?>
+    <div class="msg <?= $messageType ?>">
+        <i class="fa-solid <?= $messageType === 'error' ? 'fa-triangle-exclamation' : 'fa-circle-check' ?>"></i>
+        <?= htmlspecialchars($message) ?>
+    </div>
+    <?php if ($messageType === 'error'): ?>
+        <div class="msg" style="background:#fef9f0;border:1px solid #fcd34d;color:#92400e;font-size:12px;margin-top:-8px;">
+            <i class="fa-solid fa-image" style="color:#f59e0b;"></i>
+            Please re-select your logo — files cannot be kept after an error.
+        </div>
+    <?php endif; ?>
+<?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data">
 
                 <!-- BUSINESS LOGO -->
-                <div class="section-divider">🖼️ Business Logo / Profile Picture</div>
+                <div class="section-divider"><i class="fa-solid fa-image"></i> Business Logo / Profile Picture</div>
 
                 <div id="stepShapeLabel" style="font-size:12px;color:#999;text-align:center;margin-bottom:8px;">Step 1: Choose a shape for your logo</div>
                 <div id="shapeChooser" style="display:flex;gap:10px;margin-bottom:12px;justify-content:center;">
@@ -348,7 +362,7 @@ ksort($ph_data);
                 <div id="stepUploadLabel" style="font-size:12px;color:#999;text-align:center;margin-bottom:8px;">Step 2: Upload your logo</div>
                 <div id="logoUploadArea" class="logo-upload-area" onclick="document.getElementById('logoInput').click()">
                     <div id="logoPlaceholder">
-                        <div class="logo-upload-icon">📷</div>
+                        <div class="logo-upload-icon"><i class="fa-solid fa-camera"></i></div>
                         <p>Click to upload your business logo</p>
                         <small>JPG, PNG, WEBP · Max 2MB · Recommended 500×500px</small>
                     </div>
@@ -357,7 +371,7 @@ ksort($ph_data);
                 <div id="logoPreviewWrap" style="display:none;text-align:center;margin-bottom:12px;">
                     <img id="logoPreview" style="width:120px;height:120px;object-fit:cover;border:3px solid #be185d;transition:border-radius 0.3s;display:block;margin:0 auto 8px;" alt="Logo Preview">
                     <button type="button" onclick="changeLogo()" style="margin-top:8px;font-size:11px;color:#be185d;background:none;border:none;cursor:pointer;text-decoration:underline;">
-                        🔄 Change Logo
+                        <i class="fa-solid fa-rotate"></i> Change Logo
                     </button>
                 </div>
 
@@ -366,11 +380,11 @@ ksort($ph_data);
                 <canvas id="logoCanvas" style="display:none;"></canvas>
 
                 <!-- OWNER INFORMATION -->
-                <div class="section-divider">👤 Owner Information</div>
+                <div class="section-divider"><i class="fa-solid fa-user"></i> Owner Information</div>
                 <div class="form-row">
                     <div>
                         <div class="input-group">
-                            <span>👤</span>
+                            <span><i class="fa-solid fa-user"></i></span>
                             <input type="text" name="fullname" placeholder="Full Name"
                                    value="<?= htmlspecialchars($old['fullname'] ?? '') ?>"
                                    autocomplete="name" required>
@@ -378,26 +392,27 @@ ksort($ph_data);
                     </div>
                     <div>
                         <div class="input-group">
-                            <span>📞</span>
-                            <input type="text" name="phone_number" placeholder="Contact Number (e.g. 09XXXXXXXXX)"
+                            <span><i class="fa-solid fa-phone"></i></span>
+                            <input type="text" name="phone_number" placeholder="Contact Number"
                                    value="<?= htmlspecialchars($old['phone_number'] ?? '') ?>"
-                                   autocomplete="tel" maxlength="13">
+                                   autocomplete="tel" maxlength="11" inputmode="numeric"
+                                   oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)">
                         </div>
                     </div>
                 </div>
                 <div class="input-group">
-                    <span>✉️</span>
+                    <span><i class="fa-solid fa-envelope"></i></span>
                     <input type="email" name="email" placeholder="Email Address"
                            value="<?= htmlspecialchars($old['email'] ?? '') ?>"
                            autocomplete="email" required>
                 </div>
 
                 <!-- BUSINESS INFORMATION -->
-                <div class="section-divider">🍔 Business Information</div>
+                <div class="section-divider"><i class="fa-solid fa-burger"></i> Business Information</div>
                 <div class="form-row">
                     <div>
                         <div class="input-group">
-                            <span>🍔</span>
+                            <span><i class="fa-solid fa-store"></i></span>
                             <input type="text" name="fastfood_name" placeholder="Business Name"
                                    value="<?= htmlspecialchars($old['fastfood_name'] ?? '') ?>"
                                    autocomplete="organization" required>
@@ -405,10 +420,10 @@ ksort($ph_data);
                     </div>
                     <div>
                         <div class="input-group">
-                            <span>🏪</span>
+                            <span><i class="fa-solid fa-shop"></i></span>
                             <select name="business_type" style="border:none;background:none;width:100%;outline:none;font-size:13px;color:var(--text-primary);">
-                                <option value="">Business Type</option>
-                                <?php foreach(['Fast Food','Restaurant','Cafe','Food Stall','Catering','Bakery','Other'] as $type): ?>
+                                <option value="">-- Select Business Type --</option>
+                                <?php foreach(['Fast Food'] as $type): ?>
                                     <option value="<?= $type ?>" <?= ($old['business_type'] ?? '') === $type ? 'selected' : '' ?>>
                                         <?= $type ?>
                                     </option>
@@ -420,16 +435,16 @@ ksort($ph_data);
                 <div class="form-row">
                     <div>
                         <div class="input-group">
-                            <span>🪪</span>
+                            <span><i class="fa-solid fa-id-card"></i></span>
                             <input type="text" name="tin_number" id="tin_number"
-                                   placeholder="BIR TIN Number (000-000-000)"
+                                   placeholder="BIR TIN Number"
                                    value="<?= htmlspecialchars($old['tin_number'] ?? '') ?>"
                                    maxlength="15">
                         </div>
                     </div>
                     <div>
                         <div class="input-group">
-                            <span>📋</span>
+                            <span><i class="fa-solid fa-file-lines"></i></span>
                             <input type="text" name="dti_sec_number"
                                    placeholder="DTI/SEC Reg. Number"
                                    value="<?= htmlspecialchars($old['dti_sec_number'] ?? '') ?>">
@@ -437,16 +452,16 @@ ksort($ph_data);
                     </div>
                 </div>
                 <div class="input-group">
-                    <span>📜</span>
+                    <span><i class="fa-solid fa-scroll"></i></span>
                     <input type="text" name="business_permit"
                            placeholder="Business Permit Number (e.g. BP-2024-001234)"
                            value="<?= htmlspecialchars($old['business_permit'] ?? '') ?>">
                 </div>
 
                 <!-- BUSINESS LOCATION -->
-                <div class="section-divider">📍 Business Location</div>
+                <div class="section-divider"><i class="fa-solid fa-location-dot"></i> Business Location</div>
                 <div class="input-group">
-                    <span>🏠</span>
+                    <span><i class="fa-solid fa-house"></i></span>
                     <input type="text" name="address" placeholder="Complete Address (Street, Barangay)"
                            value="<?= htmlspecialchars($old['address'] ?? '') ?>" required>
                 </div>
@@ -454,7 +469,7 @@ ksort($ph_data);
                 <div class="form-row">
                     <div>
                         <div class="input-group">
-                            <span>🗺️</span>
+                            <span><i class="fa-solid fa-map"></i></span>
                             <select name="province" id="province" required>
                                 <option value="">Select Province</option>
                                 <?php foreach(array_keys($ph_data) as $prov): ?>
@@ -469,7 +484,7 @@ ksort($ph_data);
                     </div>
                     <div>
                         <div class="input-group">
-                            <span>🏙️</span>
+                            <span><i class="fa-solid fa-city"></i></span>
                             <select name="city" id="city" required>
                                 <option value="">Select City / Municipality</option>
                                 <?php
@@ -489,7 +504,7 @@ ksort($ph_data);
                 </div>
 
                 <div class="input-group">
-                    <span>📮</span>
+                    <span><i class="fa-solid fa-envelope-open-text"></i></span>
                     <input type="text" name="zip_code" id="zip_code"
                            placeholder="ZIP Code (4 digits)"
                            value="<?= htmlspecialchars($old['zip_code'] ?? '') ?>"
@@ -497,9 +512,9 @@ ksort($ph_data);
                 </div>
 
                 <!-- ACCOUNT CREDENTIALS -->
-                <div class="section-divider">🔐 Account Credentials</div>
+                <div class="section-divider"><i class="fa-solid fa-key"></i> Account Credentials</div>
                 <div class="input-group">
-                    <span>🔖</span>
+                    <span><i class="fa-solid fa-tag"></i></span>
                     <input type="text" name="username" placeholder="Username (4–20 characters)"
                            value="<?= htmlspecialchars($old['username'] ?? '') ?>"
                            autocomplete="username" required>
@@ -507,20 +522,20 @@ ksort($ph_data);
                 <div class="form-row">
                     <div>
                         <div class="input-group">
-                            <span>🔒</span>
+                            <span><i class="fa-solid fa-lock"></i></span>
                             <input type="password" name="password" id="password"
                                    placeholder="Password" autocomplete="new-password" required>
                             <button type="button" class="toggle-password"
-                                    onclick="togglePassword('password')">👁</button>
+                                    onclick="togglePassword('password')"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
                     <div>
                         <div class="input-group">
-                            <span>🔒</span>
+                            <span><i class="fa-solid fa-lock"></i></span>
                             <input type="password" name="confirm_password" id="confirm_password"
                                    placeholder="Confirm Password" autocomplete="new-password" required>
                             <button type="button" class="toggle-password"
-                                    onclick="togglePassword('confirm_password')">👁</button>
+                                    onclick="togglePassword('confirm_password')"><i class="fa-solid fa-eye"></i></button>
                         </div>
                     </div>
                 </div>
@@ -574,7 +589,11 @@ document.getElementById('tin_number').addEventListener('input', function () {
 /* Password toggle */
 function togglePassword(fieldId) {
     const input = document.getElementById(fieldId);
-    input.type = input.type === 'password' ? 'text' : 'password';
+    const btn   = input.nextElementSibling;
+    input.type  = input.type === 'password' ? 'text' : 'password';
+    btn.innerHTML = input.type === 'password'
+        ? '<i class="fa-solid fa-eye"></i>'
+        : '<i class="fa-solid fa-eye-slash"></i>';
 }
 
 /* Logo shape */

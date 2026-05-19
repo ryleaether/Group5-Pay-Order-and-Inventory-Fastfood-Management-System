@@ -18,7 +18,7 @@
     --warning: #d97706;
     --info: #2563eb;
     --success: #16a34a;
-    --body-bg: #f5eef4;
+    --body-bg: #F0EBF4;
     --card-bg: #ffffff;
     --text-primary: #2d0a1f;
     --text-secondary: #9e6080;
@@ -159,20 +159,22 @@ body {
 
 /* Income variants */
 .card.income {
-    background: linear-gradient(135deg, #2d0a1f, #7e1545);
-    border: none;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-top: 3px solid #9B2C52;
 }
-.card.income::before { background: rgba(255,255,255,0.25); }
-.card.income h3 { color: rgba(255,255,255,0.6); }
-.card.income p  { color: #ffffff; }
+.card.income::before { display: none; }
+.card.income h3 { color: var(--text-secondary); }
+.card.income p  { color: var(--text-primary); }
 
 .card.today {
-    background: linear-gradient(135deg, #7e1545, #be185d);
-    border: none;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-top: 3px solid #be185d;
 }
-.card.today::before { background: rgba(255,255,255,0.25); }
-.card.today h3 { color: rgba(255,255,255,0.6); }
-.card.today p  { color: #ffffff; }
+.card.today::before { display: none; }
+.card.today h3 { color: var(--text-secondary); }
+.card.today p  { color: var(--text-primary); }
 
 /* ================= CONTENT GRID ================= */
 .content-grid {

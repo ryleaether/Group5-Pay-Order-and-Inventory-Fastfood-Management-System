@@ -81,7 +81,7 @@ function hexToRgba($hex, $alpha) {
 
     <!-- ======== TOP BAR ======== -->
     <header class="pos-topbar">
-        <div class="pos-brand" id="brandLogo" onclick="handleBrandClick()">
+        <div class="pos-brand" id="brandLogo">
             <?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?>
         </div>
         <div class="pos-topbar-divider"></div>
@@ -95,6 +95,16 @@ function hexToRgba($hex, $alpha) {
         </div>
 
         <div class="pos-clock" id="posClock">--:--:--</div>
+
+        <button onclick="showAdminOverlay()"
+                style="margin-left:8px; padding:6px 14px; background:rgba(255,255,255,0.15);
+                       border:1px solid rgba(255,255,255,0.3); border-radius:8px; color:white;
+                       font-size:12px; font-weight:700; cursor:pointer; display:flex;
+                       align-items:center; gap:6px; transition:background 0.2s;"
+                onmouseover="this.style.background='rgba(255,255,255,0.28)'"
+                onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
     </header>
 
     <!-- ======== LEFT: MENU PANEL ======== -->
@@ -599,17 +609,7 @@ function cancelCurrentOrder() {
 
 /* ================================================================
    ADMIN TOGGLE
-================================================================ */
-let brandClickCount = 0, brandClickTimer = null;
-
-function handleBrandClick() {
-    brandClickCount++;
-    clearTimeout(brandClickTimer);
-    if (brandClickCount >= 5) { brandClickCount = 0; showAdminOverlay(); return; }
-    brandClickTimer = setTimeout(() => { brandClickCount = 0; }, 2000);
-}
-
-function showAdminOverlay() {
+================================================================ */function showAdminOverlay() {
     adminPinValue = '';
     updateAdminPinDots(0);
     document.getElementById('adminPinError').style.display = 'none';

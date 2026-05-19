@@ -56,7 +56,13 @@ try {
     $adminProfile = [];
 }
 
-$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
+$sidebar = new SidebarRenderer(
+    $admin_id,
+    $_SESSION['fastfood_name'] ?? '',
+    $adminProfile['fullname'] ?? $_SESSION['username'] ?? '',
+    $adminProfile['username'] ?? $_SESSION['username'] ?? '',
+    $adminProfile['email'] ?? ''
+);
 
 $device_count = $val->countDevices($admin_id);
 
@@ -169,6 +175,8 @@ try {
     <title>iPOS Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="../design/admin.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
 </head>
 
@@ -196,7 +204,7 @@ try {
            style="width:80px;height:80px;object-fit:cover;border-radius:<?= $radius ?>;border:3px solid rgba(255,255,255,0.5);flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
     <?php endif; ?>
     <div>
-      <h1>Welcome back, <?= htmlspecialchars($_SESSION['username'] ?? '') ?> <i class="fa-solid fa-hands-clapping" style="color:#f59e0b;"></i></h1>
+      <h1><?= htmlspecialchars($adminProfile['fullname'] ?? $_SESSION['username'] ?? '') ?> <i class="fa-solid fa-hands-clapping" style="color:#f59e0b;"></i></h1>
       <p class="subtitle"><?= htmlspecialchars($_SESSION['fastfood_name'] ?? '') ?> · Admin Dashboard</p>
       <span style="font-size:0.72rem;color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.12);padding:2px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;display:inline-block;">
         <?= htmlspecialchars($_SESSION['business_type'] ?? 'Fast Food Store') ?>
@@ -513,7 +521,7 @@ document.addEventListener('click',function(e){ ['pinModal','setupPinModal','acco
 
 function bindSidebarActions() {
     document.querySelectorAll('a[data-action="open-account"]').forEach(link => {
-        link.addEventListener('click', function(event) { event.preventDefault(); openAccountModal(); });
+        link.addEventListener('click', function(event) { event.preventDefault(); window.location.href = 'account_pin_gate.php'; });
     });
     document.querySelectorAll('a[data-action="open-pin"]').forEach(link => {
         link.addEventListener('click', function(event) { event.preventDefault(); openPinModal(); });
@@ -526,17 +534,30 @@ if (document.readyState === 'loading') {
     bindSidebarActions();
 }
 
-// Auto-open admin PIN modal when returning from a staff/kitchen/account gate
-if (new URLSearchParams(window.location.search).get('require_pin') === '1') {
-    // Clean the URL without reloading
-    history.replaceState(null, '', window.location.pathname);
-    // Wait for page to fully render then open
-    window.addEventListener('load', () => setTimeout(openPinModal, 200));
-}
-
 window.openAccountModal = openAccountModal;
 window.openPinModal = openPinModal;
 window.submitAccountForm = submitAccountForm;
+
+// Welcome back SweetAlert2 toast
+document.addEventListener('DOMContentLoaded', function() {
+    const shown = sessionStorage.getItem('welcome_shown');
+    if (!shown) {
+        sessionStorage.setItem('welcome_shown', '1');
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Welcome back, <?= addslashes(htmlspecialchars($_SESSION['username'] ?? '')) ?>!',
+            showConfirmButton: false,
+            timer: 3000,
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer);
+                toast.addEventListener('mouseleave', Swal.resumeTimer);
+            }
+        });
+    }
+});
 </script>
 
 </body>
