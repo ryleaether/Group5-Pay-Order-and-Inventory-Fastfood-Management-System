@@ -692,6 +692,19 @@ document.addEventListener('keydown', e => {
 // Init
 loadOrders();
 startAutoRefresh();
+
+/* ================================================================
+   BACK-BUTTON PREVENTION
+   Push a dummy state so the browser back button triggers popstate
+   instead of navigating away. When triggered, show the PIN logout
+   overlay so the kitchen manager must log out first.
+================================================================ */
+history.pushState({ page: 'kitchen' }, '', window.location.href);
+window.addEventListener('popstate', function(e) {
+    history.pushState({ page: 'kitchen' }, '', window.location.href);
+    showKitchenPinModal();
+});
+
 </script>
 </body>
 </html>
