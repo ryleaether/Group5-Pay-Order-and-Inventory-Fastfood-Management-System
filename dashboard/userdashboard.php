@@ -95,6 +95,16 @@ function hexToRgba($hex, $alpha) {
         </div>
 
         <div class="pos-clock" id="posClock">--:--:--</div>
+
+        <button onclick="showAdminOverlay()"
+                style="margin-left:12px; padding:7px 16px; background:#ef4444;
+                       border:none; border-radius:8px; color:white;
+                       font-size:12px; font-weight:700; cursor:pointer; display:flex;
+                       align-items:center; gap:6px; transition:background 0.2s; flex-shrink:0;"
+                onmouseover="this.style.background='#dc2626'"
+                onmouseout="this.style.background='#ef4444'">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </button>
     </header>
 
     <!-- ======== LEFT: MENU PANEL ======== -->
