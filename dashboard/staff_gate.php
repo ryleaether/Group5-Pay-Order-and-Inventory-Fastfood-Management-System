@@ -3,6 +3,11 @@ session_start();
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/helpers/admindashboard_helpers.php";
 
+// Prevent caching so browsers don't show stale pages after logout
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 if (!isset($_SESSION['admin_id'])) {
     header("Location: ../login.php");
     exit;
@@ -13,7 +18,7 @@ $db       = new Database();
 $conn     = $db->connect();
 
 // Always clear any previous gate unlock — force re-auth every visit
-unset($_SESSION['staff_gate_unlocked']);
+unset($_SESSION['staff_gate_unlocked'], $_SESSION['staff_login_active']);
 
 // Handle AJAX login check
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
@@ -136,11 +141,13 @@ $sidebar = new SidebarRenderer(
                 <i class="fa-solid fa-right-to-bracket"></i> Verify & Continue
             </button>
 
-            <a href="admindashboard.php"
-               style="display:block; text-align:center; font-size:13px; color:var(--accent);
-                      font-weight:600; text-decoration:none; margin-top:4px;">
+            <button type="button" onclick="openGateBackModal()"
+               style="display:block; width:100%; text-align:center; font-size:13px;
+                      color:var(--accent); font-weight:600; text-decoration:none;
+                      margin-top:4px; background:none; border:none; cursor:pointer;
+                      font-family:inherit;">
                 <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
-            </a>
+            </button>
         </div>
     </div>
 </div>
@@ -150,6 +157,42 @@ $sidebar = new SidebarRenderer(
 </style>
 
 <?php include __DIR__ . '/helpers/pin_modals.php'; ?>
+
+<!-- Admin PIN modal for gate back-button protection -->
+<div id="gateAdminPinModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);
+     backdrop-filter:blur(6px);z-index:10000;display:none;
+     align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:24px;padding:36px 32px;width:340px;
+         text-align:center;box-shadow:0 24px 80px rgba(0,0,0,0.25);
+         border-top:4px solid var(--accent);">
+        <div style="font-size:40px;margin-bottom:10px;">&#128274;</div>
+        <h2 style="font-size:17px;font-weight:800;color:#1a1a2e;margin-bottom:6px;">Admin Access Required</h2>
+        <p style="font-size:13px;color:#888;margin-bottom:22px;">Enter your admin PIN to return to the dashboard.</p>
+        <div id="gapDots" style="display:flex;justify-content:center;gap:14px;margin-bottom:22px;">
+            <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);background:transparent;transition:background .15s;"></div>
+            <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);background:transparent;transition:background .15s;"></div>
+            <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);background:transparent;transition:background .15s;"></div>
+            <div class="pin-dot" style="width:14px;height:14px;border-radius:50%;border:2px solid var(--accent);background:transparent;transition:background .15s;"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:220px;margin:0 auto 18px;">
+            <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'back'] as $gk): ?>
+            <button type="button"
+                onclick="<?= $gk==='back' ? 'gapBack()' : ($gk==='' ? '' : "gapPress($gk)") ?>"
+                style="padding:14px;font-size:18px;font-weight:700;border:1.5px solid var(--border-color);
+                       border-radius:12px;background:var(--body-bg);color:var(--text-primary);
+                       cursor:pointer;font-family:inherit;transition:all .15s;"
+                onmouseenter="this.style.background='var(--accent)';this.style.color='#fff';"
+                onmouseleave="this.style.background='var(--body-bg)';this.style.color='var(--text-primary)';"
+            ><?= $gk === 'back' ? '&#9003;' : $gk ?></button>
+            <?php endforeach; ?>
+        </div>
+        <p id="gapError" style="color:#dc2626;font-size:13px;margin-bottom:14px;display:none;">Incorrect PIN. Try again.</p>
+        <button type="button" onclick="closeGateBackModal()"
+            style="background:none;border:1.5px solid var(--border-color);padding:9px 24px;
+                   border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);
+                   font-family:inherit;">Cancel</button>
+    </div>
+</div>
 
 <script>
 function toggleGatePwd() {
@@ -203,6 +246,99 @@ function gateVerify() {
 
 // Auto-focus username on load
 document.getElementById('gateUsername').focus();
+
+// Push 50 sentinel entries so back button cannot leave this page.
+(function lockHistory() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ gateGuard: true, i: i }, '', window.location.href);
+    }
+}());
+
+window.addEventListener('popstate', function() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ gateGuard: true, i: i }, '', window.location.href);
+    }
+    openGateBackModal();
+});
+
+let gapPin = '';
+
+function openGateBackModal() {
+    gapPin = '';
+    gapUpdateDots(0);
+    document.getElementById('gapError').style.display = 'none';
+    document.getElementById('gateAdminPinModal').style.display = 'flex';
+}
+
+function closeGateBackModal() {
+    document.getElementById('gateAdminPinModal').style.display = 'none';
+    gapPin = '';
+    gapUpdateDots(0);
+}
+
+function gapPress(num) {
+    if (gapPin.length >= 4) return;
+    gapPin += String(num);
+    gapUpdateDots(gapPin.length);
+    if (gapPin.length === 4) setTimeout(gapVerify, 100);
+}
+
+function gapBack() { gapPin = gapPin.slice(0, -1); gapUpdateDots(gapPin.length); }
+
+function gapUpdateDots(n) {
+    document.querySelectorAll('#gapDots .pin-dot')
+        .forEach(function(d, i) { d.style.background = i < n ? 'var(--accent)' : 'transparent'; });
+}
+
+function gapVerify() {
+    fetch('helpers/admindashboard_helpers.php?action=check_pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'pin=' + encodeURIComponent(gapPin)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.success) {
+            window.location.replace('admindashboard.php');
+        } else {
+            document.getElementById('gapError').style.display = 'block';
+            gapPin = ''; gapUpdateDots(0);
+        }
+    })
+    .catch(function() {
+        document.getElementById('gapError').textContent = 'Connection error. Try again.';
+        document.getElementById('gapError').style.display = 'block';
+        gapPin = ''; gapUpdateDots(0);
+    });
+}
+
+document.addEventListener('keydown', function(e) {
+    if (document.getElementById('gateAdminPinModal').style.display !== 'flex') return;
+    if (e.key >= '0' && e.key <= '9') gapPress(parseInt(e.key));
+    if (e.key === 'Backspace') gapBack();
+    if (e.key === 'Escape') closeGateBackModal();
+});
+
+// On pageshow (including bfcache restore) verify server-side session state.
+window.addEventListener('pageshow', function() {
+    fetch('helpers/session_check.php', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.admin_id) {
+                // No admin session — redirect to login
+                // Use replace() so this page is removed from history
+                window.location.replace('../login.php');
+                return;
+            }
+            // Clear any lingering staff session before showing gate
+            if (data.staff_id) {
+                fetch('helpers/clear_gate.php', { method: 'POST', cache: 'no-store' }).catch(() => {});
+            }
+        })
+        .catch(() => {
+            window.location.replace('../login.php');
+        });
+});
 </script>
 </body>
 </html>
