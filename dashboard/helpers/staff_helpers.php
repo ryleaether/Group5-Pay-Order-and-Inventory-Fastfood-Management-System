@@ -28,6 +28,17 @@ $conn->exec("CREATE TABLE IF NOT EXISTS staffs (
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
 )");
 
+// Staff sessions log table
+$conn->exec("CREATE TABLE IF NOT EXISTS staff_sessions (
+    session_id       INT AUTO_INCREMENT PRIMARY KEY,
+    staff_id         INT NOT NULL,
+    admin_id         INT NOT NULL,
+    login_at         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    logout_at        TIMESTAMP NULL,
+    duration_minutes INT NULL,
+    FOREIGN KEY (staff_id) REFERENCES staffs(staff_id) ON DELETE CASCADE
+)");
+
 // Silently add columns if upgrading
 foreach ([
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS shift_start TIME NULL",
@@ -87,11 +98,17 @@ if ($action === 'staff_login') {
     // Success — set session, reset fail count, mark online
     $conn->prepare("UPDATE staffs SET login_fail_count=0, last_fail_at=NULL, last_login_at=NOW(), is_online=1 WHERE staff_id=:id")->execute([':id'=>$staff['staff_id']]);
 
-    $_SESSION['staff_id']    = $staff['staff_id'];
-    $_SESSION['staff_name']  = $staff['fullname'];
-    $_SESSION['staff_role']  = $staff['role'];
-    $_SESSION['staff_admin'] = $staff['admin_id'];
+    // Log the session
+    $conn->prepare("INSERT INTO staff_sessions (staff_id, admin_id, login_at) VALUES (:sid, :aid, NOW())")
+         ->execute([':sid'=>$staff['staff_id'], ':aid'=>$staff['admin_id']]);
+    $sessionLogId = $conn->lastInsertId();
+
+    $_SESSION['staff_id']       = $staff['staff_id'];
+    $_SESSION['staff_name']     = $staff['fullname'];
+    $_SESSION['staff_role']     = $staff['role'];
+    $_SESSION['staff_admin']    = $staff['admin_id'];
     $_SESSION['staff_login_at'] = time();
+    $_SESSION['staff_session_log_id'] = $sessionLogId;
 
     $redirect = ($staff['role'] === 'Kitchen') ? 'kitchen_dashboard.php' : 'userdashboard.php';
     echo json_encode(['success'=>true,'redirect'=>$redirect,'role'=>$staff['role']]);
@@ -112,9 +129,16 @@ if ($action === 'verify_own_pin') {
     if ($row && $row['pin'] && password_verify($pin, $row['pin'])) {
         // Mark staff as offline
         $conn->prepare("UPDATE staffs SET is_online=0 WHERE staff_id=:id")->execute([':id'=>(int)$_SESSION['staff_id']]);
+        // Close session log with logout time and duration
+        if (!empty($_SESSION['staff_session_log_id'])) {
+            $conn->prepare("UPDATE staff_sessions SET logout_at=NOW(),
+                            duration_minutes=TIMESTAMPDIFF(MINUTE, login_at, NOW())
+                            WHERE session_id=:sid")
+                 ->execute([':sid'=>(int)$_SESSION['staff_session_log_id']]);
+        }
         // Clear staff session, keep admin session intact
         unset($_SESSION['staff_id'], $_SESSION['staff_name'], $_SESSION['staff_role'],
-              $_SESSION['staff_admin'], $_SESSION['staff_login_at']);
+              $_SESSION['staff_admin'], $_SESSION['staff_login_at'], $_SESSION['staff_session_log_id']);
         // Set a one-time reentry token so staff_login.php lets them
         // back in without going through staff_gate.php again.
         $_SESSION['staff_reentry'] = time();
@@ -221,7 +245,22 @@ switch ($action) {
         echo json_encode(['success'=>true,'new_status'=>$row->fetchColumn()]);
         break;
 
-    case 'reset_fails':
+    case 'get_logs':
+        $staffId = (int)($_GET['staff_id'] ?? 0);
+        $date    = $_GET['date'] ?? '';
+        $sql     = "SELECT ss.session_id, ss.staff_id, ss.login_at, ss.logout_at, ss.duration_minutes,
+                           s.fullname, s.role, s.shift_start, s.shift_end
+                    FROM staff_sessions ss
+                    JOIN staffs s ON ss.staff_id = s.staff_id
+                    WHERE ss.admin_id = :aid";
+        $params  = [':aid' => $admin_id];
+        if ($staffId) { $sql .= " AND ss.staff_id = :sid"; $params[':sid'] = $staffId; }
+        if ($date)    { $sql .= " AND DATE(ss.login_at) = :date"; $params[':date'] = $date; }
+        $sql .= " ORDER BY ss.login_at DESC LIMIT 200";
+        $stmt = $conn->prepare($sql);
+        $stmt->execute($params);
+        echo json_encode(['success'=>true,'logs'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        break;
         $id = (int)($_POST['staff_id'] ?? 0);
         $conn->prepare("UPDATE staffs SET login_fail_count=0,last_fail_at=NULL WHERE staff_id=:id AND admin_id=:aid")->execute([':id'=>$id,':aid'=>$admin_id]);
         echo json_encode(['success'=>true,'message'=>'Login attempts cleared.']);
