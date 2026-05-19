@@ -1,5 +1,8 @@
 <?php
 session_start();
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: Sat, 01 Jan 2000 00:00:00 GMT");
 require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/helpers/admindashboard_helpers.php";
 require_once __DIR__ . "/../validation.php";
@@ -232,6 +235,11 @@ $sidebar = new SidebarRenderer(
             animation: modalPop 0.25s ease;
         }
         @keyframes modalPop { from{transform:scale(0.92);opacity:0} to{transform:scale(1);opacity:1} }
+        @keyframes pulse-online {
+            0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); }
+            70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+            100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+        }
         .staff-modal-title {
             font-size: 18px; font-weight: 800;
             color: var(--text-primary); margin-bottom: 20px;
@@ -351,6 +359,7 @@ $sidebar = new SidebarRenderer(
                         <th>Role</th>
                         <th>Shift</th>
                         <th>Status</th>
+                        <th>Attendance</th>
                         <th>Last Login</th>
                         <th>Actions</th>
                     </tr>
@@ -505,6 +514,7 @@ function renderTable() {
 
     tbody.innerHTML = filtered.map(s => {
         const initial = s.fullname.charAt(0).toUpperCase();
+        const isOnline = s.is_online == 1;
         const roleBadge = s.role === 'Cashier'
             ? `<span class="role-badge role-cashier"><i class="fa-solid fa-cash-register"></i> Cashier</span>`
             : `<span class="role-badge role-kitchen"><i class="fa-solid fa-kitchen-set"></i> Kitchen</span>`;
@@ -514,14 +524,26 @@ function renderTable() {
         const shift = (s.shift_start && s.shift_end)
             ? `<span class="shift-text">${fmtTime(s.shift_start)} – ${fmtTime(s.shift_end)}</span>`
             : `<span class="shift-text" style="opacity:0.4;">—</span>`;
-        const lastLogin = s.last_login_at
-            ? `<span class="shift-text">${fmtDate(s.last_login_at)}</span>`
-            : `<span class="shift-text" style="opacity:0.4;">Never</span>`;
+        const lastLogin = isOnline
+            ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#16a34a;">
+                   <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;
+                                box-shadow:0 0 0 0 rgba(34,197,94,0.7);animation:pulse-online 1.5s infinite;"></span>
+                   Online Now
+               </span>`
+            : (s.last_login_at
+                ? `<span class="shift-text">${fmtDate(s.last_login_at)}</span>`
+                : `<span class="shift-text" style="opacity:0.4;">Never</span>`);
+
+        const onlineDot = isOnline
+            ? `<span style="position:absolute;bottom:1px;right:1px;width:11px;height:11px;border-radius:50%;
+                            background:#22c55e;border:2px solid white;
+                            box-shadow:0 0 0 0 rgba(34,197,94,0.7);animation:pulse-online 1.5s infinite;"></span>`
+            : '';
 
         return `<tr>
             <td>
                 <div class="staff-name-cell">
-                    <div class="staff-avatar">${initial}</div>
+                    <div class="staff-avatar" style="position:relative;">${initial}${onlineDot}</div>
                     <div class="staff-name-info">
                         <div class="name">${escHtml(s.fullname)}</div>
                         <div class="sub">ID #${s.staff_id}</div>
@@ -531,6 +553,7 @@ function renderTable() {
             <td>${roleBadge}</td>
             <td>${shift}</td>
             <td>${statusBadge}</td>
+            <td>${getShiftStatus(s)}</td>
             <td>${lastLogin}</td>
             <td>
                 <div class="staff-action-btns">
@@ -686,6 +709,61 @@ async function confirmDelete() {
 }
 
 // ===== HELPERS =====
+function getShiftStatus(s) {
+    if (!s.shift_start || !s.shift_end) {
+        return `<span style="font-size:12px;color:#94a3b8;font-weight:600;">— Not Set</span>`;
+    }
+
+    // Parse shift times against today's date in local time
+    const now = new Date();
+    const toMinutes = t => { const [h,m] = t.split(':'); return parseInt(h)*60+parseInt(m); };
+    const nowMin   = now.getHours()*60 + now.getMinutes();
+    const startMin = toMinutes(s.shift_start);
+    const endMin   = toMinutes(s.shift_end);
+
+    const inShift = nowMin >= startMin && nowMin < endMin;
+    const graceMin = 15; // minutes after shift start before marking Absent
+
+    if (!inShift) {
+        // Show next shift time if upcoming today
+        if (nowMin < startMin) {
+            const minsUntil = startMin - nowMin;
+            const label = minsUntil < 60
+                ? `in ${minsUntil}m`
+                : `in ${Math.floor(minsUntil/60)}h ${minsUntil%60}m`;
+            return `<span style="font-size:12px;color:#64748b;font-weight:600;">
+                        <span style="opacity:0.5;">⏳</span> Upcoming <span style="opacity:0.6;font-weight:400;">${label}</span>
+                    </span>`;
+        }
+        return `<span style="font-size:12px;color:#94a3b8;font-weight:600;">⬤ Off Shift</span>`;
+    }
+
+    if (s.is_online == 1) {
+        return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#16a34a;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;
+                                 animation:pulse-online 1.5s infinite;display:inline-block;"></span>
+                    On Shift
+                </span>`;
+    }
+
+    // Staff is in their shift window but not logged in
+    const minsLate = nowMin - startMin;
+    if (minsLate <= graceMin) {
+        return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#d97706;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;
+                                 animation:pulse-online 1.5s infinite;display:inline-block;"></span>
+                    Late
+                    <span style="font-weight:400;opacity:0.7;">${minsLate}m</span>
+                </span>`;
+    }
+
+    return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#dc2626;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
+                Absent
+                <span style="font-weight:400;opacity:0.7;">${Math.floor(minsLate/60) > 0 ? Math.floor(minsLate/60)+'h ' : ''}${minsLate%60}m late</span>
+            </span>`;
+}
+
 function fmtTime(t) {
     if (!t) return '—';
     const [h, m] = t.split(':');
@@ -717,6 +795,8 @@ function showStaffToast(msg, type) {
 
 // Init
 loadStaffs();
+// Auto-refresh every 60s so attendance status (On Shift / Absent / Late) stays current
+setInterval(loadStaffs, 60000);
 </script>
 <script>
 /* ── SIDEBAR TOGGLE ── */

@@ -2,11 +2,33 @@
 session_start();
 require_once __DIR__ . "/../config/database.php";
 
+// Prevent caching so browsers don't show stale pages after logout
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Must have an admin session
 if (!isset($_SESSION['admin_id'])) {
     header("Location: ../login.php");
     exit;
 }
+
+// SECURITY: Only allow access if a valid entry token exists.
+// staff_gate_unlocked = came through the admin credential gate.
+// staff_reentry       = came from a staff self-logout (PIN verified).
+// staff_login_active  = persistent flag set below; survives refresh.
+$has_token = !empty($_SESSION['staff_gate_unlocked']) || !empty($_SESSION['staff_reentry']);
+$already_active = !empty($_SESSION['staff_login_active']);
+
+if (!$has_token && !$already_active) {
+    header("Location: staff_gate.php");
+    exit;
+}
+
+// Consume one-time tokens and set the persistent active flag.
+// This flag keeps the page accessible on refresh without re-gating.
+unset($_SESSION['staff_gate_unlocked'], $_SESSION['staff_reentry']);
+$_SESSION['staff_login_active'] = true;
 
 // If staff already logged in, route them directly
 if (!empty($_SESSION['staff_id']) && !empty($_SESSION['staff_role'])) {
@@ -283,16 +305,62 @@ const ADMIN_ID = <?= $admin_id ?>;
 let selectedRole = '';
 let pinValue     = '';
 
+// Fullscreen helper: forces fullscreen so staff cannot use the browser
+// back button to reach the admin dashboard.
+function requestFullscreen() {
+    const el = document.documentElement;
+    if (!document.fullscreenElement) {
+        const fn = el.requestFullscreen
+                || el.webkitRequestFullscreen
+                || el.mozRequestFullScreen
+                || el.msRequestFullscreen;
+        if (fn) fn.call(el).catch(() => {});
+    }
+}
+
 // Always reset to step 1 on page load (handles bfcache / back navigation)
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('step-role').style.display = 'block';
     document.getElementById('step-pin').style.display  = 'none';
+    // Enter fullscreen immediately. The navigation from staff_gate.php
+    // counts as a user gesture so the browser will honour this.
+    requestFullscreen();
+
+    // Push a deep stack of sentinel entries so that repeated back-button
+    // presses cannot escape this page without entering the admin PIN.
+    // Each press consumes one entry and fires popstate, which re-fills
+    // the stack immediately, making it impossible to navigate away.
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ staffLogin: true, i }, '', window.location.href);
+    }
+});
+
+// Every time the browser back (or forward) button is pressed, popstate
+// fires. We immediately refill the sentinel stack to 50 entries and
+// open the Admin PIN modal. Staff cannot leave without the PIN.
+window.addEventListener('popstate', function() {
+    // Refill the stack so even rapid repeated presses are caught.
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ staffLogin: true, i }, '', window.location.href);
+    }
+    openAdminModal();
 });
 window.addEventListener('pageshow', () => {
-    document.getElementById('step-role').style.display = 'block';
-    document.getElementById('step-pin').style.display  = 'none';
-    pinValue = ''; selectedRole = '';
-    document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+    fetch('helpers/session_check.php', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+            // Must have a valid admin session
+            if (!data.admin_id) { window.location.replace('../login.php'); return; }
+            // Must still be in an active staff-login session (survives refresh)
+            if (!data.staff_login_active) { window.location.replace('staff_gate.php'); return; }
+            document.getElementById('step-role').style.display = 'block';
+            document.getElementById('step-pin').style.display  = 'none';
+            pinValue = ''; selectedRole = '';
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('selected'));
+            // Request fullscreen to prevent staff pressing browser back to admin dashboard
+            requestFullscreen();
+        })
+        .catch(() => { window.location.replace('../login.php'); });
 });
 
 function selectRole(role, el) {
@@ -345,7 +413,8 @@ function verifyAdminPin() {
         body: 'pin=' + encodeURIComponent(aPin)
     }).then(r => r.json()).then(data => {
         if (data.success) {
-            window.location.href = 'admindashboard.php';
+            // Use replace() so staff cannot press back to return here
+            window.location.replace('admindashboard.php');
         } else {
             document.getElementById('adminPinError').style.display = 'block';
             aPin = ''; updAdminDots(0);
@@ -413,7 +482,8 @@ function attemptLogin() {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                window.location.href = data.redirect;
+                // Use replace() so staff cannot press back after login
+                window.location.replace(data.redirect);
             } else {
                 showError(data.message || 'Login failed. Check your name and PIN.');
             }

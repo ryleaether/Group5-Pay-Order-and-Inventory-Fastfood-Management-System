@@ -4,6 +4,11 @@ require_once __DIR__ . "/../config/database.php";
 require_once __DIR__ . "/helpers/admindashboard_helpers.php";
 require_once __DIR__ . "/../validation.php";
 
+// Prevent caching so browsers don't show stale pages after logout
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Allow access from admin session OR staff session (Kitchen role)
 $via_staff = false;
 if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Kitchen' && isset($_SESSION['staff_admin'])) {
@@ -669,7 +674,7 @@ function kmPinVerify() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            window.location.href = isStaff ? 'staff_login.php' : 'admindashboard.php';
+            window.location.replace(isStaff ? 'staff_login.php' : 'admindashboard.php');
         } else {
             document.getElementById('kmPinError').style.display = 'block';
             kmPin = ''; updKmDots(0);
@@ -693,15 +698,37 @@ document.addEventListener('keydown', e => {
 loadOrders();
 startAutoRefresh();
 
+// On pageshow (including bfcache restore) verify server-side session state.
+window.addEventListener('pageshow', function() {
+    fetch('helpers/session_check.php', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+            // If neither admin nor authorized staff session present, redirect to login
+            const allowed = data.admin_id || (data.staff_id && data.staff_role === 'Kitchen' && data.staff_admin);
+            if (!allowed) {
+                window.location.replace('../login.php');
+            }
+        })
+        .catch(() => { window.location.replace('../login.php'); });
+});
+
 /* ================================================================
    BACK-BUTTON PREVENTION
    Push a dummy state so the browser back button triggers popstate
    instead of navigating away. When triggered, show the PIN logout
    overlay so the kitchen manager must log out first.
 ================================================================ */
-history.pushState({ page: 'kitchen' }, '', window.location.href);
-window.addEventListener('popstate', function(e) {
-    history.pushState({ page: 'kitchen' }, '', window.location.href);
+// Push 50 sentinel entries so rapid/repeated back presses cannot
+// escape this page. Every popstate immediately refills the stack.
+(function lockHistory() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ page: 'kitchen', i: i }, '', window.location.href);
+    }
+}());
+window.addEventListener('popstate', function() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ page: 'kitchen', i: i }, '', window.location.href);
+    }
     showKitchenPinModal();
 });
 

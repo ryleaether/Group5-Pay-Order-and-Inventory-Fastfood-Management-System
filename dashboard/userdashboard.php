@@ -2,6 +2,11 @@
 session_start();
 require_once __DIR__ . "/../config/database.php";
 
+// Prevent caching so browsers don't show stale pages after logout
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
+
 // Allow access from admin session OR staff session (Cashier role)
 if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Cashier' && isset($_SESSION['staff_admin'])) {
     $admin_id = (int)$_SESSION['staff_admin'];
@@ -645,7 +650,7 @@ function verifyAdminPin() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            window.location.href = 'staff_login.php';
+            window.location.replace('staff_login.php');
         } else {
             document.getElementById('adminPinError').style.display = 'block';
             adminPinValue = '';
@@ -674,17 +679,37 @@ function showToast(message, type = 'info') {
 /* Init display */
 document.getElementById('orderNumDisplay').textContent = '#' + orderCounter;
 
+// On pageshow (including bfcache restore) verify server-side session state.
+window.addEventListener('pageshow', function() {
+    fetch('helpers/session_check.php', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(data => {
+            // Allow if admin OR staff cashier assigned to same admin and gate unlocked when required
+            const isAllowed = data.admin_id || (data.staff_id && data.staff_role === 'Cashier' && data.staff_admin);
+            if (!isAllowed) {
+                window.location.replace('../login.php');
+            }
+        })
+        .catch(() => { window.location.replace('../login.php'); });
+});
+
 /* ================================================================
    BACK-BUTTON PREVENTION
    Push a dummy state so the browser back button triggers popstate
    instead of actually navigating away. When triggered, show the
    logout/PIN overlay so the user must log out first.
 ================================================================ */
-history.pushState({ page: 'cashier' }, '', window.location.href);
-window.addEventListener('popstate', function(e) {
-    // Re-push so back keeps being intercepted
-    history.pushState({ page: 'cashier' }, '', window.location.href);
-    // Show the logout overlay — user must PIN out before leaving
+// Push 50 sentinel entries so rapid/repeated back presses cannot
+// escape this page. Every popstate immediately refills the stack.
+(function lockHistory() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ page: 'cashier', i: i }, '', window.location.href);
+    }
+}());
+window.addEventListener('popstate', function() {
+    for (let i = 0; i < 50; i++) {
+        history.pushState({ page: 'cashier', i: i }, '', window.location.href);
+    }
     showAdminOverlay();
 });
 </script>
