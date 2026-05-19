@@ -4,7 +4,7 @@
 // Called by the header every N seconds via fetch().
 
 session_start();
-require_once '../config/database.php'; // adjust path if needed
+require_once __DIR__ . '/../../config/database.php'; //adjust path if needed
 
 header('Content-Type: application/json');
 
