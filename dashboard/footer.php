@@ -43,9 +43,9 @@ try {
         <!-- About -->
         <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                <div style="width:30px;height:30px;background:linear-gradient(135deg,var(--accent-dark),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;">iP</div>
-                <span style="font-size:15px;font-weight:800;color:var(--text-primary);">iPOS</span>
-            </div>
+    <?php $logo_size = 30; $logo_show_text = false; include __DIR__ . '/helpers/ipos_logo.php'; ?>
+    <span style="font-size:15px;font-weight:800;color:var(--text-primary);">iPOS</span>
+</div>
             <p style="font-size:11.5px;color:var(--text-secondary);margin:0 0 14px;line-height:1.7;">A smart point-of-sale system designed for fast food restaurants. Manage orders, menus, staff, and more — all in one place.</p>
             <div style="display:flex;align-items:center;gap:6px;">
                 <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse 2s infinite;"></span>

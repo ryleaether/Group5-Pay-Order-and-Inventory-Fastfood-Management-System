@@ -317,8 +317,9 @@ class SidebarRenderer {
                              alt="Logo" style="width:38px;height:38px;object-fit:cover;border-radius:8px;display:block;">
                     </div>
                 <?php else: ?>
-                    <div class="logo-icon-box">iP</div>
-                <?php endif; ?>
+    <?php include __DIR__ . '/../helpers/ipos_logo.php'; ?>
+<?php endif; ?>
+
                 <div class="logo-text">
                     <h2><?= $name ?: 'iPOS' ?></h2>
                     <p>I Pay, I Order, I Serve</p>
@@ -397,7 +398,7 @@ class SidebarRenderer {
 
                 <ul>
                     <li>
-                        <a href="../logout.php" class="logout-link">
+                        <a href="#" class="logout-link" onclick="confirmLogout()">
                             <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Logout
                         </a>
                     </li>
@@ -524,10 +525,28 @@ class SidebarRenderer {
             text-decoration: none;
             border-radius: 9px;
             font-size: 0.85rem;
-            transition: background 0.15s, color 0.15s;
+            font-weight: 400;
+            border: 1px solid transparent;
+            transition: all 0.22s ease;
         }
-        .sidebar-nav ul li a:hover, .sidebar-nav ul li.active a {
-            background: var(--sidebar-active-bg); color: #fff;
+        .sidebar-nav ul li a:hover {
+            background: color-mix(in srgb, var(--accent) 10%, transparent);
+            border-color: color-mix(in srgb, var(--accent) 28%, transparent);
+            color: #fff;
+            font-weight: 600;
+            transform: translateX(5px);
+            box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
+        }
+        .sidebar-nav ul li.active a {
+            background: var(--sidebar-active-bg);
+            color: #fff;
+            font-weight: 700;
+            border-color: color-mix(in srgb, var(--accent-dark) 50%, transparent);
+            box-shadow: 0 0 12px color-mix(in srgb, var(--accent-dark) 30%, transparent);
+        }
+        .sidebar-nav ul li.active a:hover {
+            background: var(--accent-dark);
+            transform: translateX(5px);
         }
     .nav-icon {
     width: 32px;
@@ -611,7 +630,58 @@ class SidebarRenderer {
         function openProfileModal()  { const m = document.getElementById('profileModal'); m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
         function closeProfileModal() { const m = document.getElementById('profileModal'); m.style.display = 'none'; document.body.style.overflow = ''; }
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfileModal(); });
+
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Logging out?',
+                text: 'Are you sure you want to log out?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-right-from-bracket"></i> Yes, logout',
+                cancelButtonText: '<i class="fa-solid fa-xmark]]\\"></i> Cancel',
+                confirmButtonColor: '#be185d',
+                cancelButtonColor: '#6b3055',
+                reverseButtons: true,
+                customClass: {
+                    popup:         'swal-logout-popup',
+                    title:         'swal-logout-title',
+                    confirmButton: 'swal-logout-confirm',
+                    cancelButton:  'swal-logout-cancel',
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '../logout.php';
+                }
+            });
+        }
         </script>
+
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <style>
+        .swal-logout-popup {
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif !important;
+            border-radius: 16px !important;
+            padding: 28px !important;
+        }
+        .swal-logout-title {
+            font-size: 18px !important;
+            font-weight: 800 !important;
+            color: #2d0a1f !important;
+        }
+        .swal2-html-container {
+            font-size: 13.5px !important;
+            color: #9e6080 !important;
+        }
+        .swal-logout-confirm,
+        .swal-logout-cancel {
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 13px !important;
+            border-radius: 10px !important;
+            padding: 10px 20px !important;
+        }
+        </style>
         <?php
        $sidebar_html = ob_get_clean();
 

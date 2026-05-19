@@ -716,7 +716,7 @@ if ($displayPhotoUrl): ?>
 
                 <?php
                 $presets = [
-                     'ipos'    => ['dark'=>'#5C0A2E','accent'=>'#BE185D','bg'=>'#FDF2F8','text'=>'#1a0010','label'=>'iPOS Default'],
+                     'ipos'    => ['dark'=>'#2D0B22','accent'=>'#BE185D','bg'=>'#f5eef4','text'=>'#2d0a1f','label'=>'iPOS Default'],
                     'black'   => ['dark'=>'#1f2937','accent'=>'#374151','bg'=>'#f9fafb','text'=>'#111827','label'=>'Black'],
                     'gold'    => ['dark'=>'#92400e','accent'=>'#d97706','bg'=>'#fffbeb','text'=>'#451a03','label'=>'Gold'],
                     'silver'  => ['dark'=>'#475569','accent'=>'#64748b','bg'=>'#f8fafc','text'=>'#1e293b','label'=>'Silver'],
@@ -1111,8 +1111,10 @@ function saveStoreInfo() {
 function selectTheme(el, dark, accent, bodyBg, text) {
     document.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('active'));
     el.classList.add('active');
-    const sidebarDark = darkenHex(dark, 0.3);
-    livePreview({ sidebarBg: sidebarDark, accent, accentDark: dark, bodyBg, text });
+    const isDefault = el.dataset.theme === 'ipos';
+    const sidebarDark = isDefault ? '#2D0B22' : darkenHex(dark, 0.3);
+    const activeColor = isDefault ? '#9B2C52' : dark;
+    livePreview({ sidebarBg: sidebarDark, accent, accentDark: activeColor, bodyBg, text });
 }
 
 function livePreview(p) {

@@ -15,8 +15,5 @@ if (isset($map[$gate])) {
 
 $redirect = basename($redirect);
 
-// If going back to admin dashboard, flag it to show the PIN prompt
-$query = ($redirect === 'admindashboard.php') ? '?require_pin=1' : '';
-
-header("Location: ../" . $redirect . $query);
+header("Location: ../" . $redirect);
 exit;

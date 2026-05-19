@@ -60,7 +60,7 @@ try {
         <div style="position:relative;">
             <button onclick="toggleNotifPanel()" id="notifBellBtn" style="background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;position:relative;">
                 <i class="fa-solid fa-bell" id="notifBellIcon" style="font-size:18px;color:var(--text-primary);transition:color 0.2s;"></i>
-                <span id="notifBadge" style="display:none;position:absolute;top:0;right:0;min-width:16px;height:16px;background:var(--accent);color:white;font-size:9px;font-weight:800;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid white;padding:0 2px;"></span>
+                <span id="notifBadge" style="display:none;position:absolute;top:0;right:0;min-width:16px;height:16px;background:var(--accent);color:white;font-size:9px;font-weight:800;border-radius:50%;visibility:hidden;align-items:center;justify-content:center;border:2px solid white;padding:0 2px;"></span>
             </button>
 
             <!-- Notification Dropdown -->
@@ -174,7 +174,7 @@ try {
                 <!-- Footer -->
                 <div style="padding:10px 16px;border-top:1px solid var(--border-color);text-align:center;">
                     <p style="font-size:11px;color:var(--text-secondary);margin:0 0 10px;">To edit your info, go to <strong>Account</strong> in the sidebar.</p>
-                    <a href="../logout.php" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;background:#fff0f3;border:1.5px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;"
+                    <a href="#" onclick="confirmLogout()" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;background:#fff0f3;border:1.5px solid #fca5a5;border-radius:8px;color:#dc2626;font-size:12px;font-weight:700;text-decoration:none;transition:background 0.2s;"
                        onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fff0f3'">
                         <i class="fa-solid fa-right-from-bracket"></i> Sign Out
                     </a>
@@ -315,6 +315,7 @@ const iconColorMap = {
 };
 
 function renderNotifications(data) {
+    currentNotifications = data.notifications || [];
     const items     = data.notifications || [];
     const unread    = data.unread_count  || 0;
     const badge     = document.getElementById('notifBadge');
@@ -328,6 +329,7 @@ function renderNotifications(data) {
     // ── Badge ──
     if (unread > 0) {
         badge.style.display = 'flex';
+badge.style.visibility = 'visible';
         badge.textContent   = unread > 99 ? '99+' : unread;
         hBadge.style.display = 'inline';
         hBadge.textContent  = unread + ' new';
@@ -342,6 +344,7 @@ function renderNotifications(data) {
         }
     } else {
         badge.style.display  = 'none';
+badge.style.visibility = 'hidden';
         hBadge.style.display = 'none';
         bellIcon.style.color = 'var(--text-primary)';
     }
@@ -379,16 +382,33 @@ function renderNotifications(data) {
 
 function fetchNotifications() {
     fetch('helpers/notifications.php')
-        .then(r => r.json())
-        .then(renderNotifications)
-        .catch(() => {}); // silently fail — don't break the page
+        .then(r => r.text())
+        .then(text => {
+            try {
+                const data = JSON.parse(text);
+                renderNotifications(data);
+            } catch(e) {
+                console.error('Notifications parse error:', text);
+                renderNotifications({notifications: [], unread_count: 0});
+            }
+        })
+        .catch(e => {
+            console.error('Notifications fetch error:', e);
+            renderNotifications({notifications: [], unread_count: 0});
+        });
 }
 
+let currentNotifications = [];
+
 function markAllRead() {
+    const keys = currentNotifications.map(n => n.key).filter(Boolean);
+    const params = new URLSearchParams({ action: 'mark_read' });
+    keys.forEach(k => params.append('keys[]', k));
+
     fetch('helpers/notifications.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=mark_read'
+        body: params.toString()
     })
     .then(r => r.json())
     .then(() => fetchNotifications())
@@ -425,6 +445,11 @@ document.addEventListener('click', function(e) {
         }
     });
 });
+
+document.addEventListener('scroll', function() {
+    document.getElementById('notifDropdown').style.display = 'none';
+    document.getElementById('profilePopup').style.display  = 'none';
+}, true);
 
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {

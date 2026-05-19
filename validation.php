@@ -24,21 +24,78 @@ class Validation {
     $city = null, $province = null, $zip_code = null, $logo_url = null,
     $logo_shape = 'circle') {
 
-    if (empty($username) || empty($password) || empty($fullname) || empty($fastfood_name)) {
-        return "All fields are required!";
-    }
+   // ── Required fields ──────────────────────────────────────────────
+    if (empty(trim($fullname)))
+        return "Full name is required.";
 
-  if ($this->usernameExists($username)) {
-    return "Username already exists!";
-}
+    if (empty(trim($username)))
+        return "Username is required.";
 
-if ($this->emailExists($email)) {
-    return "Email address is already registered!";
-}
+    if (empty(trim($email)))
+        return "Email address is required.";
 
-    if (strlen($password) < 6) {
-        return "Password must be at least 6 characters!";
-    }
+    if (empty(trim($fastfood_name)))
+        return "Business name is required.";
+
+    if (empty(trim($address)))
+        return "Business address is required.";
+
+    if (empty(trim($city)))
+        return "City / Municipality is required.";
+
+    if (empty(trim($province)))
+        return "Province is required.";
+
+   if (empty(trim($password)))
+        return "Password is required.";
+
+    if (empty(trim($business_type)))
+        return "Please select a business type.";
+
+    // ── Normalize casing ─────────────────────────────────────────────
+    $fullname = ucwords(strtolower(trim($fullname)));
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL))
+        return "Please enter a valid email address.";
+
+    if (strlen($username) < 4 || strlen($username) > 20)
+        return "Username must be between 4 and 20 characters.";
+
+    if (!preg_match('/^[a-zA-Z0-9_]+$/', $username))
+        return "Username may only contain letters, numbers, and underscores.";
+
+    if (strlen($password) < 8)
+        return "Password must be at least 8 characters.";
+
+    if ($phone_number && !preg_match('/^09\d{9}$/', $phone_number))
+        return "Contact number must start with 09 and be 11 digits (e.g. 09XXXXXXXXX).";
+
+    if ($zip_code && !preg_match('/^\d{4}$/', $zip_code))
+        return "ZIP code must be exactly 4 digits.";
+
+    if ($tin_number && !preg_match('/^\d{3}-\d{3}-\d{3}(-\d{1,5})?$/', $tin_number))
+        return "TIN must follow the format 000-000-000 or 000-000-000-00000.";
+
+    // ── Uniqueness checks ────────────────────────────────────────────
+    if ($this->usernameExists($username))
+        return "Username is already taken. Please choose another.";
+
+    if ($this->emailExists($email))
+        return "An account with this email already exists.";
+
+    if ($phone_number && $this->fieldExists('phone_number', $phone_number))
+        return "This contact number is already registered to another account.";
+
+    if ($this->fieldExists('fastfood_name', $fastfood_name))
+        return "A business with this name is already registered.";
+
+    if ($tin_number && $this->fieldExists('tin_number', $tin_number))
+        return "This BIR TIN is already registered. If this is a branch, please contact support.";
+
+    if ($dti_sec_number && $this->fieldExists('dti_sec_number', $dti_sec_number))
+        return "This DTI/SEC Registration Number is already in use.";
+
+    if ($business_permit && $this->fieldExists('business_permit', $business_permit))
+        return "This Business Permit number is already registered.";
 
     $hashed = password_hash($password, PASSWORD_DEFAULT);
 
@@ -190,6 +247,18 @@ if ($this->emailExists($email)) {
         $sql = "SELECT admin_id FROM {$this->table} WHERE email = :email";
         $stmt = $this->conn->prepare($sql);
         $stmt->bindParam(":email", $email);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    private function fieldExists($field, $value) {
+        $allowed = ['phone_number', 'fastfood_name', 'tin_number', 'dti_sec_number', 'business_permit'];
+        if (!in_array($field, $allowed)) return false;
+
+        $sql  = "SELECT admin_id FROM {$this->table} WHERE {$field} = :value";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->bindParam(":value", $value);
         $stmt->execute();
 
         return $stmt->rowCount() > 0;

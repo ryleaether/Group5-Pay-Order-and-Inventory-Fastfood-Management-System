@@ -842,12 +842,12 @@ try {
 <!-- ════ SIDEBAR ════ -->
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <div class="logo-icon">iP</div>
-        <div class="logo-label">
-            <h2>iPOS</h2>
-            <span>Super Admin</span>
-        </div>
+    <?php $logo_size = 38; $logo_show_text = false; include __DIR__ . '/../dashboard/helpers/ipos_logo.php'; ?>
+    <div class="logo-label">
+        <h2>iPOS</h2>
+        <span>Super Admin</span>
     </div>
+</div>
 
     <nav class="sidebar-nav">
         <button class="nav-item <?= $open_page === 'dashboard' ? 'active' : '' ?>" onclick="showPage('dashboard', this)">

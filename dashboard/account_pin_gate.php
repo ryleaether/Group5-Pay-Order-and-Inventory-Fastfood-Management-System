@@ -18,12 +18,8 @@ if (!$pin_manager->hasPIN()) {
     $pin_manager->savePIN('0000');
 }
 
-/* Session unlock — skip gate for 30 min */
 $unlockKey = 'account_pin_unlocked_at';
-if (isset($_SESSION[$unlockKey]) && (time() - $_SESSION[$unlockKey]) < 1800) {
-    header("Location: account_dashboard.php");
-    exit;
-}
+unset($_SESSION[$unlockKey]);
 
 /* AJAX verify */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['pin'])) {

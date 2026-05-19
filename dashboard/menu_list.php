@@ -39,7 +39,7 @@ if (empty($items)) {
     }
 }
 
-$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
+$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adminProfile['fullname'] ?? $_SESSION['username'] ?? '');
 ?>
 <!DOCTYPE html>
 <html>

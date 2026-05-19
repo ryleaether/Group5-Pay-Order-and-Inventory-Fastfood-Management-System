@@ -30,14 +30,23 @@ if ($_tl_id) {
     }
 }
 
-$sb  = $_tl['sidebarBg']   ?? '#2d0a1f';
+$sb  = $_tl['sidebarBg']   ?? '#2D0B22';
 $ac  = $_tl['accent']      ?? '#be185d';
-$acd = $_tl['accentDark']  ?? '#7e1545';
-$bg  = $_tl['bodyBg']      ?? '#f5eef4';
-$txt = $_tl['text']        ?? '#2d0a1f';
-$acl = $_tl['accentLight'] ?? '#fde8f0';
-$brd = $_tl['borderColor'] ?? '#ead5e4';
-$ts  = $_tl['textSec']     ?? '#9e6080';
+$acd = $_tl['accentDark']  ?? '#9B2C52';
+$bg  = $_tl['bodyBg']      ?? '#F0EBF4';
+$txt = $_tl['text']        ?? '#1A0A14';
+$acl = $_tl['accentLight'] ?? '#F5E6EC';
+$brd = $_tl['borderColor'] ?? '#EAE0EE';
+$ts  = $_tl['textSec']     ?? '#8C6E82';
+
+// Fix old default colors for existing registered users
+if ($sb  === '#5C0A2E' || $sb  === '#2d0a1f') $sb  = '#2D0B22';
+if ($acd === '#5C0A2E' || $acd === '#7e1545') $acd = '#9B2C52';
+if ($bg  === '#f5eef4' || $bg  === '#FDF2F8') $bg  = '#F0EBF4';
+if ($txt === '#2d0a1f')                        $txt = '#1A0A14';
+if ($acl === '#fde8f0')                        $acl = '#F5E6EC';
+if ($brd === '#ead5e4')                        $brd = '#EAE0EE';
+if ($ts  === '#9e6080')                        $ts  = '#8C6E82';
 ?>
 <style id="ipos-theme-vars">
 :root {

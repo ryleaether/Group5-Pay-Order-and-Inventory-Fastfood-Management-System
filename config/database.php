@@ -5,7 +5,7 @@ class Database {
     //private $port = "3308";
     private $dbname = "ipos_db";
     private $username = "root";
-    private $password = "newpassword";   // ← set your MySQL root password here if needed
+    private $password = "root";   // ← set your MySQL root password here if needed
 
     public $conn;
 

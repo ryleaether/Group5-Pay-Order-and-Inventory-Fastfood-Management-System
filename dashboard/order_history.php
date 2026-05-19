@@ -61,7 +61,15 @@ $stmt->bindParam(":admin_id", $admin_id);
 $stmt->execute();
 $summary = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
+try {
+    $db_p  = new Database();
+    $conn_p = $db_p->connect();
+    $stmt_p = $conn_p->prepare("SELECT fullname FROM admins WHERE admin_id = :id");
+    $stmt_p->execute([':id' => $admin_id]);
+    $adminProfile = $stmt_p->fetch(PDO::FETCH_ASSOC) ?: [];
+} catch (Exception $e) { $adminProfile = []; }
+
+$sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adminProfile['fullname'] ?? $_SESSION['username'] ?? '');
 ?>
 <!DOCTYPE html>
 <html>
