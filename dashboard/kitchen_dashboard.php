@@ -403,7 +403,7 @@ $sidebar = new SidebarRenderer(
             <span id="lastRefresh">—</span>
             <button class="km-topbar-refresh" onclick="loadOrders()"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
             <button class="km-back-btn" onclick="showKitchenPinModal()">
-                <i class="fa-solid fa-arrow-left"></i> Back
+                <i class="fa-solid fa-right-from-bracket"></i> Logout
             </button>
         </div>
     </div>
@@ -415,9 +415,9 @@ $sidebar = new SidebarRenderer(
         <div style="background:white; border-radius:24px; padding:36px 32px; width:340px;
              text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.3); animation:kmPinPop 0.25s ease;">
             <div style="font-size:44px; margin-bottom:10px;">🔒</div>
-            <h2 style="font-size:1.2rem; font-weight:800; color:#1a1a2e; margin-bottom:6px;">Admin PIN Required</h2>
+            <h2 style="font-size:1.2rem; font-weight:800; color:#1a1a2e; margin-bottom:6px;">Kitchen Manager PIN</h2>
             <p style="font-size:13px; color:#888; margin-bottom:22px;">
-                Enter your 4-digit Dashboard PIN to go back.<br>Default is <strong>0000</strong>.
+                Enter your 4-digit PIN to log out and return to Staff Login.
             </p>
             <div id="kmPinDots" style="display:flex; justify-content:center; gap:14px; margin-bottom:22px;">
                 <div class="pin-dot"></div><div class="pin-dot"></div>
@@ -656,7 +656,12 @@ function updKmDots(n) {
     document.querySelectorAll('#kmPinDots .pin-dot').forEach((d,i) => d.classList.toggle('filled', i < n));
 }
 function kmPinVerify() {
-    fetch('helpers/admindashboard_helpers.php?action=check_pin', {
+    const isStaff = <?= $via_staff ? 'true' : 'false' ?>;
+    const url     = isStaff
+        ? 'helpers/staff_helpers.php?action=verify_own_pin'
+        : 'helpers/admindashboard_helpers.php?action=check_pin';
+
+    fetch(url, {
         method: 'POST',
         headers: {'Content-Type':'application/x-www-form-urlencoded'},
         body: 'pin=' + encodeURIComponent(kmPin)
@@ -664,7 +669,7 @@ function kmPinVerify() {
     .then(r => r.json())
     .then(data => {
         if (data.success) {
-            window.location.href = 'admindashboard.php';
+            window.location.href = isStaff ? 'staff_login.php' : 'admindashboard.php';
         } else {
             document.getElementById('kmPinError').style.display = 'block';
             kmPin = ''; updKmDots(0);
