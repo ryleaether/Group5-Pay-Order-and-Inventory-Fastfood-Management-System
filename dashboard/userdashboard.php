@@ -24,6 +24,20 @@ if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Cashier' && iss
 $db   = new Database();
 $conn = $db->connect();
 
+// Fetch shift info for staff sessions
+$shiftInfo    = null;
+$staffLoginAt = null;
+if (isset($_SESSION['staff_id'])) {
+    $sStmt = $conn->prepare("SELECT fullname, role, shift_start, shift_end, last_login_at FROM staffs WHERE staff_id = :id");
+    $sStmt->execute([':id' => (int)$_SESSION['staff_id']]);
+    $shiftInfo = $sStmt->fetch(PDO::FETCH_ASSOC);
+    // Prefer session timestamp; fall back to DB last_login_at (always set on login)
+    $staffLoginAt = $_SESSION['staff_login_at'] ?? null;
+    if (!$staffLoginAt && !empty($shiftInfo['last_login_at'])) {
+        $staffLoginAt = strtotime($shiftInfo['last_login_at']);
+    }
+}
+
 $stmt = $conn->prepare("
     SELECT * FROM menu_items
     WHERE admin_id = :admin_id AND is_available = 1 AND stock_quantity > 0
@@ -77,6 +91,63 @@ function hexToRgba($hex, $alpha) {
     }
     .pos-admin-modal h3 { color: <?= htmlspecialchars($txt) ?>; }
     .pos-admin-modal p  { color: <?= htmlspecialchars(hexToRgba($txt, 0.6)) ?>; }
+
+    /* ── Shift Info Banner ── */
+    .pos-shell { grid-template-rows: 52px auto 1fr; }
+    .shift-banner {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        background: linear-gradient(90deg, var(--accent-dim) 0%, transparent 100%);
+        border-bottom: 1px solid var(--border);
+        padding: 6px 20px;
+        font-size: 12.5px;
+        flex-wrap: wrap;
+        overflow: hidden;
+    }
+    .shift-banner-name {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-weight: 700;
+        color: var(--text);
+        flex-shrink: 0;
+    }
+    .shift-banner-name .role-chip {
+        background: var(--accent-dim);
+        border: 1px solid rgba(249,115,22,0.3);
+        color: var(--accent);
+        font-size: 10.5px;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 20px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+    }
+    .shift-banner-sep {
+        width: 1px;
+        height: 14px;
+        background: var(--border);
+        margin: 0 14px;
+        flex-shrink: 0;
+    }
+    .shift-banner-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text2);
+        flex-shrink: 0;
+    }
+    .shift-banner-item i { color: var(--accent); font-size: 11px; }
+    .shift-banner-item strong {
+        color: var(--text);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        font-family: 'DM Mono', monospace;
+    }
+    .shift-banner-item.warn strong { color: #f59e0b; }
+    .shift-banner-item.danger strong { color: #ef4444; }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -113,6 +184,43 @@ function hexToRgba($hex, $alpha) {
             <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
     </header>
+
+    <?php if ($shiftInfo): ?>
+    <!-- ======== SHIFT INFO BANNER ======== -->
+    <div class="shift-banner" id="shiftBanner">
+        <div class="shift-banner-name">
+            <i class="fa-solid fa-circle-user" style="color:var(--accent);font-size:14px;"></i>
+            <?= htmlspecialchars($shiftInfo['fullname']) ?>
+            <span class="role-chip"><?= htmlspecialchars($shiftInfo['role']) ?></span>
+        </div>
+
+        <?php if (!empty($shiftInfo['shift_start']) && !empty($shiftInfo['shift_end'])): ?>
+        <div class="shift-banner-sep"></div>
+        <div class="shift-banner-item">
+            <i class="fa-regular fa-calendar-clock"></i>
+            Shift:&nbsp;<strong>
+                <?= date('h:i A', strtotime($shiftInfo['shift_start'])) ?>
+                &ndash;
+                <?= date('h:i A', strtotime($shiftInfo['shift_end'])) ?>
+            </strong>
+        </div>
+        <?php endif; ?>
+
+        <div class="shift-banner-sep"></div>
+        <div class="shift-banner-item" id="elapsedWrap">
+            <i class="fa-regular fa-stopwatch"></i>
+            Logged in:&nbsp;<strong id="shiftElapsed">—</strong>
+        </div>
+
+        <?php if (!empty($shiftInfo['shift_end'])): ?>
+        <div class="shift-banner-sep"></div>
+        <div class="shift-banner-item" id="remainWrap">
+            <i class="fa-regular fa-hourglass-half"></i>
+            Remaining:&nbsp;<strong id="shiftRemaining">—</strong>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- ======== LEFT: MENU PANEL ======== -->
     <main class="pos-menu-panel">
@@ -319,6 +427,59 @@ function tickClock() {
 }
 setInterval(tickClock, 1000);
 tickClock();
+
+/* ================================================================
+   SHIFT TIMER
+================================================================ */
+<?php if ($shiftInfo && $staffLoginAt): ?>
+(function () {
+    const loginAt  = <?= (int)$staffLoginAt ?>;
+    const shiftEnd = <?= !empty($shiftInfo['shift_end']) ? json_encode($shiftInfo['shift_end']) : 'null' ?>;
+
+    function fmtDuration(secs) {
+        if (secs < 0) secs = 0;
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+        return m + 'm ' + String(s).padStart(2,'0') + 's';
+    }
+
+    function getShiftEndTimestamp() {
+        if (!shiftEnd) return null;
+        const now    = new Date();
+        const [hh, mm, ss] = shiftEnd.split(':').map(Number);
+        const end    = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss || 0);
+        if (end.getTime() < Date.now()) end.setDate(end.getDate() + 1);
+        return Math.floor(end.getTime() / 1000);
+    }
+
+    const elapsedEl   = document.getElementById('shiftElapsed');
+    const remainEl    = document.getElementById('shiftRemaining');
+    const remainWrap  = document.getElementById('remainWrap');
+
+    function tickShift() {
+        const nowSec  = Math.floor(Date.now() / 1000);
+        const elapsed = nowSec - loginAt;
+        if (elapsedEl) elapsedEl.textContent = fmtDuration(elapsed);
+
+        if (remainEl && remainWrap) {
+            const endTs = getShiftEndTimestamp();
+            if (endTs) {
+                const remain = endTs - nowSec;
+                remainEl.textContent = remain <= 0 ? 'Shift ended' : fmtDuration(remain);
+                remainWrap.classList.remove('warn', 'danger');
+                if (remain <= 0)          remainWrap.classList.add('danger');
+                else if (remain <= 1800)  remainWrap.classList.add('danger');
+                else if (remain <= 3600)  remainWrap.classList.add('warn');
+            }
+        }
+    }
+
+    tickShift();
+    setInterval(tickShift, 1000);
+})();
+<?php endif; ?>
 
 /* ================================================================
    CATEGORY FILTER & SEARCH
@@ -618,21 +779,10 @@ function cancelCurrentOrder() {
    ADMIN TOGGLE
 ================================================================ */
 function showAdminOverlay() {
-    Swal.fire({
-        title: 'Log Out?',
-        text: 'Are you sure you want to log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, log out',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            window.location.replace('helpers/staff_helpers.php?action=staff_logout');
-        }
-    });
+    adminPinValue = '';
+    updateAdminPinDots(0);
+    document.getElementById('adminPinError').style.display = 'none';
+    document.getElementById('adminOverlay').classList.add('show');
 }
 
 function hideAdminOverlay() {

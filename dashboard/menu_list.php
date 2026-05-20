@@ -96,7 +96,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                     <div class="menu-card">
                         <div class="menu-img-wrap">
                             <?php if (!empty($item['image_url'])): ?>
-                               <img src="<?= htmlspecialchars(ltrim($item['image_url'], './')) ?>"
+                               <img src="<?= htmlspecialchars($item['image_url']) ?>"
                                      alt="<?= htmlspecialchars($item['item_name']) ?>"
                                      class="menu-img">
                             <?php else: ?>
