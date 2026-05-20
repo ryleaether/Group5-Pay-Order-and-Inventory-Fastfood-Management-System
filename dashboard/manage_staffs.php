@@ -368,9 +368,8 @@ $sidebar = new SidebarRenderer(
                         <th style="text-align:center;">Staff Member</th>
                         <th style="text-align:center;">Role</th>
                         <th style="text-align:center;">Shift</th>
-                        <th style="text-align:center;">Status</th>
                         <th style="text-align:center;">Attendance</th>
-                        <th style="text-align:center;">Last Login</th>
+                        <th style="text-align:center;">Employment</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
@@ -413,19 +412,19 @@ $sidebar = new SidebarRenderer(
                     <table style="width:100%; border-collapse:collapse; font-size:13px;">
                         <thead>
                             <tr style="background:var(--accent-light);">
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Staff</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Role</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Login</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Logout</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Duration</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Shift</th>
-                                <th style="padding:12px 16px; text-align:left; font-size:11px; font-weight:700;
+                                <th style="padding:12px 16px; text-align:center; font-size:11px; font-weight:700;
                                            color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px;">Status</th>
                             </tr>
                         </thead>
@@ -468,6 +467,15 @@ $sidebar = new SidebarRenderer(
                 <select class="modal-input" id="mStatus">
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-row">
+            <div class="modal-field">
+                <label class="modal-label"><i class="fa-solid fa-briefcase"></i> Employment Type *</label>
+                <select class="modal-input" id="mEmploymentType">
+                    <option value="Full-time">Full-time / Regular</option>
+                    <option value="Part-time">Part-time</option>
                 </select>
             </div>
         </div>
@@ -586,21 +594,16 @@ function renderTable() {
         const roleBadge = s.role === 'Cashier'
             ? `<span class="role-badge role-cashier"><i class="fa-solid fa-cash-register"></i> Cashier</span>`
             : `<span class="role-badge role-kitchen"><i class="fa-solid fa-kitchen-set"></i> Kitchen</span>`;
-        const statusBadge = s.status === 'Active'
-            ? `<span class="status-badge status-active">● Active</span>`
-            : `<span class="status-badge status-inactive">● Inactive</span>`;
         const shift = (s.shift_start && s.shift_end)
             ? `<span class="shift-text">${fmtTime(s.shift_start)} – ${fmtTime(s.shift_end)}</span>`
             : `<span class="shift-text" style="opacity:0.4;">—</span>`;
-        const lastLogin = isOnline
-            ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#16a34a;">
-                   <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block;
-                                box-shadow:0 0 0 0 rgba(34,197,94,0.7);animation:pulse-online 1.5s infinite;"></span>
-                   Online Now
+        const employmentBadge = s.employment_type === 'Part-time'
+            ? `<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#fef3c7;color:#92400e;">
+                   <i class="fa-solid fa-clock"></i> Part-time
                </span>`
-            : (s.last_login_at
-                ? `<span class="shift-text">${fmtDate(s.last_login_at)}</span>`
-                : `<span class="shift-text" style="opacity:0.4;">Never</span>`);
+            : `<span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#ede9fe;color:#6d28d9;">
+                   <i class="fa-solid fa-briefcase"></i> Full-time
+               </span>`;
 
         const onlineDot = isOnline
             ? `<span style="position:absolute;bottom:1px;right:1px;width:11px;height:11px;border-radius:50%;
@@ -614,23 +617,19 @@ function renderTable() {
                     <div class="staff-avatar" style="position:relative;">${initial}${onlineDot}</div>
                     <div class="staff-name-info">
                         <div class="name">${escHtml(s.fullname)}</div>
-                        <div class="sub">ID #${s.staff_id}</div>
                     </div>
                 </div>
             </td>
             <td>${roleBadge}</td>
             <td>${shift}</td>
-            <td>${statusBadge}</td>
             <td>${getShiftStatus(s)}</td>
-            <td>${lastLogin}</td>
+            <td>${employmentBadge}</td>
             <td>
                 <div class="staff-action-btns">
                     <button class="btn-icon btn-edit" onclick="openEditModal(${s.staff_id})" title="Edit">
-                        <i class="fa-solid fa-pen"></i>
-                    </button>
-                    <button class="btn-icon btn-toggle" onclick="toggleStatus(${s.staff_id}, '${s.status}')" title="Toggle Status">
-                        <i class="fa-solid fa-${s.status === 'Active' ? 'toggle-on' : 'toggle-off'}"></i>
-                    </button>
+    <i class="fa-solid fa-pen"></i>
+</button>
+            
                     <button class="btn-icon btn-delete" onclick="openDeleteModal(${s.staff_id}, '${escHtml(s.fullname)}')" title="Remove">
                         <i class="fa-solid fa-trash"></i>
                     </button>
@@ -650,6 +649,7 @@ function openAddModal() {
     document.getElementById('mStatus').value = 'Active';
     document.getElementById('mShiftStart').value = '';
     document.getElementById('mShiftEnd').value = '';
+    document.getElementById('mEmploymentType').value = 'Full-time';
     document.getElementById('mPin').value = '';
     document.getElementById('pinLabel').textContent = '(4 digits, required)';
     document.getElementById('pinHint').textContent = 'Staff will use this PIN to log in.';
@@ -667,6 +667,7 @@ function openEditModal(staffId) {
     document.getElementById('mStatus').value = s.status;
     document.getElementById('mShiftStart').value = s.shift_start || '';
     document.getElementById('mShiftEnd').value = s.shift_end || '';
+    document.getElementById('mEmploymentType').value = s.employment_type || 'Full-time';
     document.getElementById('mPin').value = '';
     document.getElementById('pinLabel').textContent = '(leave blank to keep current PIN)';
     document.getElementById('pinHint').textContent = 'Only fill if you want to change the PIN.';
@@ -707,8 +708,10 @@ async function saveStaff() {
         showStaffToast('PIN must be exactly 4 digits', 'error'); return;
     }
 
+   const employmentType = document.getElementById('mEmploymentType').value;
     const action = isEdit ? 'edit' : 'add';
-    const params = new URLSearchParams({ action, fullname, role, status, shift_start: shiftStart, shift_end: shiftEnd });
+    const params = new URLSearchParams({ action, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
+    console.log('Saving staff with employment_type:', employmentType); // debug
     if (pin) params.append('pin', pin);
     if (isEdit) params.append('staff_id', staffId);
 
@@ -731,24 +734,6 @@ async function saveStaff() {
     }
 }
 
-// ===== TOGGLE STATUS =====
-async function toggleStatus(staffId, currentStatus) {
-    const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-    try {
-        const res  = await fetch('helpers/staff_helpers.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=update&staff_id=${staffId}&status=${newStatus}&fullname=_skip_`
-        });
-        const data = await res.json();
-        if (data.success) {
-            showStaffToast(`Marked as ${newStatus}`, 'success');
-            loadStaffs();
-        } else {
-            showStaffToast(data.message || 'Failed', 'error');
-        }
-    } catch(e) { showStaffToast('Connection error', 'error'); }
-}
 
 // ===== DELETE =====
 function openDeleteModal(staffId, name) {
@@ -778,57 +763,20 @@ async function confirmDelete() {
 
 // ===== HELPERS =====
 function getShiftStatus(s) {
-    if (!s.shift_start || !s.shift_end) {
-        return `<span style="font-size:12px;color:#94a3b8;font-weight:600;">— Not Set</span>`;
-    }
+    const today = new Date().toLocaleDateString('en-CA');
+    const lastLogin = s.last_login_at ? s.last_login_at.slice(0, 10) : null;
+    const loggedInToday = lastLogin === today;
 
-    // Parse shift times against today's date in local time
-    const now = new Date();
-    const toMinutes = t => { const [h,m] = t.split(':'); return parseInt(h)*60+parseInt(m); };
-    const nowMin   = now.getHours()*60 + now.getMinutes();
-    const startMin = toMinutes(s.shift_start);
-    const endMin   = toMinutes(s.shift_end);
-
-    const inShift = nowMin >= startMin && nowMin < endMin;
-    const graceMin = 15; // minutes after shift start before marking Absent
-
-    if (!inShift) {
-        // Show next shift time if upcoming today
-        if (nowMin < startMin) {
-            const minsUntil = startMin - nowMin;
-            const label = minsUntil < 60
-                ? `in ${minsUntil}m`
-                : `in ${Math.floor(minsUntil/60)}h ${minsUntil%60}m`;
-            return `<span style="font-size:12px;color:#64748b;font-weight:600;">
-                        <span style="opacity:0.5;">⏳</span> Upcoming <span style="opacity:0.6;font-weight:400;">${label}</span>
-                    </span>`;
-        }
-        return `<span style="font-size:12px;color:#94a3b8;font-weight:600;">⬤ Off Shift</span>`;
-    }
-
-    if (s.is_online == 1) {
+    if (s.is_online == 1 || loggedInToday) {
         return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#16a34a;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;
-                                 animation:pulse-online 1.5s infinite;display:inline-block;"></span>
-                    On Shift
-                </span>`;
-    }
-
-    // Staff is in their shift window but not logged in
-    const minsLate = nowMin - startMin;
-    if (minsLate <= graceMin) {
-        return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#d97706;">
-                    <span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;
-                                 animation:pulse-online 1.5s infinite;display:inline-block;"></span>
-                    Late
-                    <span style="font-weight:400;opacity:0.7;">${minsLate}m</span>
+                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;"></span>
+                    Present
                 </span>`;
     }
 
     return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#dc2626;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
                 Absent
-                <span style="font-weight:400;opacity:0.7;">${Math.floor(minsLate/60) > 0 ? Math.floor(minsLate/60)+'h ' : ''}${minsLate%60}m late</span>
             </span>`;
 }
 
@@ -894,7 +842,14 @@ async function loadLogs() {
     if (date)    url += `&date=${date}`;
 
     const res  = await fetch(url);
-    const data = await res.json();
+    const text = await res.text();
+    console.log('Staff log raw response:', text);
+    let data;
+    try { data = JSON.parse(text); } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:30px;color:red;">
+            Error: ${text}</td></tr>`;
+        return;
+    }
 
     if (!data.success || !data.logs.length) {
         tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-secondary);">
@@ -927,22 +882,17 @@ async function loadLogs() {
             ? `<span style="font-size:12px;color:var(--text-secondary);">${fmtTime(log.shift_start)} – ${fmtTime(log.shift_end)}</span>`
             : `<span style="opacity:0.4;">—</span>`;
 
-        // Shift compliance check
+        // Shift compliance — use server-calculated late_minutes
         let statusBadge = '';
-        if (log.shift_start && log.shift_end) {
-            const toMin = t => { const [h,m] = t.split(':'); return parseInt(h)*60+parseInt(m); };
-            const loginMin = loginTime.getHours()*60+loginTime.getMinutes();
-            const startMin = toMin(log.shift_start);
-            const minsLate = loginMin - startMin;
-            if (minsLate <= 0) {
-                statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;">On Time</span>`;
-            } else if (minsLate <= 15) {
-                statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#fef9c3;color:#854d0e;font-size:11px;font-weight:700;">Late ${minsLate}m</span>`;
-            } else {
-                statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;">Late ${minsLate}m</span>`;
-            }
+        const lateMin = parseInt(log.late_minutes) || 0;
+        if (!log.shift_start || !log.shift_end) {
+            statusBadge = `<span style="opacity:0.4;font-size:12px;">— No Shift Set</span>`;
+        } else if (lateMin <= 0) {
+            statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:11px;font-weight:700;">✅ On Time</span>`;
+        } else if (lateMin <= 15) {
+            statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#fef9c3;color:#854d0e;font-size:11px;font-weight:700;">⚠️ Late ${lateMin}m</span>`;
         } else {
-            statusBadge = `<span style="opacity:0.4;font-size:12px;">—</span>`;
+            statusBadge = `<span style="padding:3px 10px;border-radius:20px;background:#fee2e2;color:#991b1b;font-size:11px;font-weight:700;">🔴 Late ${lateMin}m</span>`;
         }
 
         const roleBadge = log.role === 'Cashier'
@@ -950,15 +900,15 @@ async function loadLogs() {
             : `<span class="role-badge role-kitchen"><i class="fa-solid fa-kitchen-set"></i> Kitchen</span>`;
 
         return `<tr style="border-bottom:1px solid var(--border-color);">
-            <td style="padding:12px 16px;">
+            <td style="padding:12px 16px;text-align:center;">
                 <div style="font-weight:700;">${escHtml(log.fullname)}</div>
             </td>
-            <td style="padding:12px 16px;">${roleBadge}</td>
-            <td style="padding:12px 16px;color:var(--text-primary);">${fmtDT(loginTime)}</td>
-            <td style="padding:12px 16px;">${logoutCell}</td>
-            <td style="padding:12px 16px;font-weight:600;">${duration}</td>
-            <td style="padding:12px 16px;">${shiftCell}</td>
-            <td style="padding:12px 16px;">${statusBadge}</td>
+            <td style="padding:12px 16px;text-align:center;">${roleBadge}</td>
+            <td style="padding:12px 16px;text-align:center;color:var(--text-primary);">${fmtDT(loginTime)}</td>
+            <td style="padding:12px 16px;text-align:center;">${logoutCell}</td>
+            <td style="padding:12px 16px;text-align:center;font-weight:600;">${duration}</td>
+            <td style="padding:12px 16px;text-align:center;">${shiftCell}</td>
+            <td style="padding:12px 16px;text-align:center;">${statusBadge}</td>
         </tr>`;
     }).join('');
 }
