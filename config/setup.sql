@@ -177,3 +177,23 @@ CREATE TABLE IF NOT EXISTS audit_log (
     created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE SET NULL
 );
+
+
+
+--ADDITIONAL MAY 20--
+ALTER TABLE admins
+ADD COLUMN phone_number VARCHAR(20) NULL,
+ADD COLUMN business_type VARCHAR(50) NULL,
+ADD COLUMN tin_number VARCHAR(30) NULL,
+ADD COLUMN dti_sec_number VARCHAR(50) NULL,
+ADD COLUMN business_permit VARCHAR(50) NULL,
+ADD COLUMN address TEXT NULL,
+ADD COLUMN city VARCHAR(100) NULL,
+ADD COLUMN province VARCHAR(100) NULL,
+ADD COLUMN zip_code VARCHAR(10) NULL,
+ADD COLUMN logo_url VARCHAR(255) NULL;
+
+ALTER TABLE admins
+ADD COLUMN logo_shape VARCHAR(20) DEFAULT 'circle';
+SELECT admin_id, username, logo_url, logo_shape FROM admins WHERE username = 'anarose';
+ALTER TABLE admins ADD COLUMN dashboard_pin VARCHAR(255) DEFAULT NULL;
