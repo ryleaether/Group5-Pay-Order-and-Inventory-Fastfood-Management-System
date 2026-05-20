@@ -190,10 +190,34 @@ if ($action === 'download') {
 
     if ($filename === '' || pathinfo($filename, PATHINFO_EXTENSION) !== 'sql' || !file_exists($filepath)) {
         http_response_code(404);
-        // Override content-type for plain error text
         header('Content-Type: text/plain');
         echo 'Backup file not found.';
         exit;
+    }
+
+    // Log this download to user_backup_logs
+    try {
+        $backup_type = $_GET['backup_type'] ?? 'menu_json';
+        $period      = $_GET['period']      ?? null;
+
+        // Validate backup_type against allowed ENUM values
+        $allowed_types = ['menu_json', 'menu_csv', 'sales_csv'];
+        if (!in_array($backup_type, $allowed_types)) {
+            $backup_type = 'menu_json';
+        }
+
+        $stmt = $conn->prepare(
+            "INSERT INTO user_backup_logs (admin_id, backup_type, period)
+             VALUES (:admin_id, :backup_type, :period)"
+        );
+        $stmt->execute([
+            ':admin_id'    => $_SESSION['admin_id'],
+            ':backup_type' => $backup_type,
+            ':period'      => ($backup_type === 'sales_csv' && $period !== null) ? $period : null,
+        ]);
+    } catch (Exception $e) {
+        // Non-fatal: log failure silently, still serve the file
+        error_log('user_backup_logs insert failed: ' . $e->getMessage());
     }
 
     header('Content-Type: application/octet-stream');
