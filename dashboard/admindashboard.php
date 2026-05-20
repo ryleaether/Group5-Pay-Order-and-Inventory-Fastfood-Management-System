@@ -47,6 +47,30 @@ if (!$val->adminExists($_SESSION['admin_id'])) {
 $db   = new Database();
 $conn = $db->connect();
 
+/* ── Maintenance mode check ── */
+try {
+    $maint_stmt = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('maintenance_enabled','maintenance_end_time','maintenance_message')");
+    $maint_rows = $maint_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $maint_map  = array_column($maint_rows, 'setting_value', 'setting_key');
+} catch (Exception $e) { $maint_map = []; }
+
+if (($maint_map['maintenance_enabled'] ?? '0') === '1') {
+    session_write_close();
+    header('Location: ../maintenance.php');
+    exit;
+}
+
+/* ── Global announcement ── */
+$ann_enabled = '0'; $ann_message = ''; $ann_type = 'info';
+try {
+    $ann_stmt = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('announcement_enabled','announcement_message','announcement_type')");
+    $ann_rows  = $ann_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ann_map   = array_column($ann_rows, 'setting_value', 'setting_key');
+    $ann_enabled = $ann_map['announcement_enabled'] ?? '0';
+    $ann_message = $ann_map['announcement_message'] ?? '';
+    $ann_type    = $ann_map['announcement_type']    ?? 'info';
+} catch (Exception $e) {}
+
 $admin_id = $_SESSION['admin_id'];
 
 $adminProfile = [];
@@ -184,6 +208,95 @@ try {
 </head>
 
 <body>
+
+<?php
+// Show announcement modal once per login — track with PHP session key tied to message content
+$ann_session_key = 'ann_seen_' . md5($ann_message);
+$show_ann_modal  = ($ann_enabled === '1' && !empty($ann_message) && empty($_SESSION[$ann_session_key]));
+if ($show_ann_modal) {
+    $_SESSION[$ann_session_key] = true; // mark as seen for this login session
+}
+?>
+<?php if ($show_ann_modal): ?>
+<?php
+$ann_colors = [
+    'info'    => ['accent'=>'#3b82f6','icon'=>'ℹ️','label'=>'Information'],
+    'warning' => ['accent'=>'#f59e0b','icon'=>'⚠️','label'=>'Important Notice'],
+    'success' => ['accent'=>'#22c55e','icon'=>'✅','label'=>'Good News'],
+    'danger'  => ['accent'=>'#ef4444','icon'=>'🚨','label'=>'Urgent Notice'],
+];
+$ac = $ann_colors[$ann_type] ?? $ann_colors['info'];
+?>
+<!-- ── Global Announcement Modal ── -->
+<div id="ann-modal-overlay" style="
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    animation:annFadeIn 0.25s ease;">
+
+    <div id="ann-modal-box" style="
+        background:#fff;
+        border-radius:22px;
+        max-width:480px;width:100%;
+        box-shadow:0 32px 80px rgba(0,0,0,0.35);
+        overflow:hidden;
+        animation:annSlideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+
+        <!-- Colored header -->
+        <div style="background:<?= $ac['accent'] ?>;padding:28px 24px 22px;text-align:center;position:relative;">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));"><?= $ac['icon'] ?></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.9);"><?= $ac['label'] ?></div>
+            <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">System Announcement</div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:28px 30px 30px;text-align:center;">
+            <p style="font-size:15px;font-weight:500;color:#1a1a2e;line-height:1.75;margin:0 0 26px;">
+                <?= htmlspecialchars($ann_message) ?>
+            </p>
+
+            <!-- Dismiss button -->
+            <button onclick="dismissAnnModal()" style="
+                background:<?= $ac['accent'] ?>;
+                color:#fff;border:none;border-radius:12px;
+                padding:13px 0;font-size:14px;font-weight:600;
+                cursor:pointer;font-family:'Poppins',sans-serif;
+                width:100%;letter-spacing:0.3px;
+                transition:transform 0.15s,opacity 0.15s;"
+                onmouseover="this.style.opacity='0.88';this.style.transform='scale(1.01)'"
+                onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+                Got it, thanks!
+            </button>
+
+            <p style="font-size:11.5px;color:#aaa;margin-top:12px;margin-bottom:0;">
+                This message is from your system administrator.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes annFadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes annSlideUp { from{transform:translateY(40px) scale(0.96);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+</style>
+
+<script>
+function dismissAnnModal() {
+    const overlay = document.getElementById('ann-modal-overlay');
+    if (!overlay) return;
+    overlay.style.transition = 'opacity 0.2s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 220);
+}
+// Allow clicking the dark backdrop to dismiss too
+document.getElementById('ann-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) dismissAnnModal();
+});
+</script>
+<?php endif; ?>
 
 <div class="dashboard" id="dashboardRoot">
 

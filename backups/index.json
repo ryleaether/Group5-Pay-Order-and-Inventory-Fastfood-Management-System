@@ -1,34 +1,10 @@
 [
     {
-        "filename": "backup_Latest_withAudit_20260515_113541.sql",
-        "label": "Latest_withAudit",
-        "created_at": "2026-05-15 11:35:41",
-        "size": 7306,
-        "tables": 9,
+        "filename": "backup_with_new_feature_global_announcement_and_maintenance_20260520_063838.sql",
+        "label": "with_new_feature_global_announcement_and_maintenance",
+        "created_at": "2026-05-20 06:38:39",
+        "size": 42116,
+        "tables": 14,
         "created_by": "superAdmin"
-    },
-    {
-        "filename": "backup_manual_20260515_113614.sql",
-        "label": "manual",
-        "created_at": "2026-05-15 11:36:14",
-        "size": 7296,
-        "tables": 9,
-        "created_by": "superAdmin"
-    },
-    {
-        "filename": "backup_manual_20260515_140547.sql",
-        "label": "manual",
-        "created_at": "2026-05-15 14:05:47",
-        "size": 10089,
-        "tables": 10,
-        "created_by": "superAdmin"
-    },
-    {
-        "filename": "backup_number12_20260518_141237.sql",
-        "label": "number12",
-        "created_at": "2026-05-18 14:12:37",
-        "size": 17711,
-        "tables": 10,
-        "created_by": "superadmin"
     }
 ]

@@ -131,7 +131,6 @@ ALTER TABLE orders   MODIFY COLUMN order_status ENUM('Queued','Preparing','Serve
    Safe to run multiple times (uses IF NOT EXISTS / IF NOT EXISTS).
    ================================================================ */
 
-USE ipos_db;
 
 /* ── staffs table ── */
 CREATE TABLE IF NOT EXISTS staffs (
@@ -159,21 +158,76 @@ ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_login_at    TIMESTAMP NULL;
 
 select * from admins;
 
-/* ================================================================
-   AUDIT LOG — tracks all admin/superadmin actions
-   Must come after admins table (foreign key dependency).
-   ================================================================ */
+-- ================================================================
+--  AUDIT LOG MIGRATION
+--  Run this on your existing ipos_db database
+-- ================================================================
 
 CREATE TABLE IF NOT EXISTS audit_log (
     log_id       INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id     INT DEFAULT NULL,
-    actor_name   VARCHAR(100) NOT NULL DEFAULT '',
-    action       VARCHAR(80) NOT NULL,
-    target_type  VARCHAR(50) DEFAULT NULL,
-    target_id    INT DEFAULT NULL,
-    target_label VARCHAR(200) DEFAULT NULL,
-    detail       TEXT,
-    ip_address   VARCHAR(45) DEFAULT NULL,
-    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    admin_id     INT NULL,                          -- who performed the action (NULL if session lost)
+    actor_name   VARCHAR(100) NOT NULL DEFAULT '',  -- snapshot of username at time of action
+    action       VARCHAR(80)  NOT NULL,             -- e.g. 'owner_created', 'owner_deleted'
+    target_type  VARCHAR(50)  NULL,                 -- 'owner', 'superadmin', 'backup', 'device'
+    target_id    INT          NULL,                 -- affected row id (admin_id, backup id, etc.)
+    target_label VARCHAR(200) NULL,                 -- human-readable label (username / store name)
+    detail       TEXT         NULL,                 -- optional extra detail (JSON or plain text)
+    ip_address   VARCHAR(45)  NULL,                 -- supports IPv6
+    created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE SET NULL
+);
+
+-- Optional: auto-purge logs older than 1 year (create an EVENT if your MySQL has events enabled)
+-- CREATE EVENT IF NOT EXISTS purge_old_audit_logs
+--   ON SCHEDULE EVERY 1 DAY
+--   DO DELETE FROM audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 YEAR);
+
+
+-- ADDINGS BY KATHY
+ALTER TABLE admins
+ADD COLUMN phone_number VARCHAR(20) NULL,
+ADD COLUMN address VARCHAR(255) NULL,
+ADD COLUMN municipality VARCHAR(100) NULL,
+ADD COLUMN province VARCHAR(100) NULL,
+ADD COLUMN zip_code VARCHAR(10) NULL,
+ADD COLUMN business_permit VARCHAR(100) NULL,
+ADD COLUMN logo VARCHAR(255) NULL,
+ADD COLUMN theme VARCHAR(50) NULL;
+
+ALTER TABLE admins
+ADD COLUMN business_type VARCHAR(100) NULL;
+
+ALTER TABLE admins
+ADD COLUMN dti_sec_number VARCHAR(100) NULL,
+ADD COLUMN city VARCHAR(100) NULL,
+ADD COLUMN logo_url VARCHAR(255) NULL,
+ADD COLUMN logo_shape VARCHAR(50) DEFAULT 'circle',
+ADD COLUMN max_devices INT DEFAULT 1;
+
+ALTER TABLE admins
+ADD COLUMN dti_sec_number VARCHAR(100) NULL,
+ADD COLUMN city VARCHAR(100) NULL,
+ADD COLUMN logo_url VARCHAR(255) NULL,
+ADD COLUMN logo_shape VARCHAR(50) DEFAULT 'circle';
+
+ALTER TABLE admins
+ADD COLUMN tin_number VARCHAR(50) NULL;
+
+-- ============================================================
+--  BACKUP DOWNLOAD AUDIT — iPOS Migration
+--  Run this on your existing ipos_db database.
+--  Safe to run multiple times (uses IF NOT EXISTS).
+-- ============================================================
+
+USE ipos_db;
+
+-- Optional: track every backup download per user for audit purposes.
+-- This table is lightweight — one row per download action.
+CREATE TABLE IF NOT EXISTS user_backup_logs (
+    log_id          INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id        INT NOT NULL,
+    backup_type     ENUM('menu_json','menu_csv','sales_csv') NOT NULL,
+    period          VARCHAR(20) NULL,           -- only for sales_csv: all/today/week/month/year
+    downloaded_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
 );

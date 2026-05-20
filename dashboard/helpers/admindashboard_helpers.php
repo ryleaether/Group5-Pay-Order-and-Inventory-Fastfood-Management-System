@@ -387,6 +387,11 @@ class SidebarRenderer {
  Account
                         </a>
                     </li>
+                    <li class="<?= $is('backup') ?>">
+                        <a href="admin_backup.php">
+                            <span class="nav-icon"><i class="fa-solid fa-database"></i></span> Backup & Recovery
+                        </a>
+                    </li>
                     <li class="<?= $is('staff_gate') ?>">
                         <a href="staff_gate.php">
                             <span class="nav-icon"><i class="fa-solid fa-arrows-rotate"></i></span> Switch to Staff Dashboard

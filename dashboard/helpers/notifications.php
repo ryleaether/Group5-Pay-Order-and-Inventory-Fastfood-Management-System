@@ -1,7 +1,8 @@
 <?php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once __DIR__ . '/../../config/database.php';
+session_start();
+require_once '../config/database.php'; // adjust path if needed
 
 header('Content-Type: application/json');
 

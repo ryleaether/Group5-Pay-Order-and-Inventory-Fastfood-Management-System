@@ -24,6 +24,17 @@ if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Cashier' && iss
 $db   = new Database();
 $conn = $db->connect();
 
+/* ── Maintenance mode check ── */
+try {
+    $m_stmt = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_enabled'");
+    $m_row  = $m_stmt->fetch(PDO::FETCH_ASSOC);
+    if ($m_row && $m_row['setting_value'] === '1') {
+        session_write_close();
+        header('Location: ../maintenance.php');
+        exit;
+    }
+} catch (Exception $e) {}
+
 $stmt = $conn->prepare("
     SELECT * FROM menu_items
     WHERE admin_id = :admin_id AND is_available = 1 AND stock_quantity > 0

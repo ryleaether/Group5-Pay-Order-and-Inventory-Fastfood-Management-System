@@ -28,6 +28,17 @@ if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Kitchen' && iss
 $db   = new Database();
 $conn = $db->connect();
 
+/* ── Maintenance mode check ── */
+try {
+    $m_stmt = $conn->query("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_enabled'");
+    $m_row  = $m_stmt->fetch(PDO::FETCH_ASSOC);
+    if ($m_row && $m_row['setting_value'] === '1') {
+        session_write_close();
+        header('Location: ../maintenance.php');
+        exit;
+    }
+} catch (Exception $e) {}
+
 $adminProfile = [];
 try {
     $stmt = $conn->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
