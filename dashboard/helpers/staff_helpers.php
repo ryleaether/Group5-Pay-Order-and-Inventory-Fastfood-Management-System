@@ -1,4 +1,9 @@
 <?php
+
+error_reporting(0);
+ini_set('display_errors', 0);
+date_default_timezone_set('Asia/Manila');
+
 /**
  * staff_helpers.php — CRUD + Auth API for Staffs
  */
@@ -24,6 +29,7 @@ $conn->exec("CREATE TABLE IF NOT EXISTS staffs (
     last_fail_at     TIMESTAMP NULL,
     last_login_at    TIMESTAMP NULL,
     is_online        TINYINT(1) NOT NULL DEFAULT 0,
+    employment_type  ENUM('Full-time','Part-time') NOT NULL DEFAULT 'Full-time',
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
 )");
@@ -48,6 +54,15 @@ foreach ([
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP NULL",
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS is_online TINYINT(1) NOT NULL DEFAULT 0",
 ] as $sql) { try { $conn->exec($sql); } catch(Exception $e) {} }
+
+// Add employment_type safely via information_schema (works on all MySQL versions)
+try {
+    $chkEt = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staffs' AND COLUMN_NAME = 'employment_type'");
+    if ((int)$chkEt->fetchColumn() === 0) {
+        $conn->exec("ALTER TABLE staffs ADD COLUMN employment_type ENUM('Full-time','Part-time') NOT NULL DEFAULT 'Full-time'");
+    }
+} catch(Exception $e) {}
 
 // Fallback: add is_online via information_schema check (for MySQL versions
 // that don't support IF NOT EXISTS on ALTER TABLE)
@@ -95,13 +110,76 @@ if ($action === 'staff_login') {
         exit;
     }
 
+    // Block login if outside shift hours
+if (!empty($staff['shift_start']) && !empty($staff['shift_end'])) {
+    $now        = new DateTime('now');
+    $shiftStart = new DateTime(date('Y-m-d') . ' ' . $staff['shift_start']);
+    $shiftEnd   = new DateTime(date('Y-m-d') . ' ' . $staff['shift_end']);
+
+    // Overnight shift: end time is earlier than start (e.g. 11:20 PM – 1:30 AM)
+    if ($shiftEnd <= $shiftStart) {
+        // Check two windows:
+        // Window A: from shiftStart yesterday → shiftEnd today (covers staff logging in after midnight)
+        $shiftStartYesterday = clone $shiftStart;
+        $shiftStartYesterday->modify('-1 day');
+        $inWindowA = ($now >= $shiftStartYesterday && $now < $shiftEnd);
+
+        // Window B: from shiftStart today → shiftEnd tomorrow (covers staff logging in before midnight)
+        $shiftEndTomorrow = clone $shiftEnd;
+        $shiftEndTomorrow->modify('+1 day');
+        $inWindowB = ($now >= $shiftStart && $now < $shiftEndTomorrow);
+
+        $blocked = !($inWindowA || $inWindowB);
+    } else {
+        $blocked = !($now >= $shiftStart && $now < $shiftEnd);
+    }
+
+    if ($blocked) {
+        $startLabel = date('g:i A', strtotime($staff['shift_start']));
+        $endLabel   = date('g:i A', strtotime($staff['shift_end']));
+        echo json_encode([
+            'success' => false,
+            'message' => "Your shift is from {$startLabel} to {$endLabel}. You cannot login outside your shift hours."
+        ]);
+        exit;
+    }
+}
+
+    // Calculate late minutes
+    $lateMinutes = 0;
+    if (!empty($staff['shift_start'])) {
+        $now        = new DateTime('now');
+        $nowMins    = (int)$now->format('H') * 60 + (int)$now->format('i');
+        $startParts = explode(':', $staff['shift_start']);
+        $startMins  = (int)$startParts[0] * 60 + (int)$startParts[1];
+        if ($nowMins > $startMins) {
+            $lateMinutes = $nowMins - $startMins;
+        }
+    }
+
     // Success — set session, reset fail count, mark online
     $conn->prepare("UPDATE staffs SET login_fail_count=0, last_fail_at=NULL, last_login_at=NOW(), is_online=1 WHERE staff_id=:id")->execute([':id'=>$staff['staff_id']]);
 
-    // Log the session
+    // Ensure late_minutes column exists (works on older MySQL that lacks IF NOT EXISTS)
+try {
+    $chkLate = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'staff_sessions' 
+        AND COLUMN_NAME = 'late_minutes'");
+    if ((int)$chkLate->fetchColumn() === 0) {
+        $conn->exec("ALTER TABLE staff_sessions ADD COLUMN late_minutes INT NOT NULL DEFAULT 0");
+    }
+} catch(Exception $e) {}
+
+// Log the session — fallback if late_minutes column still somehow missing
+try {
+    $conn->prepare("INSERT INTO staff_sessions (staff_id, admin_id, login_at, late_minutes) VALUES (:sid, :aid, NOW(), :late)")
+         ->execute([':sid'=>$staff['staff_id'], ':aid'=>$staff['admin_id'], ':late'=>$lateMinutes]);
+} catch(Exception $e) {
     $conn->prepare("INSERT INTO staff_sessions (staff_id, admin_id, login_at) VALUES (:sid, :aid, NOW())")
          ->execute([':sid'=>$staff['staff_id'], ':aid'=>$staff['admin_id']]);
-    $sessionLogId = $conn->lastInsertId();
+}
+$sessionLogId = $conn->lastInsertId();
 
     $_SESSION['staff_id']       = $staff['staff_id'];
     $_SESSION['staff_name']     = $staff['fullname'];
@@ -131,11 +209,18 @@ if ($action === 'verify_own_pin') {
         $conn->prepare("UPDATE staffs SET is_online=0 WHERE staff_id=:id")->execute([':id'=>(int)$_SESSION['staff_id']]);
         // Close session log with logout time and duration
         if (!empty($_SESSION['staff_session_log_id'])) {
-            $conn->prepare("UPDATE staff_sessions SET logout_at=NOW(),
-                            duration_minutes=TIMESTAMPDIFF(MINUTE, login_at, NOW())
+            $conn->prepare("UPDATE staff_sessions 
+                            SET logout_at=NOW(),
+                                duration_minutes=TIMESTAMPDIFF(MINUTE, login_at, NOW())
                             WHERE session_id=:sid")
                  ->execute([':sid'=>(int)$_SESSION['staff_session_log_id']]);
         }
+        // Also close any other open sessions for this staff (safety net)
+        $conn->prepare("UPDATE staff_sessions 
+                        SET logout_at=NOW(),
+                            duration_minutes=TIMESTAMPDIFF(MINUTE, login_at, NOW())
+                        WHERE staff_id=:sid AND logout_at IS NULL")
+             ->execute([':sid'=>(int)$_SESSION['staff_id']]);
         // Clear staff session, keep admin session intact
         unset($_SESSION['staff_id'], $_SESSION['staff_name'], $_SESSION['staff_role'],
               $_SESSION['staff_admin'], $_SESSION['staff_login_at'], $_SESSION['staff_session_log_id']);
@@ -162,7 +247,7 @@ switch ($action) {
         $search = trim($_GET['search'] ?? '');
         $role   = $_GET['role'] ?? '';
         $status = $_GET['status'] ?? '';
-        $sql    = "SELECT staff_id, fullname, role, status, shift_start, shift_end, login_fail_count, last_fail_at, last_login_at, is_online, created_at FROM staffs WHERE admin_id=:aid";
+        $sql    = "SELECT staff_id, fullname, role, status, shift_start, shift_end, login_fail_count, last_fail_at, last_login_at, is_online, employment_type, created_at FROM staffs WHERE admin_id=:aid";
         $params = [':aid'=>$admin_id];
         if ($search !== '') { $sql .= " AND fullname LIKE :s"; $params[':s']='%'.$search.'%'; }
         if ($role   !== '') { $sql .= " AND role=:role"; $params[':role']=$role; }
@@ -172,11 +257,15 @@ switch ($action) {
             $stmt = $conn->prepare($sql); $stmt->execute($params);
             echo json_encode(['success'=>true,'staffs'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
         } catch (Exception $e) {
-            // is_online column may not exist yet — retry without it
+            // Retry without columns that may not exist yet
             $sql2 = str_replace(', is_online,', ',', $sql);
+            $sql2 = str_replace(', employment_type,', ',', $sql2);
             $stmt2 = $conn->prepare($sql2); $stmt2->execute($params);
             $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC);
-            foreach ($rows as &$r) $r['is_online'] = 0;
+            foreach ($rows as &$r) {
+                $r['is_online'] = 0;
+                $r['employment_type'] = 'Full-time';
+            }
             echo json_encode(['success'=>true,'staffs'=>$rows]);
         }
         break;
@@ -192,8 +281,9 @@ switch ($action) {
         if ($pin === '') { echo json_encode(['success'=>false,'message'=>'PIN is required for staff login.']); exit; }
         if (strlen($pin) !== 4 || !ctype_digit($pin)) { echo json_encode(['success'=>false,'message'=>'PIN must be exactly 4 digits.']); exit; }
         $hashed = password_hash($pin, PASSWORD_DEFAULT);
-        $stmt = $conn->prepare("INSERT INTO staffs (admin_id,fullname,role,pin,status,shift_start,shift_end) VALUES (:aid,:name,:role,:pin,:status,:ss,:se)");
-        $stmt->execute([':aid'=>$admin_id,':name'=>$fullname,':role'=>$role,':pin'=>$hashed,':status'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null]);
+        $employment_type = $_POST['employment_type'] ?? 'Full-time';
+        $stmt = $conn->prepare("INSERT INTO staffs (admin_id,fullname,role,pin,status,shift_start,shift_end,employment_type) VALUES (:aid,:name,:role,:pin,:status,:ss,:se,:et)");
+        $stmt->execute([':aid'=>$admin_id,':name'=>$fullname,':role'=>$role,':pin'=>$hashed,':status'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null,':et'=>$employment_type]);
         echo json_encode(['success'=>true,'message'=>'Staff added successfully.','staff_id'=>$conn->lastInsertId()]);
         break;
 
@@ -218,14 +308,15 @@ switch ($action) {
         $chk = $conn->prepare("SELECT staff_id FROM staffs WHERE staff_id=:id AND admin_id=:aid");
         $chk->execute([':id'=>$id,':aid'=>$admin_id]);
         if (!$chk->fetch()) { echo json_encode(['success'=>false,'message'=>'Not found.']); exit; }
+        $employment_type = $_POST['employment_type'] ?? 'Full-time';
         if ($pin !== '') {
             if (strlen($pin) !== 4 || !ctype_digit($pin)) { echo json_encode(['success'=>false,'message'=>'PIN must be 4 digits.']); exit; }
             $hashed = password_hash($pin, PASSWORD_DEFAULT);
-            $conn->prepare("UPDATE staffs SET fullname=:n,role=:r,pin=:p,status=:s,shift_start=:ss,shift_end=:se WHERE staff_id=:id AND admin_id=:aid")
-                 ->execute([':n'=>$fullname,':r'=>$role,':p'=>$hashed,':s'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null,':id'=>$id,':aid'=>$admin_id]);
+            $conn->prepare("UPDATE staffs SET fullname=:n,role=:r,pin=:p,status=:s,shift_start=:ss,shift_end=:se,employment_type=:et WHERE staff_id=:id AND admin_id=:aid")
+                 ->execute([':n'=>$fullname,':r'=>$role,':p'=>$hashed,':s'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null,':et'=>$employment_type,':id'=>$id,':aid'=>$admin_id]);
         } else {
-            $conn->prepare("UPDATE staffs SET fullname=:n,role=:r,status=:s,shift_start=:ss,shift_end=:se WHERE staff_id=:id AND admin_id=:aid")
-                 ->execute([':n'=>$fullname,':r'=>$role,':s'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null,':id'=>$id,':aid'=>$admin_id]);
+            $conn->prepare("UPDATE staffs SET fullname=:n,role=:r,status=:s,shift_start=:ss,shift_end=:se,employment_type=:et WHERE staff_id=:id AND admin_id=:aid")
+                 ->execute([':n'=>$fullname,':r'=>$role,':s'=>$status,':ss'=>$shift_start ?: null,':se'=>$shift_end ?: null,':et'=>$employment_type,':id'=>$id,':aid'=>$admin_id]);
         }
         echo json_encode(['success'=>true,'message'=>'Staff updated.']);
         break;
@@ -246,20 +337,43 @@ switch ($action) {
         break;
 
     case 'get_logs':
-        $staffId = (int)($_GET['staff_id'] ?? 0);
-        $date    = $_GET['date'] ?? '';
-        $sql     = "SELECT ss.session_id, ss.staff_id, ss.login_at, ss.logout_at, ss.duration_minutes,
+        try {
+            // Ensure late_minutes column exists
+try {
+    $chkLate2 = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE() 
+        AND TABLE_NAME = 'staff_sessions' 
+        AND COLUMN_NAME = 'late_minutes'");
+    if ((int)$chkLate2->fetchColumn() === 0) {
+        $conn->exec("ALTER TABLE staff_sessions ADD COLUMN late_minutes INT NOT NULL DEFAULT 0");
+    }
+} catch(Exception $ex) {}
+            $staffId = (int)($_GET['staff_id'] ?? 0);
+            $date    = $_GET['date'] ?? '';
+
+            // Check if late_minutes column actually exists now
+            $colCheck = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staff_sessions' AND COLUMN_NAME = 'late_minutes'");
+            $hasLateCol = (int)$colCheck->fetchColumn() > 0;
+
+            $lateCol = $hasLateCol ? 'ss.late_minutes,' : '0 as late_minutes,';
+
+            $sql = "SELECT ss.session_id, ss.staff_id, ss.login_at, ss.logout_at, 
+                           ss.duration_minutes, {$lateCol}
                            s.fullname, s.role, s.shift_start, s.shift_end
                     FROM staff_sessions ss
                     JOIN staffs s ON ss.staff_id = s.staff_id
                     WHERE ss.admin_id = :aid";
-        $params  = [':aid' => $admin_id];
-        if ($staffId) { $sql .= " AND ss.staff_id = :sid"; $params[':sid'] = $staffId; }
-        if ($date)    { $sql .= " AND DATE(ss.login_at) = :date"; $params[':date'] = $date; }
-        $sql .= " ORDER BY ss.login_at DESC LIMIT 200";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute($params);
-        echo json_encode(['success'=>true,'logs'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+            $params = [':aid' => $admin_id];
+            if ($staffId) { $sql .= " AND ss.staff_id = :sid"; $params[':sid'] = $staffId; }
+            if ($date)    { $sql .= " AND DATE(ss.login_at) = :date"; $params[':date'] = $date; }
+            $sql .= " ORDER BY ss.login_at DESC LIMIT 200";
+            $stmt = $conn->prepare($sql);
+            $stmt->execute($params);
+            echo json_encode(['success'=>true,'logs'=>$stmt->fetchAll(PDO::FETCH_ASSOC)]);
+        } catch(Exception $e) {
+            echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
+        }
         break;
         $id = (int)($_POST['staff_id'] ?? 0);
         $conn->prepare("UPDATE staffs SET login_fail_count=0,last_fail_at=NULL WHERE staff_id=:id AND admin_id=:aid")->execute([':id'=>$id,':aid'=>$admin_id]);
