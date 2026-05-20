@@ -9,6 +9,26 @@ require_once __DIR__ . "/config/audit_helper.php";
 $val = new Validation();
 $message = "";
 
+/* ── Maintenance mode: block non-superadmin access ── */
+try {
+    $db_maint   = new Database();
+    $conn_maint = $db_maint->connect();
+    $m_stmt = $conn_maint->query("SELECT setting_value FROM system_settings WHERE setting_key = 'maintenance_enabled'");
+    $m_row  = $m_stmt->fetch(PDO::FETCH_ASSOC);
+    $maintenance_on = ($m_row && $m_row['setting_value'] === '1');
+} catch (Exception $e) { $maintenance_on = false; }
+
+// ?superadmin=1 allows the login form to be shown during maintenance (for superadmin access)
+$superadmin_bypass = isset($_GET['superadmin']) && $_GET['superadmin'] === '1';
+
+// If maintenance is on, not bypassed, and not already logged in as superadmin → redirect
+if ($maintenance_on && !$superadmin_bypass && !(isset($_SESSION['role']) && $_SESSION['role'] === 'superadmin')) {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        header('Location: maintenance.php');
+        exit;
+    }
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $username = trim($_POST['username']);

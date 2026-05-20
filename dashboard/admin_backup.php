@@ -81,23 +81,45 @@ $latestDate   = $totalBackups ? date('M d, Y', strtotime($backupList[0]['created
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <style>
         /* ── Page layout ── */
-        .br-page { padding: 28px 32px; max-width: 1100px; }
+        .br-page { width: 100%; box-sizing: border-box; }
         .br-hero  { margin-bottom: 28px; }
         .br-hero h1 { font-size: 1.55rem; font-weight: 700; color: var(--text-primary); margin: 0 0 4px; }
         .br-hero p  { font-size: .875rem; color: var(--text-secondary); margin: 0; }
 
         /* ── Summary cards ── */
-        .br-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .br-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        @media (max-width: 900px) { .br-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 500px) { .br-grid { grid-template-columns: 1fr; } }
+
         .br-stat-card {
             background: var(--card-bg);
             border-radius: 12px;
-            padding: 20px 22px;
+            padding: 20px 22px 18px;
             border: 1px solid var(--border-color);
             box-shadow: var(--shadow-sm);
+            border-top: 5px solid var(--card-accent, var(--accent));
+            overflow: hidden;
+            position: relative;
+            transition: transform .2s ease, box-shadow .2s ease;
+            cursor: default;
         }
-        .br-stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-secondary); font-weight: 600; margin-bottom: 6px; }
+        .br-stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        .br-stat-card:nth-child(1) { --card-accent: #be185d; }
+        .br-stat-card:nth-child(2) { --card-accent: #7c3aed; }
+        .br-stat-card:nth-child(3) { --card-accent: #0369a1; }
+        .br-stat-card:nth-child(4) { --card-accent: #047857; }
+
+        .br-stat-label { font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-secondary); font-weight: 600; margin-bottom: 8px; }
         .br-stat-val   { font-size: 2rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
-        .br-stat-sub   { font-size: .78rem; color: var(--text-secondary); margin-top: 4px; }
+        .br-stat-sub   { font-size: .78rem; color: var(--text-secondary); margin-top: 6px; }
 
         /* ── Section card ── */
         .br-card {
@@ -191,7 +213,7 @@ $latestDate   = $totalBackups ? date('M d, Y', strtotime($backupList[0]['created
             color: var(--accent-dark);
         }
 
-        .br-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .br-actions { display: flex; gap: 6px; flex-wrap: nowrap; }
 
         /* ── Upload restore area ── */
         .br-dropzone {
@@ -291,7 +313,6 @@ $latestDate   = $totalBackups ? date('M d, Y', strtotime($backupList[0]['created
 
 <?php echo $sidebar->render('backup'); ?>
 
-<div class="main">
     <div class="br-page">
 
         <!-- Hero -->
@@ -411,7 +432,7 @@ $latestDate   = $totalBackups ? date('M d, Y', strtotime($backupList[0]['created
         </div>
 
     </div><!-- .br-page -->
-</div><!-- .main -->
+<?php echo $sidebar->renderClose(); ?>
 
 <!-- Restore success banner -->
 <div id="restore-success-banner" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0;
@@ -548,8 +569,8 @@ async function loadBackupList() {
             <div class="br-tbl-wrap">
                 <table class="br-tbl">
                     <thead><tr>
-                        <th>Filename</th><th>Label</th><th>Size</th>
-                        <th>Created</th><th>Created By</th><th>Actions</th>
+                        <th>Filename</th><th>Label</th><th style="white-space:nowrap">Size</th>
+                        <th style="white-space:nowrap">Created</th><th style="white-space:nowrap">Created By</th><th style="min-width:130px;white-space:nowrap">Actions</th>
                     </tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
