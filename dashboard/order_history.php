@@ -207,7 +207,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card income" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Total Income</h3>
-                    <div class="card-icon" style="background:#dcfce7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-peso-sign" style="color:#16a34a;font-size:20px;"></i></div>
+<div class="card-icon" style="background:rgba(255,255,255,0.15);border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-peso-sign" style="color:#fff;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;">₱<?= number_format($summary['total_income'], 2) ?></p>
@@ -216,7 +216,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Completed Orders</h3>
-                    <div class="card-icon" style="background:#ede9fe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-circle-check" style="color:#7c3aed;font-size:20px;"></i></div>
+<div class="card-icon" style="background:rgba(255,255,255,0.15);border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-circle-check" style="color:#fff;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;"><?= $summary['total_orders'] ?></p>
@@ -225,7 +225,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Orders Shown</h3>
-                    <div class="card-icon" style="background:#dbeafe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-clipboard-list" style="color:#2563eb;font-size:20px;"></i></div>
+                   <div class="card-icon" style="background:rgba(255,255,255,0.15);border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-clipboard-list" style="color:#fff;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;"><?= count($orders) ?></p>

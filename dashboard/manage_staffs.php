@@ -78,18 +78,23 @@ $sidebar = new SidebarRenderer(
         }
         .btn-add-staff:hover { opacity: 0.9; transform: translateY(-1px); }
 
-        /* Stats */
+/* Stats */
         .staff-stats {
             display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 20px;
         }
         .staff-stat {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, var(--accent-dark), var(--accent));
+            border: none;
             border-radius: var(--radius-md);
             padding: 16px 20px;
             display: flex; align-items: center; gap: 14px;
             min-width: 140px; flex: 1;
             box-shadow: var(--shadow-sm);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .staff-stat:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
         }
         .staff-stat-icon {
             width: 44px; height: 44px;
@@ -97,13 +102,12 @@ $sidebar = new SidebarRenderer(
             display: flex; align-items: center; justify-content: center;
             font-size: 20px;
         }
-        .staff-stat-icon.total    { background: #ede9fe; color: #7c3aed; }
-        .staff-stat-icon.active   { background: #dcfce7; color: #16a34a; }
-        .staff-stat-icon.cashier  { background: #dbeafe; color: #2563eb; }
-        .staff-stat-icon.kitchen  { background: #fef3c7; color: #d97706; }
-        .staff-stat-val   { font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1; }
-        .staff-stat-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
-
+        .staff-stat-icon.total    { background: rgba(255,255,255,0.15); color: #fff; }
+        .staff-stat-icon.active   { background: rgba(255,255,255,0.15); color: #fff; }
+        .staff-stat-icon.cashier  { background: rgba(255,255,255,0.15); color: #fff; }
+        .staff-stat-icon.kitchen  { background: rgba(255,255,255,0.15); color: #fff; }
+        .staff-stat-val   { font-size: 26px; font-weight: 800; color: #fff; line-height: 1; }
+        .staff-stat-label { font-size: 11px; color: rgba(255,255,255,0.75); font-weight: 600; text-transform: uppercase; }
         /* Table */
         .staff-table-wrap {
             background: var(--card-bg);
@@ -345,11 +349,9 @@ $sidebar = new SidebarRenderer(
         <!-- Filter Tabs -->
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:10px;">
             <div class="staff-filter-tabs" id="staffFilterTabs">
-                <div class="filter-tab active" data-filter="All"      onclick="setFilter('All', this)">All</div>
-                <div class="filter-tab"        data-filter="Active"   onclick="setFilter('Active', this)">Active</div>
-                <div class="filter-tab"        data-filter="Inactive" onclick="setFilter('Inactive', this)">Inactive</div>
-                <div class="filter-tab"        data-filter="Cashier"  onclick="setFilter('Cashier', this)">Cashier</div>
-                <div class="filter-tab"        data-filter="Kitchen"  onclick="setFilter('Kitchen', this)">Kitchen</div>
+                <div class="filter-tab active" data-filter="All"     onclick="setFilter('All', this)">All</div>
+                <div class="filter-tab"        data-filter="Cashier" onclick="setFilter('Cashier', this)">Cashier</div>
+                <div class="filter-tab"        data-filter="Kitchen" onclick="setFilter('Kitchen', this)">Kitchen</div>
             </div>
             <button onclick="toggleLogPanel()" id="logToggleBtn"
                     style="display:inline-flex; align-items:center; gap:7px; padding:8px 16px;
@@ -667,10 +669,16 @@ function openEditModal(staffId) {
     document.getElementById('mStatus').value = s.status;
     document.getElementById('mShiftStart').value = s.shift_start || '';
     document.getElementById('mShiftEnd').value = s.shift_end || '';
-    document.getElementById('mEmploymentType').value = s.employment_type || 'Full-time';
     document.getElementById('mPin').value = '';
     document.getElementById('pinLabel').textContent = '(leave blank to keep current PIN)';
     document.getElementById('pinHint').textContent = 'Only fill if you want to change the PIN.';
+
+    const etSelect = document.getElementById('mEmploymentType');
+    const etValue = (s.employment_type || 'Full-time').trim();
+    for (let opt of etSelect.options) {
+        opt.selected = opt.value === etValue;
+    }
+
     document.getElementById('staffModal').classList.add('show');
 }
 
@@ -711,7 +719,6 @@ async function saveStaff() {
    const employmentType = document.getElementById('mEmploymentType').value;
     const action = isEdit ? 'edit' : 'add';
     const params = new URLSearchParams({ action, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
-    console.log('Saving staff with employment_type:', employmentType); // debug
     if (pin) params.append('pin', pin);
     if (isEdit) params.append('staff_id', staffId);
 

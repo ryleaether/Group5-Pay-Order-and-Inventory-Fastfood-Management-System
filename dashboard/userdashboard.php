@@ -79,6 +79,8 @@ function hexToRgba($hex, $alpha) {
     .pos-admin-modal p  { color: <?= htmlspecialchars(hexToRgba($txt, 0.6)) ?>; }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -614,11 +616,23 @@ function cancelCurrentOrder() {
 
 /* ================================================================
    ADMIN TOGGLE
-================================================================ */function showAdminOverlay() {
-    adminPinValue = '';
-    updateAdminPinDots(0);
-    document.getElementById('adminPinError').style.display = 'none';
-    document.getElementById('adminOverlay').classList.add('show');
+================================================================ */
+function showAdminOverlay() {
+    Swal.fire({
+        title: 'Log Out?',
+        text: 'Are you sure you want to log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, log out',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            window.location.replace('helpers/staff_helpers.php?action=staff_logout');
+        }
+    });
 }
 
 function hideAdminOverlay() {
@@ -710,7 +724,6 @@ window.addEventListener('popstate', function() {
     for (let i = 0; i < 50; i++) {
         history.pushState({ page: 'cashier', i: i }, '', window.location.href);
     }
-    showAdminOverlay();
 });
 </script>
 

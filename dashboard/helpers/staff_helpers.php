@@ -76,6 +76,35 @@ try {
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 
+// ── Staff logout (no admin session needed) ─────────────────────────────────
+if ($action === 'staff_logout') {
+    // Mark staff offline and close session log
+    if (!empty($_SESSION['staff_id'])) {
+        $conn->prepare("UPDATE staffs SET is_online=0 WHERE staff_id=:id")
+             ->execute([':id' => (int)$_SESSION['staff_id']]);
+        if (!empty($_SESSION['staff_session_log_id'])) {
+            $conn->prepare("UPDATE staff_sessions SET logout_at=NOW(), duration_minutes=TIMESTAMPDIFF(MINUTE,login_at,NOW()) WHERE session_id=:sid")
+                 ->execute([':sid' => (int)$_SESSION['staff_session_log_id']]);
+        }
+    }
+    // Clear only staff session vars, keep admin session intact
+    unset(
+        $_SESSION['staff_id'],
+        $_SESSION['staff_name'],
+        $_SESSION['staff_role'],
+        $_SESSION['staff_admin'],
+        $_SESSION['staff_login_at'],
+        $_SESSION['staff_session_log_id'],
+        $_SESSION['staff_gate_unlocked'],
+        $_SESSION['staff_login_active']
+    );
+    // Set reentry token so staff_login.php allows access without going through staff_gate again
+    $_SESSION['staff_reentry'] = time();
+    header('Content-Type: text/html');
+    header('Location: ../staff_login.php');
+    exit;
+}
+
 // ── Staff login (no admin session needed) ──────────────────────────────────
 if ($action === 'staff_login') {
     $admin_id = (int)($_POST['admin_id'] ?? 0);

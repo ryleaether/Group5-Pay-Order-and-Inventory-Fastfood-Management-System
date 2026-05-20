@@ -55,6 +55,9 @@ $_SESSION['username']      = $result['username'];
 $_SESSION['role']          = $result['role'];
 $_SESSION['fastfood_name'] = $result['fastfood_name'];
 $_SESSION['fullname']      = $result['fullname'] ?? $result['username'];
+$_SESSION['logo_url']      = $result['logo_url'] ?? null;
+$_SESSION['logo_shape']    = $result['logo_shape'] ?? 'circle';
+$_SESSION['business_type'] = $result['business_type'] ?? null;
 
 unset($_SESSION['ipos_theme_' . $result['admin_id']]);
 

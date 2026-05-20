@@ -220,10 +220,22 @@ include __DIR__ . '/helpers/theme_loader.php';
 <div class="login-wrap">
 
     <div class="brand">
+    <?php if (!empty($_SESSION['logo_url'])): ?>
+        <?php
+        $logo_src    = '../' . ltrim($_SESSION['logo_url'], '/');
+        $logo_radius = ($_SESSION['logo_shape'] ?? 'circle') === 'circle' ? '50%'
+                     : (($_SESSION['logo_shape'] ?? '') === 'rounded' ? '14px' : '4px');
+        ?>
+        <img src="<?= htmlspecialchars($logo_src) ?>"
+             alt="<?= htmlspecialchars($fastfood) ?>"
+             style="width:64px;height:64px;object-fit:cover;border-radius:<?= $logo_radius ?>;
+                    margin-bottom:14px;box-shadow:0 8px 24px rgba(0,0,0,0.15);display:block;margin-left:auto;margin-right:auto;">
+    <?php else: ?>
         <div class="brand-icon">iP</div>
-        <h1><?= htmlspecialchars($fastfood) ?></h1>
-        <p>Staff Login</p>
-    </div>
+    <?php endif; ?>
+    <h1><?= htmlspecialchars($fastfood) ?></h1>
+    <p>Staff Login</p>
+</div>
 
     <div class="card">
 
