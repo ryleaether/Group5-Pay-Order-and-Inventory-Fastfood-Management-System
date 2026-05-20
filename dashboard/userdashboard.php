@@ -97,12 +97,12 @@ function hexToRgba($hex, $alpha) {
         <div class="pos-clock" id="posClock">--:--:--</div>
 
         <button onclick="showAdminOverlay()"
-                style="margin-left:8px; padding:6px 14px; background:rgba(255,255,255,0.15);
-                       border:1px solid rgba(255,255,255,0.3); border-radius:8px; color:white;
+                style="margin-left:12px; padding:7px 16px; background:#ef4444;
+                       border:none; border-radius:8px; color:white;
                        font-size:12px; font-weight:700; cursor:pointer; display:flex;
-                       align-items:center; gap:6px; transition:background 0.2s;"
-                onmouseover="this.style.background='rgba(255,255,255,0.28)'"
-                onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                       align-items:center; gap:6px; transition:background 0.2s; flex-shrink:0;"
+                onmouseover="this.style.background='#dc2626'"
+                onmouseout="this.style.background='#ef4444'">
             <i class="fa-solid fa-right-from-bracket"></i> Logout
         </button>
     </header>
@@ -673,6 +673,20 @@ function showToast(message, type = 'info') {
 
 /* Init display */
 document.getElementById('orderNumDisplay').textContent = '#' + orderCounter;
+
+/* ================================================================
+   BACK-BUTTON PREVENTION
+   Push a dummy state so the browser back button triggers popstate
+   instead of actually navigating away. When triggered, show the
+   logout/PIN overlay so the user must log out first.
+================================================================ */
+history.pushState({ page: 'cashier' }, '', window.location.href);
+window.addEventListener('popstate', function(e) {
+    // Re-push so back keeps being intercepted
+    history.pushState({ page: 'cashier' }, '', window.location.href);
+    // Show the logout overlay — user must PIN out before leaving
+    showAdminOverlay();
+});
 </script>
 
 </body>
