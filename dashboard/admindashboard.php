@@ -47,6 +47,30 @@ if (!$val->adminExists($_SESSION['admin_id'])) {
 $db   = new Database();
 $conn = $db->connect();
 
+/* ── Maintenance mode check ── */
+try {
+    $maint_stmt = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('maintenance_enabled','maintenance_end_time','maintenance_message')");
+    $maint_rows = $maint_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $maint_map  = array_column($maint_rows, 'setting_value', 'setting_key');
+} catch (Exception $e) { $maint_map = []; }
+
+if (($maint_map['maintenance_enabled'] ?? '0') === '1') {
+    session_write_close();
+    header('Location: ../maintenance.php');
+    exit;
+}
+
+/* ── Global announcement ── */
+$ann_enabled = '0'; $ann_message = ''; $ann_type = 'info';
+try {
+    $ann_stmt = $conn->query("SELECT setting_key, setting_value FROM system_settings WHERE setting_key IN ('announcement_enabled','announcement_message','announcement_type')");
+    $ann_rows  = $ann_stmt->fetchAll(PDO::FETCH_ASSOC);
+    $ann_map   = array_column($ann_rows, 'setting_value', 'setting_key');
+    $ann_enabled = $ann_map['announcement_enabled'] ?? '0';
+    $ann_message = $ann_map['announcement_message'] ?? '';
+    $ann_type    = $ann_map['announcement_type']    ?? 'info';
+} catch (Exception $e) {}
+
 $admin_id = $_SESSION['admin_id'];
 
 $adminProfile = [];
@@ -185,6 +209,95 @@ try {
 
 <body>
 
+<?php
+// Show announcement modal once per login — track with PHP session key tied to message content
+$ann_session_key = 'ann_seen_' . md5($ann_message);
+$show_ann_modal  = ($ann_enabled === '1' && !empty($ann_message) && empty($_SESSION[$ann_session_key]));
+if ($show_ann_modal) {
+    $_SESSION[$ann_session_key] = true; // mark as seen for this login session
+}
+?>
+<?php if ($show_ann_modal): ?>
+<?php
+$ann_colors = [
+    'info'    => ['accent'=>'#3b82f6','icon'=>'ℹ️','label'=>'Information'],
+    'warning' => ['accent'=>'#f59e0b','icon'=>'⚠️','label'=>'Important Notice'],
+    'success' => ['accent'=>'#22c55e','icon'=>'✅','label'=>'Good News'],
+    'danger'  => ['accent'=>'#ef4444','icon'=>'🚨','label'=>'Urgent Notice'],
+];
+$ac = $ann_colors[$ann_type] ?? $ann_colors['info'];
+?>
+<!-- ── Global Announcement Modal ── -->
+<div id="ann-modal-overlay" style="
+    position:fixed;inset:0;z-index:99999;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(6px);
+    -webkit-backdrop-filter:blur(6px);
+    display:flex;align-items:center;justify-content:center;
+    padding:20px;
+    animation:annFadeIn 0.25s ease;">
+
+    <div id="ann-modal-box" style="
+        background:#fff;
+        border-radius:22px;
+        max-width:480px;width:100%;
+        box-shadow:0 32px 80px rgba(0,0,0,0.35);
+        overflow:hidden;
+        animation:annSlideUp 0.35s cubic-bezier(0.34,1.56,0.64,1);">
+
+        <!-- Colored header -->
+        <div style="background:<?= $ac['accent'] ?>;padding:28px 24px 22px;text-align:center;position:relative;">
+            <div style="font-size:44px;margin-bottom:8px;filter:drop-shadow(0 2px 4px rgba(0,0,0,0.15));"><?= $ac['icon'] ?></div>
+            <div style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.9);"><?= $ac['label'] ?></div>
+            <div style="font-size:18px;font-weight:700;color:#fff;margin-top:4px;">System Announcement</div>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:28px 30px 30px;text-align:center;">
+            <p style="font-size:15px;font-weight:500;color:#1a1a2e;line-height:1.75;margin:0 0 26px;">
+                <?= htmlspecialchars($ann_message) ?>
+            </p>
+
+            <!-- Dismiss button -->
+            <button onclick="dismissAnnModal()" style="
+                background:<?= $ac['accent'] ?>;
+                color:#fff;border:none;border-radius:12px;
+                padding:13px 0;font-size:14px;font-weight:600;
+                cursor:pointer;font-family:'Poppins',sans-serif;
+                width:100%;letter-spacing:0.3px;
+                transition:transform 0.15s,opacity 0.15s;"
+                onmouseover="this.style.opacity='0.88';this.style.transform='scale(1.01)'"
+                onmouseout="this.style.opacity='1';this.style.transform='scale(1)'">
+                Got it, thanks!
+            </button>
+
+            <p style="font-size:11.5px;color:#aaa;margin-top:12px;margin-bottom:0;">
+                This message is from your system administrator.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes annFadeIn  { from{opacity:0} to{opacity:1} }
+@keyframes annSlideUp { from{transform:translateY(40px) scale(0.96);opacity:0} to{transform:translateY(0) scale(1);opacity:1} }
+</style>
+
+<script>
+function dismissAnnModal() {
+    const overlay = document.getElementById('ann-modal-overlay');
+    if (!overlay) return;
+    overlay.style.transition = 'opacity 0.2s';
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 220);
+}
+// Allow clicking the dark backdrop to dismiss too
+document.getElementById('ann-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) dismissAnnModal();
+});
+</script>
+<?php endif; ?>
+
 <div class="dashboard" id="dashboardRoot">
 
     <!-- ═══════════════════════════════
@@ -222,7 +335,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Total Orders</h3>
-                        <div class="card-icon" style="background:#ede9fe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-box-open" style="color:#7c3aed;font-size:20px;"></i></div>
+                        <div class="card-icon"><i class="fa-solid fa-box-open"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $total_orders ?></p>
@@ -230,10 +343,10 @@ try {
                 </div>
 
                 <div class="card">
-                   <div class="card-header">
+                    <div class="card-header">
                         <h3>Total Income</h3>
-                    <div class="card-icon" style="background:#dcfce7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-money-bill-wave" style="color:#16a34a;font-size:20px;"></i></div>
-                </div>
+                    <div class="card-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
+                    </div>
                     <div class="card-value">
                         <p>₱<?= number_format($total_income, 0) ?></p>
                     </div>
@@ -242,7 +355,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Menu Items</h3>
-                        <div class="card-icon" style="background:#dbeafe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-utensils" style="color:#2563eb;font-size:20px;"></i></div>
+                        <div class="card-icon"><i class="fa-solid fa-utensils"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $total_menu ?></p>
@@ -252,7 +365,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Pending Orders</h3>
-                        <div class="card-icon" style="background:#fef3c7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-clock" style="color:#d97706;font-size:20px;"></i></div>
+                        <div class="card-icon"><i class="fa-solid fa-clock"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $pending_orders ?></p>
@@ -270,27 +383,27 @@ try {
                         <table class="dash-table">
                             <thead>
                                 <tr>
-                                    <th style="text-align:center;">Queue #</th>
-                                    <th style="text-align:center;">Customer</th>
-                                    <th style="text-align:center;">Table</th>
-                                    <th style="text-align:center;">Amount</th>
-                                    <th style="text-align:center;">Status</th>
-                                    <th style="text-align:center;">Time</th>
+                                    <th>Queue #</th>
+                                    <th>Customer</th>
+                                    <th>Table</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Time</th>
                                 </tr>
                             </thead>
                             <tbody>
                             <?php foreach ($recent_orders as $order): ?>
                                 <tr>
-                                    <td style="text-align:center;"><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
-                                    <td style="text-align:center;"><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
-                                    <td style="text-align:center;"><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
-                                    <td style="text-align:center;"><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
-                                    <td style="text-align:center;">
+                                    <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
+                                    <td><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
+                                    <td><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
+                                    <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
+                                    <td>
                                         <span class="badge badge-<?= strtolower(htmlspecialchars($order['order_status'])) ?>">
                                             <?= htmlspecialchars($order['order_status']) ?>
                                         </span>
                                     </td>
-                                    <td style="text-align:center;"><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
+                                    <td><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php for ($i = count($recent_orders); $i < 5; $i++): ?>
@@ -310,14 +423,14 @@ try {
                         <?php if (!empty($top_items)): ?>
                             <table class="dash-table">
                                 <thead>
-                                    <tr><th style="text-align:center;">#</th><th style="text-align:center;">Item</th><th style="text-align:center;">Sold</th></tr>
+                                    <tr><th>#</th><th>Item</th><th>Sold</th></tr>
                                 </thead>
                                 <tbody>
                                 <?php foreach ($top_items as $i => $item): ?>
                                     <tr>
-                                        <td style="text-align:center;"><span class="rank-num"><?= $i + 1 ?></span></td>
-                                        <td style="text-align:center;"><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
-                                        <td style="text-align:center;"><strong><?= $item['total_sold'] ?></strong></td>
+                                        <td><span class="rank-num"><?= $i + 1 ?></span></td>
+                                        <td><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
+                                        <td><strong><?= $item['total_sold'] ?></strong></td>
                                     </tr>
                                 <?php endforeach; ?>
                                 </tbody>
@@ -332,13 +445,13 @@ try {
                         <?php if (!empty($low_stock)): ?>
                             <table class="dash-table">
                                 <thead>
-                                    <tr><th style="text-align:center;">Item</th><th style="text-align:center;">Qty</th></tr>
+                                    <tr><th>Item</th><th>Qty</th></tr>
                                 </thead>
                                 <tbody>
                                 <?php foreach ($low_stock as $item): ?>
                                     <tr>
-                                        <td style="text-align:center;"><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
-                                        <td style="text-align:center;" class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
+                                        <td><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
+                                        <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
                                             <?= $item['stock_quantity'] == 0 ? '0' : $item['stock_quantity'] ?>
                                         </td>
                                     </tr>
