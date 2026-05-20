@@ -170,20 +170,40 @@ class Database {
         )");
 
         $this->conn->exec("CREATE TABLE IF NOT EXISTS audit_log (
-            log_id       INT AUTO_INCREMENT PRIMARY KEY,
-            admin_id     INT DEFAULT NULL,
-            actor_name   VARCHAR(100) NOT NULL DEFAULT '',
-            action       VARCHAR(80) NOT NULL,
-            target_type  VARCHAR(50) DEFAULT NULL,
-            target_id    INT DEFAULT NULL,
-            target_label VARCHAR(200) DEFAULT NULL,
-            detail       TEXT,
-            ip_address   VARCHAR(45) DEFAULT NULL,
-            created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE SET NULL
-        )");
+                    log_id       INT AUTO_INCREMENT PRIMARY KEY,
+                    admin_id     INT DEFAULT NULL,
+                    actor_name   VARCHAR(100) NOT NULL DEFAULT '',
+                    action       VARCHAR(80) NOT NULL,
+                    target_type  VARCHAR(50) DEFAULT NULL,
+                    target_id    INT DEFAULT NULL,
+                    target_label VARCHAR(200) DEFAULT NULL,
+                    detail       TEXT,
+                    ip_address   VARCHAR(45) DEFAULT NULL,
+                    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE SET NULL
+                )");
 
-        $this->conn->exec("SET FOREIGN_KEY_CHECKS=1");
+                /* =========================
+                SYSTEM SETTINGS
+                ========================= */
+                $this->conn->exec("CREATE TABLE IF NOT EXISTS system_settings (
+                    setting_key   VARCHAR(100) PRIMARY KEY,
+                    setting_value TEXT NULL,
+                    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    updated_by    INT NULL,
+                    FOREIGN KEY (updated_by) REFERENCES admins(admin_id) ON DELETE SET NULL
+                )");
+
+                $this->conn->exec("INSERT IGNORE INTO system_settings (setting_key, setting_value) VALUES
+                    ('announcement_enabled', '0'),
+                    ('announcement_message', ''),
+                    ('announcement_type', 'info'),
+                    ('maintenance_enabled', '0'),
+                    ('maintenance_message', 'We are currently performing scheduled maintenance. We will be back shortly. Thank you for your patience.'),
+                    ('maintenance_end_time', NULL)
+                ");
+
+                $this->conn->exec("SET FOREIGN_KEY_CHECKS=1");
 
         // ── Seed superadmin ───────────────────────────────────────────────
         // Password: superadmin123 (bcrypt hashed)
