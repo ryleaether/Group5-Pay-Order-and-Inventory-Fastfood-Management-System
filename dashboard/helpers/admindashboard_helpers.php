@@ -311,17 +311,10 @@ class SidebarRenderer {
 
             <!-- Brand / Logo -->
             <div class="logo">
-                <?php if (!empty($this->logo_url)): ?>
-                    <div class="logo-icon-box" style="background:none;padding:0;overflow:hidden;border-radius:8px;flex-shrink:0;">
-                        <img src="<?= htmlspecialchars('../' . ltrim($this->logo_url, './')) ?>"
-                             alt="Logo" style="width:38px;height:38px;object-fit:cover;border-radius:8px;display:block;">
-                    </div>
-                <?php else: ?>
-    <?php include __DIR__ . '/../helpers/ipos_logo.php'; ?>
-<?php endif; ?>
+                <?php include __DIR__ . '/../helpers/ipos_logo.php'; ?>
 
                 <div class="logo-text">
-                    <h2><?= $name ?: 'iPOS' ?></h2>
+                    <h2>iPOS</h2>
                     <p>I Pay, I Order, I Serve</p>
                 </div>
             </div>
@@ -355,7 +348,7 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('dashboard') ?>">
                         <a href="admindashboard.php">
-                            <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span> Dashboard
+                            <span class="nav-icon" style="background:#ede9fe;"><i class="fa-solid fa-chart-line" style="color:#7c3aed;"></i></span> Dashboard
                         </a>
                     </li>
                 </ul>
@@ -364,17 +357,17 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('menu') ?>">
                         <a href="menu_list.php">
-                            <span class="nav-icon"><i class="fa-solid fa-utensils"></i></span> Manage Menu
+                            <span class="nav-icon" style="background:#fef3c7;"><i class="fa-solid fa-utensils" style="color:#d97706;"></i></span> Manage Menu
                         </a>
                     </li>
                     <li class="<?= $is('history') ?>">
                         <a href="order_history.php">
-                           <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span> Order History
+                           <span class="nav-icon" style="background:#dbeafe;"><i class="fa-solid fa-receipt" style="color:#2563eb;"></i></span> Order History
                         </a>
                     </li>
                     <li class="<?= $is('staffs') ?>">
                         <a href="manage_staffs.php">
-                           <span class="nav-icon"><i class="fa-solid fa-users"></i></span> Manage Staffs
+                           <span class="nav-icon" style="background:#dcfce7;"><i class="fa-solid fa-users" style="color:#16a34a;"></i></span> Manage Staffs
                         </a>
                     </li>
                 </ul>
@@ -383,13 +376,12 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('account') ?>">
                         <a href="account_pin_gate.php">
-                            <span class="nav-icon"><i class="fa-solid fa-circle-user"></i></span>
- Account
+                            <span class="nav-icon" style="background:#fce7f3;"><i class="fa-solid fa-circle-user" style="color:#be185d;"></i></span> Account
                         </a>
                     </li>
                     <li class="<?= $is('staff_gate') ?>">
                         <a href="staff_gate.php">
-                            <span class="nav-icon"><i class="fa-solid fa-arrows-rotate"></i></span> Switch to Staff Dashboard
+                            <span class="nav-icon" style="background:#cffafe;"><i class="fa-solid fa-arrows-rotate" style="color:#0891b2;"></i></span> Switch to Staff Dashboard
                         </a>
                     </li>
                 </ul>
@@ -398,8 +390,8 @@ class SidebarRenderer {
 
                 <ul>
                     <li>
-                        <a href="#" class="logout-link" onclick="confirmLogout()">
-                            <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Logout
+                       <a href="#" class="logout-link" onclick="confirmLogout()">
+                            <span class="nav-icon" style="background:#fee2e2;"><i class="fa-solid fa-right-from-bracket" style="color:#dc2626;"></i></span> Logout
                         </a>
                     </li>
                 </ul>

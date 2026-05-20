@@ -159,22 +159,20 @@ body {
 
 /* Income variants */
 .card.income {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-top: 3px solid #9B2C52;
+    background: linear-gradient(135deg, #2d0a1f, #7e1545);
+    border: none;
 }
-.card.income::before { display: none; }
-.card.income h3 { color: var(--text-secondary); }
-.card.income p  { color: var(--text-primary); }
+.card.income::before { background: rgba(255,255,255,0.25); }
+.card.income h3 { color: rgba(255,255,255,0.6); }
+.card.income p  { color: #ffffff; }
 
 .card.today {
-    background: #ffffff;
-    border: 1px solid var(--border-color);
-    border-top: 3px solid #be185d;
+    background: linear-gradient(135deg, #7e1545, #be185d);
+    border: none;
 }
-.card.today::before { display: none; }
-.card.today h3 { color: var(--text-secondary); }
-.card.today p  { color: var(--text-primary); }
+.card.today::before { background: rgba(255,255,255,0.25); }
+.card.today h3 { color: rgba(255,255,255,0.6); }
+.card.today p  { color: #ffffff; }
 
 /* ================= CONTENT GRID ================= */
 .content-grid {
@@ -1369,3 +1367,8 @@ body {
     margin: 0;
     text-shadow: 0 1px 4px rgba(0,0,0,0.2);
 }
+.dash-table td,
+.dash-table th {
+    text-align: center;
+}
+.dash-table td, .dash-table th { text-align: center; }

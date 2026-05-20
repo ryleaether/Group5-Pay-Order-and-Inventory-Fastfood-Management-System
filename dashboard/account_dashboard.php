@@ -76,8 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action']) && $_POST[
                 $s = $conn->prepare("INSERT INTO admin_extended (admin_id, logo_url, profile_photo) VALUES (:id,:url,:url2) ON DUPLICATE KEY UPDATE logo_url=:url3, profile_photo=:url4");
                 $s->execute([':id'=>$admin_id,':url'=>$url,':url2'=>$url,':url3'=>$url,':url4'=>$url]);
             }
+           if ($applyTo === 'logo' || $applyTo === 'both') {
+                $_SESSION['logo_url']   = $url;
+                $_SESSION['logo_shape'] = $_POST['logo_shape'] ?? 'circle';
+            }
             echo json_encode(['success'=>true,'url'=>$url,'apply_to'=>$applyTo]);
         } catch(Exception $e) {
+            if ($applyTo === 'logo' || $applyTo === 'both') {
+                $_SESSION['logo_url']   = $url;
+                $_SESSION['logo_shape'] = $_POST['logo_shape'] ?? 'circle';
+            }
             echo json_encode(['success'=>true,'url'=>$url,'db'=>$e->getMessage()]);
         }
     } else {
@@ -1021,8 +1029,20 @@ function previewLogo(input) {
     reader.onload = function(e) {
         const prev = document.getElementById('logoPreview');
         prev.innerHTML = `<img src="${e.target.result}" alt="Logo" style="width:100%;height:100%;object-fit:cover;">`;
-        // Update hero avatar
-        document.getElementById('heroAvatar').innerHTML = `<img src="${e.target.result}" alt="Logo" style="width:100%;height:100%;object-fit:cover;">`;
+       // Update sidebar profile photo
+        const sidebarAvatarImg = document.querySelector('.sidebar .user-avatar img, .sidebar .admin-avatar img');
+        const sidebarAvatarWrap = document.querySelector('.sidebar .user-avatar, .sidebar .admin-avatar');
+        if (sidebarAvatarImg) {
+            sidebarAvatarImg.src = e.target.result;
+        } else if (sidebarAvatarWrap) {
+            sidebarAvatarWrap.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        }
+
+        // Update topbar/header photo
+        const topbarAvatarImg = document.querySelector('.topbar .user-avatar img, .topbar img[alt="logo"]');
+        if (topbarAvatarImg) {
+            topbarAvatarImg.src = e.target.result;
+        }
     };
     reader.readAsDataURL(selectedLogoFile);
 }
@@ -1036,11 +1056,16 @@ function uploadLogo() {
     fd.append('logo', selectedLogoFile);
     fd.append('_action', 'upload_logo');
     fd.append('logo_shape', currentShape);
+    fd.append('apply_to', 'logo');
     fetch('account_dashboard.php', { method:'POST', body: fd })
         .then(r => r.json())
         .then(data => {
-            if (data.success) showToastAcct('Logo uploaded! 🖼️', 'success');
-            else showToastAcct(data.message || 'Upload failed', 'error');
+            if (data.success) {
+                showToastAcct('Logo uploaded! 🖼️', 'success');
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                showToastAcct(data.message || 'Upload failed', 'error');
+            }
         })
         .catch(() => showToastAcct('Upload failed', 'error'));
 }

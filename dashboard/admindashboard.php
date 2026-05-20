@@ -222,7 +222,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Total Orders</h3>
-                        <div class="card-icon"><i class="fa-solid fa-box-open"></i></div>
+                        <div class="card-icon" style="background:#ede9fe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-box-open" style="color:#7c3aed;font-size:20px;"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $total_orders ?></p>
@@ -230,10 +230,10 @@ try {
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
+                   <div class="card-header">
                         <h3>Total Income</h3>
-                    <div class="card-icon"><i class="fa-solid fa-money-bill-wave"></i></div>
-                    </div>
+                    <div class="card-icon" style="background:#dcfce7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-money-bill-wave" style="color:#16a34a;font-size:20px;"></i></div>
+                </div>
                     <div class="card-value">
                         <p>₱<?= number_format($total_income, 0) ?></p>
                     </div>
@@ -242,7 +242,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Menu Items</h3>
-                        <div class="card-icon"><i class="fa-solid fa-utensils"></i></div>
+                        <div class="card-icon" style="background:#dbeafe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-utensils" style="color:#2563eb;font-size:20px;"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $total_menu ?></p>
@@ -252,7 +252,7 @@ try {
                 <div class="card">
                     <div class="card-header">
                         <h3>Pending Orders</h3>
-                        <div class="card-icon"><i class="fa-solid fa-clock"></i></div>
+                        <div class="card-icon" style="background:#fef3c7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-clock" style="color:#d97706;font-size:20px;"></i></div>
                     </div>
                     <div class="card-value">
                         <p><?= $pending_orders ?></p>
@@ -270,27 +270,27 @@ try {
                         <table class="dash-table">
                             <thead>
                                 <tr>
-                                    <th>Queue #</th>
-                                    <th>Customer</th>
-                                    <th>Table</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Time</th>
+                                    <th style="text-align:center;">Queue #</th>
+                                    <th style="text-align:center;">Customer</th>
+                                    <th style="text-align:center;">Table</th>
+                                    <th style="text-align:center;">Amount</th>
+                                    <th style="text-align:center;">Status</th>
+                                    <th style="text-align:center;">Time</th>
                                 </tr>
                             </thead>
                             <tbody>
                             <?php foreach ($recent_orders as $order): ?>
                                 <tr>
-                                    <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
-                                    <td><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
-                                    <td><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
-                                    <td><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
-                                    <td>
+                                    <td style="text-align:center;"><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
+                                    <td style="text-align:center;"><?= htmlspecialchars($order['customer_name'] ?: 'Guest') ?></td>
+                                    <td style="text-align:center;"><?= htmlspecialchars($order['table_number'] ?: '—') ?></td>
+                                    <td style="text-align:center;"><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
+                                    <td style="text-align:center;">
                                         <span class="badge badge-<?= strtolower(htmlspecialchars($order['order_status'])) ?>">
                                             <?= htmlspecialchars($order['order_status']) ?>
                                         </span>
                                     </td>
-                                    <td><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
+                                    <td style="text-align:center;"><?= htmlspecialchars(date('M d • h:i A', strtotime($order['created_at']))) ?></td>
                                 </tr>
                             <?php endforeach; ?>
                             <?php for ($i = count($recent_orders); $i < 5; $i++): ?>
@@ -310,14 +310,14 @@ try {
                         <?php if (!empty($top_items)): ?>
                             <table class="dash-table">
                                 <thead>
-                                    <tr><th>#</th><th>Item</th><th>Sold</th></tr>
+                                    <tr><th style="text-align:center;">#</th><th style="text-align:center;">Item</th><th style="text-align:center;">Sold</th></tr>
                                 </thead>
                                 <tbody>
                                 <?php foreach ($top_items as $i => $item): ?>
                                     <tr>
-                                        <td><span class="rank-num"><?= $i + 1 ?></span></td>
-                                        <td><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
-                                        <td><strong><?= $item['total_sold'] ?></strong></td>
+                                        <td style="text-align:center;"><span class="rank-num"><?= $i + 1 ?></span></td>
+                                        <td style="text-align:center;"><?= htmlspecialchars(substr($item['item_name'], 0, 18)) ?></td>
+                                        <td style="text-align:center;"><strong><?= $item['total_sold'] ?></strong></td>
                                     </tr>
                                 <?php endforeach; ?>
                                 </tbody>
@@ -332,13 +332,13 @@ try {
                         <?php if (!empty($low_stock)): ?>
                             <table class="dash-table">
                                 <thead>
-                                    <tr><th>Item</th><th>Qty</th></tr>
+                                    <tr><th style="text-align:center;">Item</th><th style="text-align:center;">Qty</th></tr>
                                 </thead>
                                 <tbody>
                                 <?php foreach ($low_stock as $item): ?>
                                     <tr>
-                                        <td><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
-                                        <td class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
+                                        <td style="text-align:center;"><strong><?= htmlspecialchars(substr($item['item_name'], 0, 20)) ?></strong></td>
+                                        <td style="text-align:center;" class="<?= $item['stock_quantity'] == 0 ? 'stock-zero' : 'stock-low' ?>">
                                             <?= $item['stock_quantity'] == 0 ? '0' : $item['stock_quantity'] ?>
                                         </td>
                                     </tr>

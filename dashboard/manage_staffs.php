@@ -137,6 +137,7 @@ $sidebar = new SidebarRenderer(
             font-size: 14px;
             color: var(--text-primary);
             vertical-align: middle;
+            text-align: center;
         }
 
         .staff-avatar {
@@ -364,13 +365,13 @@ $sidebar = new SidebarRenderer(
             <table class="staff-table">
                 <thead>
                     <tr>
-                        <th>Staff Member</th>
-                        <th>Role</th>
-                        <th>Shift</th>
-                        <th>Status</th>
-                        <th>Attendance</th>
-                        <th>Last Login</th>
-                        <th>Actions</th>
+                        <th style="text-align:center;">Staff Member</th>
+                        <th style="text-align:center;">Role</th>
+                        <th style="text-align:center;">Shift</th>
+                        <th style="text-align:center;">Status</th>
+                        <th style="text-align:center;">Attendance</th>
+                        <th style="text-align:center;">Last Login</th>
+                        <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="staffTableBody">
