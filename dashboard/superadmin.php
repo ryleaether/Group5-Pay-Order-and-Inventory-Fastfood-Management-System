@@ -805,6 +805,36 @@ try {
         .br-btn:hover:not(:disabled) { opacity: .87; transform: translateY(-1px); }
         .br-btn:disabled { opacity: .55; cursor: default; }
         .br-btn.primary { background: var(--sidebar-active); color: #fff; }
+
+        /* ── Announcement & Maintenance styles ── */
+        .am-toggle-wrap { position:relative; display:inline-block; width:44px; height:24px; cursor:pointer; }
+        .am-toggle-wrap input { opacity:0; width:0; height:0; }
+        .am-slider { position:absolute; inset:0; background:#ccc; border-radius:24px; transition:.3s; }
+        .am-slider::before { content:''; position:absolute; width:18px; height:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.3s; }
+        .am-toggle-wrap input:checked + .am-slider { background:var(--sidebar-active); }
+        .am-toggle-wrap input:checked + .am-slider::before { transform:translateX(20px); }
+
+        .am-toast { padding:10px 14px; border-radius:8px; font-size:13px; font-weight:500; margin-bottom:14px; }
+        .am-toast.success { background:#d1fae5; color:#065f46; border:1px solid #6ee7b7; }
+        .am-toast.error   { background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; }
+
+        .am-warning-note { background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:11px 14px; font-size:12.5px; color:#92400e; margin-bottom:16px; line-height:1.6; }
+
+        .am-banner { padding:11px 16px; border-radius:9px; font-size:13.5px; font-weight:500; display:flex; align-items:center; gap:10px; }
+        .am-banner-info    { background:#eff6ff; border:1px solid #bfdbfe; color:#1e40af; }
+        .am-banner-warning { background:#fffbeb; border:1px solid #fde68a; color:#92400e; }
+        .am-banner-success { background:#f0fdf4; border:1px solid #bbf7d0; color:#166534; }
+        .am-banner-danger  { background:#fef2f2; border:1px solid #fecaca; color:#991b1b; }
+
+        /* Announcement banner shown in admin dashboard */
+        .global-ann-bar { padding:12px 20px; font-size:13.5px; font-weight:500; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+        .global-ann-bar .ann-dismiss { background:none; border:none; cursor:pointer; opacity:.6; font-size:16px; padding:0 4px; }
+        .global-ann-bar .ann-dismiss:hover { opacity:1; }
+
+        @media (max-width: 768px) {
+            #page-announcements .stats-row { grid-template-columns: 1fr; }
+            #page-announcements > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+        }
         .br-btn.danger  { background: #c0392b; color: #fff; }
         .br-btn.success { background: #1d8a4f; color: #fff; }
         .br-btn.sm      { padding: 6px 12px; font-size: 12px; border-radius: 7px; }
@@ -865,6 +895,9 @@ try {
         <button class="nav-item <?= $open_page === 'auditlog' ? 'active' : '' ?>" onclick="showPage('auditlog', this)">
             <span class="nav-icon"><svg class="nav-svg" viewBox="0 0 512 512"><path d="M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H256c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32H480c17.7 0 32 14.3 32 32s-14.3 32-32 32H192c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"/></svg></span> Audit Log
         </button>
+        <button class="nav-item <?= $open_page === 'announcements' ? 'active' : '' ?>" onclick="showPage('announcements', this)">
+            <span class="nav-icon"><svg class="nav-svg" viewBox="0 0 512 512"><path d="M480 32c0-12.9-7.8-24.6-19.8-29.6s-25.7-2.2-34.9 6.9L381.7 53c-48 48-113.1 75-181 75H128c-53 0-96 43-96 96v96c0 53 43 96 96 96h5.8c-2.4 12.7-3.8 25.8-3.8 39.2V512h96v-56.8c0-13.4-1.4-26.5-3.8-39.2H200.7c67.9 0 133 27 181 75l43.6 43.6c9.2 9.2 22.9 11.9 34.9 6.9S480 524.9 480 512V320c18.6-6.6 32-24.4 32-45.3v-85.4C512 168.4 498.6 150.6 480 128V32z"/></svg></span> Announcements
+        </button>
     </nav>
 
     <div class="sidebar-bottom">
@@ -883,7 +916,7 @@ try {
                 <span></span><span></span><span></span>
             </button>
             <div class="topbar-title" id="topbar-title">
-                <?= $open_page === 'account' ? 'My Account' : ($open_page === 'owners' ? 'Fastfood Owners' : ($open_page === 'backup' ? 'Backup & Recovery' : ($open_page === 'auditlog' ? 'Audit Log' : 'Dashboard'))) ?>
+                <?= $open_page === 'account' ? 'My Account' : ($open_page === 'owners' ? 'Fastfood Owners' : ($open_page === 'backup' ? 'Backup & Recovery' : ($open_page === 'auditlog' ? 'Audit Log' : ($open_page === 'announcements' ? 'Announcements & Maintenance' : 'Dashboard')))) ?>
             </div>
         </div>
 
@@ -1300,6 +1333,100 @@ try {
             </div>
             <div class="al-footer-note">Showing the most recent 200 entries. Older entries are stored in the database.</div>
         </div>
+
+
+        <!-- ═══ ANNOUNCEMENTS & MAINTENANCE ═══ -->
+        <div class="page <?= $open_page === 'announcements' ? 'active' : '' ?>" id="page-announcements">
+            <div class="page-heading">
+                <h1>📢 Announcements &amp; Maintenance</h1>
+                <p>Control system-wide announcements and maintenance mode for all owners.</p>
+            </div>
+
+            <!-- STATUS CARDS ROW -->
+            <div class="stats-row" style="margin-bottom:24px;">
+                <div class="stat-card" id="ann-status-card" style="cursor:default;">
+                    <div class="stat-label">Announcement</div>
+                    <div class="stat-value" id="ann-status-badge" style="font-size:15px;font-weight:700;">Loading…</div>
+                    <div class="stat-icon">📢</div>
+                </div>
+                <div class="stat-card" id="maint-status-card" style="cursor:default;">
+                    <div class="stat-label">Maintenance Mode</div>
+                    <div class="stat-value" id="maint-status-badge" style="font-size:15px;font-weight:700;">Loading…</div>
+                    <div class="stat-icon">🔧</div>
+                </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+
+                <!-- ── ANNOUNCEMENT CARD ── -->
+                <div class="br-section-card">
+                    <div class="br-section-hdr">
+                        <div class="br-section-hdr-title">📢 Global Announcement</div>
+                        <label class="am-toggle-wrap" title="Enable / Disable">
+                            <input type="checkbox" id="ann-toggle" onchange="quickToggle('announcement')">
+                            <span class="am-slider"></span>
+                        </label>
+                    </div>
+                    <div style="padding:20px 22px;">
+                        <div id="ann-toast" class="am-toast" style="display:none;"></div>
+
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label style="font-size:12.5px;font-weight:600;color:var(--text-h);display:block;margin-bottom:6px;">Banner Type</label>
+                            <select id="ann-type" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:var(--bg);color:var(--text-h);outline:none;">
+                                <option value="info">ℹ️ Info (Blue)</option>
+                                <option value="warning">⚠️ Warning (Orange)</option>
+                                <option value="success">✅ Success (Green)</option>
+                                <option value="danger">🚨 Danger (Red)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="font-size:12.5px;font-weight:600;color:var(--text-h);display:block;margin-bottom:6px;">Message</label>
+                            <textarea id="ann-message" rows="4" placeholder="Enter the announcement message visible to all owners…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:var(--bg);color:var(--text-h);outline:none;resize:vertical;line-height:1.5;"></textarea>
+                        </div>
+
+                        <!-- Live Preview -->
+                        <div id="ann-preview-wrap" style="margin-bottom:18px; display:none;">
+                            <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.5px;text-transform:uppercase;">Preview</div>
+                            <div id="ann-preview" class="am-banner am-banner-info"></div>
+                        </div>
+
+                        <button onclick="saveAnnouncement()" class="br-btn primary" style="width:100%;padding:11px;">💾 Save Announcement</button>
+                    </div>
+                </div>
+
+                <!-- ── MAINTENANCE CARD ── -->
+                <div class="br-section-card">
+                    <div class="br-section-hdr">
+                        <div class="br-section-hdr-title">🔧 Maintenance Mode</div>
+                        <label class="am-toggle-wrap" title="Enable / Disable">
+                            <input type="checkbox" id="maint-toggle" onchange="quickToggle('maintenance')">
+                            <span class="am-slider"></span>
+                        </label>
+                    </div>
+                    <div style="padding:20px 22px;">
+                        <div id="maint-toast" class="am-toast" style="display:none;"></div>
+
+                        <div class="am-warning-note">
+                            ⚠️ <strong>Caution:</strong> Enabling maintenance mode will block all owner logins and redirect users to the maintenance page. Superadmin access is unaffected.
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:14px;">
+                            <label style="font-size:12.5px;font-weight:600;color:var(--text-h);display:block;margin-bottom:6px;">Maintenance Message</label>
+                            <textarea id="maint-message" rows="4" placeholder="Message shown on the maintenance page…" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:var(--bg);color:var(--text-h);outline:none;resize:vertical;line-height:1.5;"></textarea>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom:18px;">
+                            <label style="font-size:12.5px;font-weight:600;color:var(--text-h);display:block;margin-bottom:6px;">Estimated End Time <span style="font-weight:400;color:var(--text-muted);">(optional)</span></label>
+                            <input type="datetime-local" id="maint-end-time" style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'Poppins',sans-serif;font-size:13px;background:var(--bg);color:var(--text-h);outline:none;">
+                        </div>
+
+                        <button onclick="saveMaintenance()" class="br-btn primary" style="width:100%;padding:11px;">💾 Save Maintenance Settings</button>
+                    </div>
+                </div>
+
+            </div><!-- /grid -->
+        </div><!-- /page-announcements -->
 
     </div><!-- /content -->
 </div><!-- /main -->
@@ -1922,6 +2049,144 @@ function clearAuditFilters() {
     document.getElementById('al-search').value = '';
     document.getElementById('al-filter-action').value = '';
     filterAuditLog();
+}
+
+/* ══════════════════════════════════════════════
+   ANNOUNCEMENTS & MAINTENANCE
+══════════════════════════════════════════════ */
+const AM_URL = 'announcement_handler.php';
+
+async function loadAnnouncementSettings() {
+    try {
+        const res  = await fetch(AM_URL, { method:'POST', body: new URLSearchParams({ action:'get_settings' }) });
+        const data = await res.json();
+        if (!data.success) return;
+
+        const a = data.announcement;
+        const m = data.maintenance;
+
+        // Announcement
+        document.getElementById('ann-toggle').checked  = a.enabled === '1';
+        document.getElementById('ann-type').value      = a.type    || 'info';
+        document.getElementById('ann-message').value   = a.message || '';
+        updateAnnStatusBadge(a.enabled === '1');
+        updateAnnPreview();
+
+        // Maintenance
+        document.getElementById('maint-toggle').checked  = m.enabled === '1';
+        document.getElementById('maint-message').value   = m.message || '';
+        document.getElementById('maint-end-time').value  = m.end_time ? m.end_time.replace(' ','T').substring(0,16) : '';
+        updateMaintStatusBadge(m.enabled === '1');
+    } catch(e) { console.error('AM load error', e); }
+}
+
+function updateAnnStatusBadge(on) {
+    const el = document.getElementById('ann-status-badge');
+    if (!el) return;
+    el.textContent = on ? '🟢 Active' : '⭕ Inactive';
+    el.style.color = on ? '#16a34a' : '#9ca3af';
+}
+function updateMaintStatusBadge(on) {
+    const el = document.getElementById('maint-status-badge');
+    if (!el) return;
+    el.textContent = on ? '🔴 Enabled' : '⭕ Disabled';
+    el.style.color = on ? '#dc2626' : '#9ca3af';
+}
+
+function updateAnnPreview() {
+    const msg  = document.getElementById('ann-message')?.value.trim();
+    const type = document.getElementById('ann-type')?.value || 'info';
+    const wrap = document.getElementById('ann-preview-wrap');
+    const prev = document.getElementById('ann-preview');
+    if (!wrap || !prev) return;
+    if (!msg) { wrap.style.display = 'none'; return; }
+    wrap.style.display = 'block';
+    prev.className = `am-banner am-banner-${type}`;
+    const icons = { info:'ℹ️', warning:'⚠️', success:'✅', danger:'🚨' };
+    prev.innerHTML = `<span>${icons[type] || 'ℹ️'}</span><span>${msg.replace(/</g,'&lt;')}</span>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const annMsg  = document.getElementById('ann-message');
+    const annType = document.getElementById('ann-type');
+    if (annMsg)  annMsg.addEventListener('input', updateAnnPreview);
+    if (annType) annType.addEventListener('change', updateAnnPreview);
+    loadAnnouncementSettings();
+});
+
+function showAmToast(id, msg, type) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent  = msg;
+    el.className    = `am-toast ${type}`;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+async function saveAnnouncement() {
+    const enabled = document.getElementById('ann-toggle').checked ? '1' : '0';
+    const message = document.getElementById('ann-message').value.trim();
+    const type    = document.getElementById('ann-type').value;
+    const fd = new FormData();
+    fd.append('action','save_announcement');
+    fd.append('enabled', enabled);
+    fd.append('message', message);
+    fd.append('type', type);
+    try {
+        const res  = await fetch(AM_URL, { method:'POST', body:fd });
+        const data = await res.json();
+        showAmToast('ann-toast', data.message, data.success ? 'success' : 'error');
+        if (data.success) updateAnnStatusBadge(enabled === '1');
+    } catch(e) { showAmToast('ann-toast', 'Network error.', 'error'); }
+}
+
+async function saveMaintenance() {
+    const enabled  = document.getElementById('maint-toggle').checked ? '1' : '0';
+    const message  = document.getElementById('maint-message').value.trim();
+    const end_time = document.getElementById('maint-end-time').value;
+    const fd = new FormData();
+    fd.append('action','save_maintenance');
+    fd.append('enabled', enabled);
+    fd.append('message', message);
+    fd.append('end_time', end_time ? end_time.replace('T',' ') : '');
+
+    if (enabled === '1' && !confirm('⚠️ Enabling maintenance mode will block all owner logins immediately.\n\nContinue?')) {
+        document.getElementById('maint-toggle').checked = false;
+        return;
+    }
+
+    try {
+        const res  = await fetch(AM_URL, { method:'POST', body:fd });
+        const data = await res.json();
+        showAmToast('maint-toast', data.message, data.success ? 'success' : 'error');
+        if (data.success) updateMaintStatusBadge(enabled === '1');
+    } catch(e) { showAmToast('maint-toast', 'Network error.', 'error'); }
+}
+
+async function quickToggle(which) {
+    const action = which === 'announcement' ? 'toggle_announcement' : 'toggle_maintenance';
+    const toggleId = which === 'announcement' ? 'ann-toggle' : 'maint-toggle';
+    const checkbox = document.getElementById(toggleId);
+
+    if (which === 'maintenance' && checkbox.checked) {
+        if (!confirm('⚠️ Enabling maintenance mode will block all owner logins immediately.\n\nContinue?')) {
+            checkbox.checked = false;
+            return;
+        }
+    }
+
+    const fd = new FormData();
+    fd.append('action', action);
+    try {
+        const res  = await fetch(AM_URL, { method:'POST', body:fd });
+        const data = await res.json();
+        if (data.success) {
+            const on = data.enabled === '1';
+            checkbox.checked = on;
+            if (which === 'announcement') updateAnnStatusBadge(on);
+            else updateMaintStatusBadge(on);
+        }
+    } catch(e) { console.error('Toggle error', e); }
 }
 </script>
 </body>
