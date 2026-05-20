@@ -199,8 +199,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
     <?= $sidebar->render('history') ?>
 
         <div class="topbar">
-            <h1>🧾 Orders History</h1>
-            <p class="subtitle">All orders — including cancelled</p>
+            <h1><i class="fa-solid fa-receipt" style="margin-right:8px;"></i>Orders History</h1>
         </div>
 
         <!-- SUMMARY CARDS -->
@@ -208,7 +207,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card income" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Total Income</h3>
-                    <div class="card-icon">💰</div>
+                    <div class="card-icon" style="background:#dcfce7;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-peso-sign" style="color:#16a34a;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;">₱<?= number_format($summary['total_income'], 2) ?></p>
@@ -217,7 +216,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Completed Orders</h3>
-                    <div class="card-icon">✅</div>
+                    <div class="card-icon" style="background:#ede9fe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-circle-check" style="color:#7c3aed;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;"><?= $summary['total_orders'] ?></p>
@@ -226,7 +225,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="card" style="min-height:unset; background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border:none;">
                 <div class="card-header">
                     <h3 style="color:rgba(255,255,255,0.75);">Orders Shown</h3>
-                    <div class="card-icon">📋</div>
+                    <div class="card-icon" style="background:#dbeafe;border-radius:12px;width:44px;height:44px;display:flex;align-items:center;justify-content:center;"><i class="fa-solid fa-clipboard-list" style="color:#2563eb;font-size:20px;"></i></div>
                 </div>
                 <div class="card-value">
                     <p style="color:#fff;"><?= count($orders) ?></p>
@@ -239,7 +238,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <div class="filter-section">
 
                 <div class="filter-group">
-                    <span class="filter-label">📅 Period</span>
+                    <span class="filter-label"><i class="fa-solid fa-calendar" style="margin-right:4px;"></i>Period</span>
                     <?php $periods = ['all' => 'All Time', 'today' => 'Today', 'week' => 'This Week', 'month' => 'This Month']; ?>
                     <?php foreach ($periods as $val => $label): ?>
                         <a href="?period=<?= $val ?>&status=<?= htmlspecialchars($status) ?>"
@@ -252,8 +251,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 6px;"></div>
 
                 <div class="filter-group">
-                    <span class="filter-label">🔍 Status</span>
-                    <?php $statuses = ['all' => 'All Orders', 'completed' => '✅ Completed', 'cancelled' => '✕ Cancelled']; ?>
+                    <span class="filter-label"><i class="fa-solid fa-magnifying-glass" style="margin-right:4px;"></i>Status</span>
+                    <?php $statuses = ['all' => 'All Orders', 'completed' => '<i class="fa-solid fa-circle-check" style="margin-right:4px;"></i>Completed','cancelled' => '<i class="fa-solid fa-xmark" style="margin-right:4px;"></i>Cancelled']; ?>
                     <?php foreach ($statuses as $val => $label): ?>
                         <a href="?period=<?= htmlspecialchars($period) ?>&status=<?= $val ?>"
                             class="filter-tab <?= $status === $val ? 'active' : '' ?>">
@@ -268,41 +267,41 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
         <!-- ORDERS TABLE -->
         <div class="content-box" style="margin-top:16px; overflow:hidden;">
             <?php if (empty($orders)): ?>
-                <p class="empty-state">📭 No orders found for the selected filters.</p>
+                <p class="empty-state"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>No orders found for the selected filters.</p>
             <?php else: ?>
                 <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                 <table class="dash-table" style="table-layout:auto; min-width:820px;">
                     <thead>
                         <tr>
-                            <th style="white-space:nowrap;">Queue #</th>
-                            <th style="min-width:180px;">Items</th>
-                            <th style="white-space:nowrap;">Total</th>
-                            <th style="white-space:nowrap;">Cash Paid</th>
-                            <th style="white-space:nowrap;">Change</th>
-                            <th style="white-space:nowrap;">Receipt</th>
-                            <th style="white-space:nowrap;">Status</th>
-                            <th style="white-space:nowrap;">Date & Time</th>
+                            <th style="white-space:nowrap;text-align:center;">Queue #</th>
+                            <th style="min-width:180px;text-align:center;">Items</th>
+                            <th style="white-space:nowrap;text-align:center;">Total</th>
+                            <th style="white-space:nowrap;text-align:center;">Cash Paid</th>
+                            <th style="white-space:nowrap;text-align:center;">Change</th>
+                            <th style="white-space:nowrap;text-align:center;">Receipt</th>
+                            <th style="white-space:nowrap;text-align:center;">Status</th>
+                            <th style="white-space:nowrap;text-align:center;">Date & Time</th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php foreach ($orders as $order): ?>
                         <tr>
-                            <td><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
-                            <td style="font-size:12px; color: var(--text-secondary); max-width:200px; word-break:break-word; white-space:normal;">
+                            <td style="text-align:center;"><strong>#<?= htmlspecialchars($order['queue_number']) ?></strong></td>
+                            <td style="font-size:12px; color: var(--text-secondary); max-width:200px; word-break:break-word; white-space:normal;text-align:center;">
                                 <?= htmlspecialchars($order['items_summary'] ?? '—') ?>
                             </td>
-                            <td style="white-space:nowrap;"><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
-                            <td style="white-space:nowrap;">₱<?= number_format($order['amount_paid'] ?? 0, 2) ?></td>
-                            <td style="white-space:nowrap;">₱<?= number_format($order['change_given'] ?? 0, 2) ?></td>
-                            <td style="font-size:11px; color: var(--text-secondary); white-space:nowrap;">
+                            <td style="white-space:nowrap;text-align:center;"><strong>₱<?= number_format($order['total_amount'], 2) ?></strong></td>
+                            <td style="white-space:nowrap;text-align:center;">₱<?= number_format($order['amount_paid'] ?? 0, 2) ?></td>
+                            <td style="white-space:nowrap;text-align:center;">₱<?= number_format($order['change_given'] ?? 0, 2) ?></td>
+                            <td style="font-size:11px; color: var(--text-secondary); white-space:nowrap;text-align:center;">
                                 <?= htmlspecialchars($order['receipt_number'] ?? '—') ?>
                             </td>
-                            <td>
+                            <td style="text-align:center;">
                                 <span class="badge badge-<?= strtolower($order['order_status']) ?>">
                                     <?= htmlspecialchars($order['order_status']) ?>
                                 </span>
                             </td>
-                            <td style="font-size:12px; color: var(--text-secondary); white-space:nowrap;">
+                            <td style="font-size:12px; color: var(--text-secondary); white-space:nowrap;text-align:center;">
                                 <?= date('M d, Y h:i A', strtotime($order['created_at'])) ?>
                             </td>
                         </tr>

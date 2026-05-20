@@ -55,8 +55,13 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
     <?= $sidebar->render('menu') ?>
 
        <div class="topbar">
-            <h1><i class="fa-solid fa-utensils" style="font-size:0.85em;margin-right:8px;"></i>Menu Items</h1>
-            <p class="subtitle">Manage your food items</p>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;background:rgba(255,255,255,0.15);border-radius:8px;flex-shrink:0;"><i class="fa-solid fa-utensils" style="font-size:1.5em;color:#fff;"></i></span>
+                <div style="display:flex;flex-direction:column;justify-content:center;">
+                    <h1 style="margin:0;line-height:1;">Menu Items</h1>
+                    <p class="subtitle" style="margin:2px 0 0 0;">Manage your food items</p>
+                </div>
+            </div>
 
             <div class="search-filter">
                 <div class="filter-form">
@@ -64,8 +69,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                         <input type="text" id="liveSearch" placeholder="Search items..." autocomplete="off"
                                value="<?= htmlspecialchars($search) ?>"
                                style="width:100%; padding-right:36px;">
-                        <span id="searchSpinner" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;font-size:14px;">⏳</span>
-                    </div>
+<span id="searchSpinner" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);display:none;font-size:14px;"><i class="fa-solid fa-spinner fa-spin"></i></span>                    </div>
                     <select id="liveCategory" autocomplete="off">
                         <option value="">All Categories</option>
                         <?php foreach ($categories as $cat): ?>
@@ -92,11 +96,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                     <div class="menu-card">
                         <div class="menu-img-wrap">
                             <?php if (!empty($item['image_url'])): ?>
-                                <img src="<?= htmlspecialchars($item['image_url']) ?>"
+                               <img src="<?= htmlspecialchars(ltrim($item['image_url'], './')) ?>"
                                      alt="<?= htmlspecialchars($item['item_name']) ?>"
                                      class="menu-img">
                             <?php else: ?>
-                                <div class="menu-img-placeholder">🍽️</div>
+                                <div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>
                             <?php endif; ?>
                         </div>
                         <div class="menu-header">
@@ -109,15 +113,9 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                         <div class="price">₱<?= number_format($item['price'], 2) ?></div>
                         <div class="stock">Stock: <?= $item['stock_quantity'] ?></div>
                         <div class="actions">
-                            <a class="btn edit" href="#"
-                               onclick="openEditModal(<?= $item['menu_item_id'] ?>); return false;">
-                                ✏️ Edit
-                            </a>
-                            <a class="btn delete"
-                               href="helpers/admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
-                               onclick="return confirm('Delete this item?')">
-                                🗑️ Delete
-                            </a>
+                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=${item.menu_item_id}"
+                               onclick="return confirm('Delete this item?')"><i class="fa-solid fa-trash"></i> Delete</a>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -136,18 +134,18 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
 <div id="menuModal" class="modal">
     <div class="modal-content modal-wide">
         <span class="close" onclick="closeMenuModal()">&times;</span>
-        <h2>🍔 Add New Menu Item</h2>
+        <h2><i class="fa-solid fa-burger" style="margin-right:6px;"></i> Add New Menu Item</h2>
         <form action="helpers/admindashboard_helpers.php?action=add_menu" method="POST" id="addForm">
             <input type="hidden" name="image_url" id="add_image_url">
             <div class="modal-two-col">
                 <div class="img-upload-area" id="addDropZone"
                      onclick="document.getElementById('addImageInput').click()">
                     <div class="img-upload-placeholder" id="addImgPlaceholder">
-                        <span>📷</span>
+                        <i class="fa-solid fa-camera" style="font-size:28px;color:#be185d;margin-bottom:6px;"></i>
                         <p>Click or drag to upload image</p>
                         <small>JPG, PNG, WEBP only · Max 2MB</small>
                         <small style="display:block; margin-top:4px; color:#bbb;">
-                            📐 Recommended: 500×500px<br>
+                            <i class="fa-solid fa-ruler-combined"></i> Recommended: 500×500px<br>
                             Minimum: 300×300px<br>
                             Images will be cropped to fit
                         </small>
@@ -169,7 +167,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 </div>
             </div>
             <div id="addUploadStatus" class="upload-status"></div>
-            <button type="submit" class="btn-save" id="addSubmitBtn">💾 Save Item</button>
+            <button type="submit" class="btn-save" id="addSubmitBtn"><i class="fa-solid fa-floppy-disk"></i> Save Item</button>
         </form>
     </div>
 </div>
@@ -187,11 +185,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 <div class="img-upload-area" id="editDropZone"
                      onclick="document.getElementById('editImageInput').click()">
                     <div class="img-upload-placeholder" id="editImgPlaceholder" style="display:none;">
-                        <span>📷</span>
+                        <i class="fa-solid fa-camera" style="font-size:28px;color:#be185d;margin-bottom:6px;"></i>
                         <p>Click to change image</p>
                         <small>JPG, PNG, WEBP only · Max 2MB</small>
                         <small style="display:block; margin-top:4px; color:#bbb;">
-                            📐 Recommended: 500×500px<br>
+                            <i class="fa-solid fa-ruler-combined"></i> Recommended: 500×500px<br>
                             Minimum: 300×300px<br>
                             Images will be cropped to fit
                         </small>
@@ -214,7 +212,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 </div>
             </div>
             <div id="editUploadStatus" class="upload-status"></div>
-            <button type="submit" class="btn-save">💾 Update Item</button>
+            <button type="submit" class="btn-save"><i class="fa-solid fa-floppy-disk"></i> Update Item</button>
         </form>
     </div>
 </div>
@@ -223,7 +221,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
 <div id="accountModal" class="modal">
     <div class="modal-content" style="max-width:420px; text-align:left;">
         <span class="close" onclick="closeAccountModal()">&times;</span>
-        <h2 style="margin-bottom:12px;">👤 Edit Account</h2>
+        <h2 style="margin-bottom:12px;"><i class="fa-solid fa-circle-user" style="margin-right:6px;"></i> Edit Account</h2>
         <p style="color:#555; font-size:14px; margin-bottom:18px;">Update your account information.</p>
         <form id="accountForm" onsubmit="submitAccountForm(event)">
             <div style="display:grid; gap:12px;">
@@ -244,7 +242,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
 <div id="pinModal" class="modal">
     <div class="modal-content" style="max-width:340px; text-align:center;">
         <span class="close" onclick="closePinModal()">&times;</span>
-        <div style="font-size:36px; margin-bottom:8px;">🔐</div>
+        <div style="font-size:36px; margin-bottom:8px;"><i class="fa-solid fa-lock" style="color:#be185d;"></i></div>
         <h2 style="margin-bottom:6px;">Switch to User Dashboard</h2>
         <p style="color:#888; font-size:13px; margin-bottom:20px;">Enter your dashboard PIN to continue</p>
         <div id="pinDots" style="display:flex; justify-content:center; gap:12px; margin-bottom:20px;">
@@ -269,7 +267,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
 <div id="setupPinModal" class="modal">
     <div class="modal-content" style="max-width:340px; text-align:center;">
         <span class="close" onclick="closeSetupPinModal()">&times;</span>
-        <div style="font-size:36px; margin-bottom:8px;">🔑</div>
+        <div style="font-size:36px; margin-bottom:8px;"><i class="fa-solid fa-key" style="color:#be185d;"></i></div>
         <h2 style="margin-bottom:6px;">Set Up Dashboard PIN</h2>
         <p style="color:#888; font-size:13px; margin-bottom:4px;" id="setupPinLabel">
             Enter a 4-digit PIN to protect the user dashboard
@@ -394,7 +392,7 @@ function handleImageUpload(input, prefix) {
     const previewEl    = document.getElementById(prefix + 'ImgPreview');
     const placeholderEl= document.getElementById(prefix + 'ImgPlaceholder');
 
-    statusEl.textContent = '⏳ Uploading...';
+    statusEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Uploading...';
     statusEl.style.color = '#888';
 
     const formData = new FormData();
@@ -408,15 +406,15 @@ function handleImageUpload(input, prefix) {
                 previewEl.src               = data.url;
                 previewEl.style.display     = 'block';
                 if (placeholderEl) placeholderEl.style.display = 'none';
-                statusEl.textContent = '✅ Image uploaded!';
+                statusEl.innerHTML = '<i class="fa-solid fa-circle-check" style="color:#28a745;"></i> Image uploaded!';
                 statusEl.style.color = '#28a745';
             } else {
-                statusEl.textContent = '❌ ' + data.message;
+                statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:#dc3545;"></i> ' + data.message;
                 statusEl.style.color = '#dc3545';
             }
         })
         .catch(() => {
-            statusEl.textContent = '❌ Upload failed. Try again.';
+            statusEl.innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:#dc3545;"></i> Upload failed. Try again.';
             statusEl.style.color = '#dc3545';
         });
 }
@@ -565,7 +563,7 @@ function savePin(pin) {
             .then(r => r.json())
             .then(data => {
                 spinner.style.display = 'none';
-                if (!data.success) { grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">⚠️ Error loading items.</p>'; return; }
+                if (!data.success) { grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Error loading items.</p>'; return; }
 
                 if (data.items.length === 0) {
                     grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">' + (data.has_any ? 'No items match your current filters.' : 'No menu items yet. Add your first item!') + '</p>';
@@ -577,7 +575,7 @@ function savePin(pin) {
                         <div class="menu-img-wrap">
                             ${item.image_url
                                 ? `<img src="${escHtml(item.image_url)}" alt="${escHtml(item.item_name)}" class="menu-img">`
-                                : `<div class="menu-img-placeholder">🍽️</div>`}
+                                : `<div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>`}
                         </div>
                         <div class="menu-header">
                             <h3>${escHtml(item.item_name)}</h3>
@@ -589,16 +587,16 @@ function savePin(pin) {
                         <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
                         <div class="stock">Stock: ${item.stock_quantity}</div>
                         <div class="actions">
-                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;">✏️ Edit</a>
+                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
                             <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=${item.menu_item_id}"
-                               onclick="return confirm('Delete this item?')">🗑️ Delete</a>
+                               onclick="return confirm('Delete this item?')"><i class="fa-solid fa-trash"></i> Delete</a>
                         </div>
                     </div>
                 `).join('');
             })
             .catch(() => {
                 spinner.style.display = 'none';
-                grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">⚠️ Network error. Please try again.</p>';
+                grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Network error. Please try again.</p>';
             });
     }
 

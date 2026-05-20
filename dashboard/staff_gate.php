@@ -74,7 +74,7 @@ $sidebar = new SidebarRenderer(
     <?= $sidebar->render('staff_gate') ?>
     <main class="main" style="filter:blur(3px); pointer-events:none; user-select:none;">
         <div class="topbar">
-            <div><h1>👥 Staff Dashboard</h1><p class="subtitle">Cashier &amp; Kitchen access</p></div>
+            <div><h1><i class="fa-solid fa-users" style="margin-right:8px;"></i>Staff Dashboard</h1><p class="subtitle">Cashier &amp; Kitchen access</p></div>
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-top:20px;">
             <div style="background:var(--card-bg); border-radius:var(--radius-lg); height:280px; border:1px solid var(--border-color);"></div>
@@ -90,7 +90,7 @@ $sidebar = new SidebarRenderer(
          box-shadow:0 24px 80px rgba(0,0,0,0.3); animation:gatePop 0.3s ease;">
 
         <div style="text-align:center; margin-bottom:24px;">
-            <div style="font-size:44px; margin-bottom:8px;">👥</div>
+            <div style="font-size:44px; margin-bottom:8px;"><i class="fa-solid fa-users" style="color:var(--accent);"></i></div>
             <h2 style="font-size:1.2rem; font-weight:800; color:#1a1a2e; margin-bottom:6px;">Switch to Staff Dashboard</h2>
             <p style="font-size:13px; color:#888;">Verify your admin credentials to continue.</p>
         </div>
