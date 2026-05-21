@@ -67,7 +67,9 @@ $sidebar = new SidebarRenderer(
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         .km-back-btn {
             padding: 7px 16px;
@@ -751,10 +753,26 @@ window.openPinModal = function(type) {};
 // ===== KITCHEN BACK PIN =====
 let kmPin = '';
 function showKitchenPinModal() {
-    kmPin = '';
-    updKmDots(0);
-    document.getElementById('kmPinError').style.display = 'none';
-    document.getElementById('kitchenPinOverlay').style.display = 'flex';
+    const isStaff = <?= $via_staff ? 'true' : 'false' ?>;
+    Swal.fire({
+        title: 'Log Out?',
+        text: 'Are you sure you want to log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, log out',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (isStaff) {
+                window.location.replace('helpers/staff_helpers.php?action=staff_logout');
+            } else {
+                window.location.replace('../logout.php');
+            }
+        }
+    });
 }
 function hideKitchenPinModal() {
     document.getElementById('kitchenPinOverlay').style.display = 'none';
@@ -840,7 +858,6 @@ window.addEventListener('popstate', function() {
     for (let i = 0; i < 50; i++) {
         history.pushState({ page: 'kitchen', i: i }, '', window.location.href);
     }
-    showKitchenPinModal();
 });
 
 <?php if ($shiftInfo && $staffLoginAt): ?>

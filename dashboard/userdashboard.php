@@ -150,6 +150,8 @@ function hexToRgba($hex, $alpha) {
     .shift-banner-item.danger strong { color: #ef4444; }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -872,7 +874,6 @@ window.addEventListener('popstate', function() {
     for (let i = 0; i < 50; i++) {
         history.pushState({ page: 'cashier', i: i }, '', window.location.href);
     }
-    showAdminOverlay();
 });
 </script>
 
