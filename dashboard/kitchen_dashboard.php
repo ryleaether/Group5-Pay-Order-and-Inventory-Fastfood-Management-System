@@ -28,6 +28,20 @@ if (isset($_SESSION['staff_id']) && $_SESSION['staff_role'] === 'Kitchen' && iss
 $db   = new Database();
 $conn = $db->connect();
 
+// Fetch shift info for staff sessions
+$shiftInfo    = null;
+$staffLoginAt = null;
+if (isset($_SESSION['staff_id'])) {
+    $sStmt = $conn->prepare("SELECT fullname, role, shift_start, shift_end, last_login_at FROM staffs WHERE staff_id = :id");
+    $sStmt->execute([':id' => (int)$_SESSION['staff_id']]);
+    $shiftInfo = $sStmt->fetch(PDO::FETCH_ASSOC);
+    // Prefer session timestamp; fall back to DB last_login_at (always written on login)
+    $staffLoginAt = $_SESSION['staff_login_at'] ?? null;
+    if (!$staffLoginAt && !empty($shiftInfo['last_login_at'])) {
+        $staffLoginAt = strtotime($shiftInfo['last_login_at']);
+    }
+}
+
 $adminProfile = [];
 try {
     $stmt = $conn->prepare("SELECT username, email, fullname, fastfood_name FROM admins WHERE admin_id = :id");
@@ -53,7 +67,9 @@ $sidebar = new SidebarRenderer(
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         .km-back-btn {
             padding: 7px 16px;
@@ -393,6 +409,66 @@ $sidebar = new SidebarRenderer(
 
         /* End kitchen styles */
     </style>
+
+    <?php if ($shiftInfo): ?>
+    <style>
+        /* ── Kitchen Shift Banner ── */
+        .km-shift-banner {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            background: rgba(0,0,0,0.25);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 5px 24px;
+            font-size: 12.5px;
+            color: rgba(255,255,255,0.85);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .km-shift-name {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        .km-role-chip {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.25);
+            color: #fff;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+        }
+        .km-shift-sep {
+            width: 1px;
+            height: 13px;
+            background: rgba(255,255,255,0.2);
+            margin: 0 14px;
+            flex-shrink: 0;
+        }
+        .km-shift-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.75);
+            flex-shrink: 0;
+        }
+        .km-shift-item i { color: rgba(255,255,255,0.55); font-size: 11px; }
+        .km-shift-item strong {
+            color: #fff;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            font-family: 'DM Mono', 'Courier New', monospace;
+        }
+        .km-shift-item.warn  strong { color: #fbbf24; }
+        .km-shift-item.danger strong { color: #f87171; }
+    </style>
+    <?php endif; ?>
 </head>
 <body class="km-fullscreen">
 <div class="km-full-wrap">
@@ -412,6 +488,43 @@ $sidebar = new SidebarRenderer(
             </button>
         </div>
     </div>
+
+    <?php if ($shiftInfo): ?>
+    <!-- ======== SHIFT INFO BANNER ======== -->
+    <div class="km-shift-banner" id="shiftBanner">
+        <div class="km-shift-name">
+            <i class="fa-solid fa-circle-user" style="font-size:14px;opacity:0.9;"></i>
+            <?= htmlspecialchars($shiftInfo['fullname']) ?>
+            <span class="km-role-chip"><?= htmlspecialchars($shiftInfo['role']) ?></span>
+        </div>
+
+        <?php if (!empty($shiftInfo['shift_start']) && !empty($shiftInfo['shift_end'])): ?>
+        <div class="km-shift-sep"></div>
+        <div class="km-shift-item">
+            <i class="fa-regular fa-calendar-clock"></i>
+            Shift:&nbsp;<strong>
+                <?= date('h:i A', strtotime($shiftInfo['shift_start'])) ?>
+                &ndash;
+                <?= date('h:i A', strtotime($shiftInfo['shift_end'])) ?>
+            </strong>
+        </div>
+        <?php endif; ?>
+
+        <div class="km-shift-sep"></div>
+        <div class="km-shift-item" id="elapsedWrap">
+            <i class="fa-regular fa-stopwatch"></i>
+            Logged in:&nbsp;<strong id="shiftElapsed">—</strong>
+        </div>
+
+        <?php if (!empty($shiftInfo['shift_end'])): ?>
+        <div class="km-shift-sep"></div>
+        <div class="km-shift-item" id="remainWrap">
+            <i class="fa-regular fa-hourglass-half"></i>
+            Remaining:&nbsp;<strong id="shiftRemaining">—</strong>
+        </div>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Kitchen Back — PIN Modal -->
     <div id="kitchenPinOverlay" style="display:none; position:fixed; inset:0;
@@ -640,10 +753,26 @@ window.openPinModal = function(type) {};
 // ===== KITCHEN BACK PIN =====
 let kmPin = '';
 function showKitchenPinModal() {
-    kmPin = '';
-    updKmDots(0);
-    document.getElementById('kmPinError').style.display = 'none';
-    document.getElementById('kitchenPinOverlay').style.display = 'flex';
+    const isStaff = <?= $via_staff ? 'true' : 'false' ?>;
+    Swal.fire({
+        title: 'Log Out?',
+        text: 'Are you sure you want to log out?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, log out',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            if (isStaff) {
+                window.location.replace('helpers/staff_helpers.php?action=staff_logout');
+            } else {
+                window.location.replace('../logout.php');
+            }
+        }
+    });
 }
 function hideKitchenPinModal() {
     document.getElementById('kitchenPinOverlay').style.display = 'none';
@@ -729,8 +858,60 @@ window.addEventListener('popstate', function() {
     for (let i = 0; i < 50; i++) {
         history.pushState({ page: 'kitchen', i: i }, '', window.location.href);
     }
-    showKitchenPinModal();
 });
+
+<?php if ($shiftInfo && $staffLoginAt): ?>
+/* ================================================================
+   SHIFT TIMER — Kitchen
+================================================================ */
+(function () {
+    const loginAt  = <?= (int)$staffLoginAt ?>;
+    const shiftEnd = <?= (!empty($shiftInfo['shift_end'])) ? json_encode($shiftInfo['shift_end']) : 'null' ?>;
+
+    function fmtDuration(secs) {
+        if (secs < 0) secs = 0;
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (h > 0) return h + 'h ' + String(m).padStart(2,'0') + 'm ' + String(s).padStart(2,'0') + 's';
+        return m + 'm ' + String(s).padStart(2,'0') + 's';
+    }
+
+    function getShiftEndTimestamp() {
+        if (!shiftEnd) return null;
+        const now = new Date();
+        const [hh, mm, ss] = shiftEnd.split(':').map(Number);
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, ss || 0);
+        if (end.getTime() < Date.now()) end.setDate(end.getDate() + 1);
+        return Math.floor(end.getTime() / 1000);
+    }
+
+    const elapsedEl  = document.getElementById('shiftElapsed');
+    const remainEl   = document.getElementById('shiftRemaining');
+    const remainWrap = document.getElementById('remainWrap');
+
+    function tickShift() {
+        const nowSec  = Math.floor(Date.now() / 1000);
+        const elapsed = nowSec - loginAt;
+        if (elapsedEl) elapsedEl.textContent = fmtDuration(elapsed);
+
+        if (remainEl && remainWrap) {
+            const endTs = getShiftEndTimestamp();
+            if (endTs) {
+                const remain = endTs - nowSec;
+                remainEl.textContent = remain <= 0 ? 'Shift ended' : fmtDuration(remain);
+                remainWrap.classList.remove('warn', 'danger');
+                if (remain <= 0)         remainWrap.classList.add('danger');
+                else if (remain <= 1800) remainWrap.classList.add('danger');  // ≤ 30 min
+                else if (remain <= 3600) remainWrap.classList.add('warn');    // ≤ 1 hr
+            }
+        }
+    }
+
+    tickShift();
+    setInterval(tickShift, 1000);
+})();
+<?php endif; ?>
 
 </script>
 </body>
