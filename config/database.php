@@ -217,7 +217,8 @@ class Database {
         )");
     }
 }
-<?php
+
+/**<?php
 
 class Database {
     private $host     = "localhost";
@@ -405,7 +406,7 @@ class Database {
                 /* =========================
                 SYSTEM SETTINGS
                 ========================= */
-                $this->conn->exec("CREATE TABLE IF NOT EXISTS system_settings (
+               /*$this->conn->exec("CREATE TABLE IF NOT EXISTS system_settings (
                     setting_key   VARCHAR(100) PRIMARY KEY,
                     setting_value TEXT NULL,
                     updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -434,4 +435,4 @@ class Database {
             'superadmin'
         )");
     }
-}
+} */
