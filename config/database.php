@@ -2,6 +2,7 @@
 
 class Database {
     private $host     = "localhost";
+    private $port     = "3308";
     private $dbname   = "ipos_db";
     private $username = "root";
     private $password = "root";   // ← set your MySQL root password here if needed
@@ -12,7 +13,7 @@ class Database {
         try {
             // Step 1: Connect WITHOUT selecting a database
             $pdo = new PDO(
-                "mysql:host={$this->host};charset=utf8mb4",
+                "mysql:host={$this->host};port={$this->port};charset=utf8mb4",
                 $this->username,
                 $this->password
             );

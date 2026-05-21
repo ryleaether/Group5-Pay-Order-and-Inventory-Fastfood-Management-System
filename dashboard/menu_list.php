@@ -104,13 +104,15 @@ function normalizeResourcePath($path) {
                 <?php foreach ($items as $item): ?>
                     <div class="menu-card">
                         <div class="menu-img-wrap">
-                            <?php if (!empty($item['image_url'])):
-                                $menuImageSrc = normalizeResourcePath($item['image_url']); ?>
-                               <img src="<?= htmlspecialchars($menuImageSrc) ?>"
-                                     alt="<?= htmlspecialchars($item['item_name']) ?>"
-                                     class="menu-img">
+                            <?php if (!empty($item["image_url"])):
+                                $menuImageSrc = normalizeResourcePath($item["image_url"]); ?>
+                                <img src="<?= htmlspecialchars($menuImageSrc) ?>"
+                                      alt="<?= htmlspecialchars($item["item_name"]) ?>"
+                                      class="menu-img">
                             <?php else: ?>
                                 <div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>
+                            <?php endif; ?>
+                        </div>
                             <?php endif; ?>
                         </div>
                         <div class="menu-header">
@@ -123,10 +125,10 @@ function normalizeResourcePath($path) {
                         <div class="price">₱<?= number_format($item['price'], 2) ?></div>
                         <div class="stock">Stock: <?= $item['stock_quantity'] ?></div>
                         <div class="actions">
-                            <a class="btn edit" href="#" onclick="openEditModal(<?= $item['menu_item_id'] ?>); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
+                              <a class="btn edit" href="#" onclick="openEditModal(<?= $item["menu_item_id"] ?>); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=<?= $item["menu_item_id"] ?>"
                                onclick="return confirm('Delete this item?')"><i class="fa-solid fa-trash"></i> Delete</a>
-                        </div>
+                          </div>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>
@@ -550,69 +552,73 @@ function savePin(pin) {
 }
 
 /* ── LIVE SEARCH ── */
+function fetchMenu() {
+    const searchInput  = document.getElementById('liveSearch');
+    const categorySel  = document.getElementById('liveCategory');
+    const statusSel    = document.getElementById('liveStatus');
+    const grid         = document.getElementById('menuGrid');
+    const spinner      = document.getElementById('searchSpinner');
+
+    const params = new URLSearchParams({
+        search:   searchInput.value,
+        category: categorySel.value,
+        status:   statusSel.value,
+        ajax:     '1'
+    });
+
+    spinner.style.display = 'inline';
+
+    fetch('helpers/admindashboard_helpers.php?action=search_menu&' + params.toString())
+        .then(r => r.json())
+        .then(data => {
+            spinner.style.display = 'none';
+            if (!data.success) { grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Error loading items.</p>'; return; }
+
+            if (data.items.length === 0) {
+                grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">' + (data.has_any ? 'No items match your current filters.' : 'No menu items yet. Add your first item!') + '</p>';
+                return;
+            }
+
+            grid.innerHTML = data.items.map(item => `
+                <div class="menu-card">
+                    <div class="menu-img-wrap">
+                        ${item.image_url
+                            ? `<img src="${escHtml(item.image_url)}" alt="${escHtml(item.item_name)}" class="menu-img">`
+                            : `<div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>`}
+                    </div>
+                    <div class="menu-header">
+                        <h3>${escHtml(item.item_name)}</h3>
+                        <span class="status ${item.is_available == 1 ? 'available' : 'unavailable'}">
+                            ${item.is_available == 1 ? 'Available' : 'Unavailable'}
+                        </span>
+                    </div>
+                    <div class="category">${escHtml(item.category)}</div>
+                    <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
+                    <div class="stock">Stock: ${item.stock_quantity}</div>
+                    <div class="actions">
+                        <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                        <button class="btn delete" onclick="softDeleteItem(${item.menu_item_id}, escHtml(item.item_name))"><i class="fa-solid fa-trash"></i> Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            spinner.style.display = 'none';
+            grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Network error. Please try again.</p>';
+        });
+}
+
+function escHtml(str) {
+    return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── LIVE SEARCH EVENT LISTENERS ── */
 (function() {
     const searchInput  = document.getElementById('liveSearch');
     const categorySel  = document.getElementById('liveCategory');
     const statusSel    = document.getElementById('liveStatus');
     const clearBtn     = document.getElementById('clearFiltersBtn');
-    const grid         = document.getElementById('menuGrid');
-    const spinner      = document.getElementById('searchSpinner');
     let   debounceTimer;
-
-    function fetchMenu() {
-        const params = new URLSearchParams({
-            search:   searchInput.value,
-            category: categorySel.value,
-            status:   statusSel.value,
-            ajax:     '1'
-        });
-
-        spinner.style.display = 'inline';
-
-        fetch('helpers/admindashboard_helpers.php?action=search_menu&' + params.toString())
-            .then(r => r.json())
-            .then(data => {
-                spinner.style.display = 'none';
-                if (!data.success) { grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Error loading items.</p>'; return; }
-
-                if (data.items.length === 0) {
-                    grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;">' + (data.has_any ? 'No items match your current filters.' : 'No menu items yet. Add your first item!') + '</p>';
-                    return;
-                }
-
-                grid.innerHTML = data.items.map(item => `
-                    <div class="menu-card">
-                        <div class="menu-img-wrap">
-                            ${item.image_url
-                                ? `<img src="${escHtml(item.image_url)}" alt="${escHtml(item.item_name)}" class="menu-img">`
-                                : `<div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>`}
-                        </div>
-                        <div class="menu-header">
-                            <h3>${escHtml(item.item_name)}</h3>
-                            <span class="status ${item.is_available == 1 ? 'available' : 'unavailable'}">
-                                ${item.is_available == 1 ? 'Available' : 'Unavailable'}
-                            </span>
-                        </div>
-                        <div class="category">${escHtml(item.category)}</div>
-                        <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
-                        <div class="stock">Stock: ${item.stock_quantity}</div>
-                        <div class="actions">
-                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=${item.menu_item_id}"
-                               onclick="return confirm('Delete this item?')"><i class="fa-solid fa-trash"></i> Delete</a>
-                        </div>
-                    </div>
-                `).join('');
-            })
-            .catch(() => {
-                spinner.style.display = 'none';
-                grid.innerHTML = '<p class="empty-state" style="grid-column:1/-1;"><i class="fa-solid fa-triangle-exclamation"></i> Network error. Please try again.</p>';
-            });
-    }
-
-    function escHtml(str) {
-        return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-    }
 
     /* Debounce text input (300ms), instant on dropdowns */
     searchInput.addEventListener('input', () => {
@@ -629,6 +635,30 @@ function savePin(pin) {
         fetchMenu();
     });
 })();
+
+    // ── SOFT DELETE ITEM ─────────────────────────────────────────────
+    async function softDeleteItem(itemId, itemName) {
+        if (!confirm('Move "' + itemName + '" to trash? You can restore it within 30 days.')) return;
+        try {
+            const fd = new FormData();
+            fd.append('action', 'soft_delete');
+            fd.append('type', 'item');
+            fd.append('id', itemId);
+            const res  = await fetch('soft_delete_handler.php', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.success) {
+                // Show success toast if available, else alert
+                if (typeof showToast === 'function') showToast(data.message, 'success');
+                else alert(data.message);
+                fetchMenu();
+            } else {
+                alert(data.message || 'Failed to delete item.');
+            }
+        } catch(e) {
+            alert('Connection error. Please try again.');
+        }
+    }
+
 </script>
 
 </body>
