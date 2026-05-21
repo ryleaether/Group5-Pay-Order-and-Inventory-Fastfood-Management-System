@@ -18,11 +18,20 @@ class MenuItem {
         $this->admin_id = $admin_id;
     }
 
+    private function fixImageUrl($url) {
+        if (empty($url)) return $url;
+        if (strpos($url, '/uploads/') === 0) return '/dashboard' . $url;
+        if (strpos($url, '../uploads/') === 0) return '/dashboard/uploads/' . basename($url);
+        return $url;
+    }
+
     public function getAll() {
         $stmt = $this->conn->prepare("SELECT * FROM {$this->table} WHERE admin_id = :id ORDER BY created_at DESC");
         $stmt->bindParam(":id", $this->admin_id);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as &$row) $row['image_url'] = $this->fixImageUrl($row['image_url']);
+        return $rows;
     }
 
     public function getById($menu_item_id) {
@@ -30,7 +39,9 @@ class MenuItem {
         $stmt->bindParam(":id", $menu_item_id);
         $stmt->bindParam(":admin_id", $this->admin_id);
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row) $row['image_url'] = $this->fixImageUrl($row['image_url']);
+        return $row;
     }
 
     public function create($item_name, $description, $price, $stock_quantity, $category, $is_available, $image_url = null) {
@@ -103,7 +114,9 @@ class MenuItem {
         $sql .= " ORDER BY created_at DESC";
         $stmt = $this->conn->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as &$row) $row['image_url'] = $this->fixImageUrl($row['image_url']);
+        return $rows;
     }
 
     public function getCategories() {
@@ -152,7 +165,7 @@ class ImageUploader {
         $filename = 'item_' . $this->admin_id . '_' . time() . '.' . $ext;
         $filepath = $this->upload_dir . $filename;
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            return ['success' => true, 'filename' => $filename, 'url' => '../uploads/' . $filename];
+           return ['success' => true, 'filename' => $filename, 'url' => '/dashboard/uploads/' . $filename];
         }
         return ['success' => false, 'message' => 'Failed to save file.'];
     }

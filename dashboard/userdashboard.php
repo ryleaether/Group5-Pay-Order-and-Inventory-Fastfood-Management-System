@@ -53,6 +53,34 @@ foreach ($all_items as $item) {
     if (!in_array($cat, $categories)) $categories[] = $cat;
 }
 
+function normalizeResourcePath($path) {
+    $path = trim((string)$path);
+    if ($path === '') return '';
+    if (strpos($path, '/uploads/') === 0) return '/dashboard/uploads/' . basename($path);
+    if (strpos($path, '../uploads/') === 0) return '/dashboard/uploads/' . basename($path);
+    if (preg_match('#^(?:https?://|data:image/)#i', $path)) return $path;
+    if (strpos($path, '/dashboard/uploads/') === 0) return $path;
+    return '/' . ltrim($path, './');
+}
+
+$brandLogoUrl   = $_SESSION['logo_url'] ?? '';
+$brandLogoShape = $_SESSION['logo_shape'] ?? 'circle';
+if (empty($brandLogoUrl) && isset($_SESSION['staff_admin'])) {
+    try {
+        $stmt = $conn->prepare("SELECT logo_url, logo_shape FROM admin_extended WHERE admin_id = :id");
+        $stmt->execute([':id' => $_SESSION['staff_admin']]);
+        $adminExt = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($adminExt) {
+            $brandLogoUrl   = $adminExt['logo_url'] ?? $brandLogoUrl;
+            $brandLogoShape = $adminExt['logo_shape'] ?? $brandLogoShape;
+        }
+    } catch (Exception $e) {
+        // Ignore missing extended profile table or other query errors
+    }
+}
+$brandLogoSrc    = normalizeResourcePath($brandLogoUrl);
+$brandLogoRadius = $brandLogoShape === 'rounded' ? '14px' : ($brandLogoShape === 'square' ? '4px' : '50%');
+
 // Helper: convert #rrggbb to rgba(r,g,b,alpha) for theme bridge
 function hexToRgba($hex, $alpha) {
     $hex = ltrim($hex, '#');
@@ -91,6 +119,22 @@ function hexToRgba($hex, $alpha) {
     }
     .pos-admin-modal h3 { color: <?= htmlspecialchars($txt) ?>; }
     .pos-admin-modal p  { color: <?= htmlspecialchars(hexToRgba($txt, 0.6)) ?>; }
+
+    .pos-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 0.98rem;
+    }
+    .pos-brand-logo {
+        width: 38px;
+        height: 38px;
+        object-fit: cover;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: rgba(255,255,255,0.15);
+    }
 
     /* ── Shift Info Banner ── */
     .pos-shell { grid-template-rows: 52px auto 1fr; }
@@ -160,7 +204,13 @@ function hexToRgba($hex, $alpha) {
     <!-- ======== TOP BAR ======== -->
     <header class="pos-topbar">
         <div class="pos-brand" id="brandLogo">
-            <?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?>
+            <?php if (!empty($brandLogoSrc)): ?>
+                <img src="<?= htmlspecialchars($brandLogoSrc) ?>"
+                     alt="Logo"
+                     class="pos-brand-logo"
+                     style="border-radius: <?= htmlspecialchars($brandLogoRadius) ?>;">
+            <?php endif; ?>
+            <span><?= htmlspecialchars($_SESSION['fastfood_name'] ?? 'iPOS') ?></span>
         </div>
         <div class="pos-topbar-divider"></div>
         <div class="pos-cashier-badge">Cashier Mode</div>
@@ -244,8 +294,9 @@ function hexToRgba($hex, $alpha) {
                          data-name="<?= strtolower(htmlspecialchars($item['item_name'])) ?>"
                          onclick="addToOrder(<?= $item['menu_item_id'] ?>, '<?= addslashes($item['item_name']) ?>', <?= $item['price'] ?>, <?= $item['stock_quantity'] ?>)">
 
-                        <?php if (!empty($item['image_url'])): ?>
-                            <img src="<?= htmlspecialchars($item['image_url']) ?>"
+                        <?php if (!empty($item['image_url'])):
+                            $itemImageSrc = normalizeResourcePath($item['image_url']); ?>
+                            <img src="<?= htmlspecialchars($itemImageSrc) ?>"
                                  alt="<?= htmlspecialchars($item['item_name']) ?>"
                                  class="pos-item-img">
                         <?php else: ?>
@@ -467,11 +518,19 @@ tickClock();
             const endTs = getShiftEndTimestamp();
             if (endTs) {
                 const remain = endTs - nowSec;
-                remainEl.textContent = remain <= 0 ? 'Shift ended' : fmtDuration(remain);
+                if (remain <= 0) {
+                    remainEl.textContent = 'Shift ended';
+                } else if (remain <= 10) {
+                    remainEl.textContent = `Only ${remain}s left`;
+                } else if (remain < 60) {
+                    remainEl.textContent = `${remain}s left`;
+                } else {
+                    remainEl.textContent = fmtDuration(remain);
+                }
                 remainWrap.classList.remove('warn', 'danger');
                 if (remain <= 0)          remainWrap.classList.add('danger');
-                else if (remain <= 1800)  remainWrap.classList.add('danger');
-                else if (remain <= 3600)  remainWrap.classList.add('warn');
+                else if (remain <= 60)     remainWrap.classList.add('danger');
+                else if (remain <= 3600)   remainWrap.classList.add('warn');
             }
         }
     }

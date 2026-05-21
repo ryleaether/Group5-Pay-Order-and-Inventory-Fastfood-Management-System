@@ -1,14 +1,21 @@
 <?php
 /**
  * theme_loader.php — Universal theme injector.
- * Include AFTER the main CSS file in <head>.
- * Works on ALL pages (with or without $admin_id / $conn).
- * Session-cached so zero extra DB latency after first load.
+ * Always reads from DB to ensure theme is consistent across all pages.
  */
 
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 $_tl_id = null;
-if (isset($admin_id) && $admin_id)   $_tl_id = (int)$admin_id;
-elseif (isset($_SESSION['admin_id'])) $_tl_id = (int)$_SESSION['admin_id'];
+if (isset($admin_id) && $admin_id) {
+    $_tl_id = (int)$admin_id;
+} elseif (isset($_SESSION['admin_id']) && $_SESSION['admin_id']) {
+    $_tl_id = (int)$_SESSION['admin_id'];
+} elseif (isset($_SESSION['staff_admin']) && $_SESSION['staff_admin']) {
+    $_tl_id = (int)$_SESSION['staff_admin'];
+}
 
 $_tl = null;
 if ($_tl_id) {
@@ -24,9 +31,11 @@ if ($_tl_id) {
             $r = $s->fetch(PDO::FETCH_ASSOC);
             if ($r && !empty($r['theme_data'])) {
                 $_tl = json_decode($r['theme_data'], true) ?: null;
-                if ($_tl) $_SESSION[$cacheKey] = $_tl;
+                if (is_array($_tl)) {
+                    $_SESSION[$cacheKey] = $_tl;
+                }
             }
-        } catch (Exception $e) { /* theme_data column may not exist yet */ }
+        } catch (Exception $e) {}
     }
 }
 
@@ -39,7 +48,6 @@ $acl = $_tl['accentLight'] ?? '#F5E6EC';
 $brd = $_tl['borderColor'] ?? '#EAE0EE';
 $ts  = $_tl['textSec']     ?? '#8C6E82';
 
-// Fix old default colors for existing registered users
 if ($sb  === '#5C0A2E' || $sb  === '#2d0a1f') $sb  = '#2D0B22';
 if ($acd === '#5C0A2E' || $acd === '#7e1545') $acd = '#9B2C52';
 if ($bg  === '#f5eef4' || $bg  === '#FDF2F8') $bg  = '#F0EBF4';

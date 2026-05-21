@@ -753,26 +753,10 @@ window.openPinModal = function(type) {};
 // ===== KITCHEN BACK PIN =====
 let kmPin = '';
 function showKitchenPinModal() {
-    const isStaff = <?= $via_staff ? 'true' : 'false' ?>;
-    Swal.fire({
-        title: 'Log Out?',
-        text: 'Are you sure you want to log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, log out',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            if (isStaff) {
-                window.location.replace('helpers/staff_helpers.php?action=staff_logout');
-            } else {
-                window.location.replace('../logout.php');
-            }
-        }
-    });
+    kmPin = '';
+    updKmDots(0);
+    document.getElementById('kmPinError').style.display = 'none';
+    document.getElementById('kitchenPinOverlay').style.display = 'flex';
 }
 function hideKitchenPinModal() {
     document.getElementById('kitchenPinOverlay').style.display = 'none';

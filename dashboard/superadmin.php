@@ -257,6 +257,7 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>iPOS — Super Admin</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <style>
         .nav-svg { width:16px; height:16px; display:inline-block; vertical-align:middle; fill:currentColor; flex-shrink:0; }
         .search-svg { width:14px; height:14px; display:inline-block; vertical-align:middle; fill:currentColor; }
@@ -265,26 +266,25 @@ try {
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         :root {
-            --sidebar-bg:     #2D0B22;
+            --sidebar-active: var(--accent);
             --sidebar-hover:  rgba(255,255,255,0.07);
-            --sidebar-active: #9B2C52;
             --sidebar-text:   rgba(255,255,255,0.55);
             --sidebar-border: rgba(255,255,255,0.07);
 
-            --bg:             #F0EBF4;
-            --bg-card:        #FFFFFF;
-            --bg-input:       #F8F4FA;
+            --bg:             var(--body-bg);
+            --bg-card:        var(--card-bg);
+            --bg-input:       var(--accent-light);
 
-            --rose:           #9B2C52;
-            --rose-hover:     #7A1F3E;
-            --rose-muted:     #F5E6EC;
-            --rose-border:    #E8C0CC;
+            --rose:           var(--accent);
+            --rose-hover:     var(--accent-dark);
+            --rose-muted:     var(--accent-light);
+            --rose-border:    var(--border-color);
 
-            --text-h:         #1A0A14;
-            --text-body:      #3D1A30;
-            --text-muted:     #8C6E82;
+            --text-h:         var(--text-primary);
+            --text-body:      var(--text-primary);
+            --text-muted:     var(--text-secondary);
 
-            --border:         #EAE0EE;
+            --border:         var(--border-color);
 
             --green:          #1A7F4E;
             --green-bg:       #E8F7F0;

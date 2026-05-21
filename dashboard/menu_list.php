@@ -40,6 +40,15 @@ if (empty($items)) {
 }
 
 $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adminProfile['fullname'] ?? $_SESSION['username'] ?? '');
+
+function normalizeResourcePath($path) {
+    $path = trim((string)$path);
+    if ($path === '') return '';
+    if (preg_match('#^(?:https?://|/|data:image/)#i', $path)) {
+        return $path;
+    }
+    return '/' . ltrim($path, './');
+}
 ?>
 <!DOCTYPE html>
 <html>
@@ -95,8 +104,9 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 <?php foreach ($items as $item): ?>
                     <div class="menu-card">
                         <div class="menu-img-wrap">
-                            <?php if (!empty($item['image_url'])): ?>
-                               <img src="<?= htmlspecialchars($item['image_url']) ?>"
+                            <?php if (!empty($item['image_url'])):
+                                $menuImageSrc = normalizeResourcePath($item['image_url']); ?>
+                               <img src="<?= htmlspecialchars($menuImageSrc) ?>"
                                      alt="<?= htmlspecialchars($item['item_name']) ?>"
                                      class="menu-img">
                             <?php else: ?>
@@ -113,8 +123,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                         <div class="price">₱<?= number_format($item['price'], 2) ?></div>
                         <div class="stock">Stock: <?= $item['stock_quantity'] ?></div>
                         <div class="actions">
-                            <a class="btn edit" href="#" onclick="openEditModal(${item.menu_item_id}); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
-                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=${item.menu_item_id}"
+                            <a class="btn edit" href="#" onclick="openEditModal(<?= $item['menu_item_id'] ?>); return false;"><i class="fa-solid fa-pen-to-square"></i> Edit</a>
+                            <a class="btn delete" href="helpers/admindashboard_helpers.php?action=delete_menu&id=<?= $item['menu_item_id'] ?>"
                                onclick="return confirm('Delete this item?')"><i class="fa-solid fa-trash"></i> Delete</a>
                         </div>
                     </div>

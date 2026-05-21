@@ -3,18 +3,6 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Always reset theme to default when login page is visited
-if (isset($_SESSION['admin_id'])) {
-    try {
-        require_once __DIR__ . "/config/database.php";
-        $db2    = new Database();
-        $conn2  = $db2->connect();
-        $conn2->prepare("UPDATE admins SET theme_data = NULL WHERE admin_id = :id")
-              ->execute([':id' => (int)$_SESSION['admin_id']]);
-        unset($_SESSION['ipos_theme_' . $_SESSION['admin_id']]);
-    } catch (Exception $e) {}
-}
-
 require_once __DIR__ . "/validation.php";
 require_once __DIR__ . "/config/audit_helper.php";
 
@@ -60,14 +48,6 @@ $_SESSION['logo_shape']    = $result['logo_shape'] ?? 'circle';
 $_SESSION['business_type'] = $result['business_type'] ?? null;
 
 unset($_SESSION['ipos_theme_' . $result['admin_id']]);
-
-// Reset theme to default on every login
-try {
-    $db   = new Database();
-    $conn = $db->connect();
-    $conn->prepare("UPDATE admins SET theme_data = NULL WHERE admin_id = :id")
-         ->execute([':id' => $result['admin_id']]);
-} catch (Exception $e) {}
 
         // ── Audit: successful superadmin login ──
         if ($result['role'] === 'superadmin') {
