@@ -79,10 +79,49 @@ class MenuItem {
     }
 
     public function delete($menu_item_id) {
+        // Soft delete: move to deleted_menu_items with 30-day recovery window
+        $fetch = $this->conn->prepare("SELECT * FROM {$this->table} WHERE menu_item_id = :id AND admin_id = :admin_id");
+        $fetch->execute([':id' => $menu_item_id, ':admin_id' => $this->admin_id]);
+        $row = $fetch->fetch(\PDO::FETCH_ASSOC);
+        if (!$row) return false;
+
+        // Ensure soft-delete table exists
+        $this->conn->exec("CREATE TABLE IF NOT EXISTS deleted_menu_items (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            item_id INT NOT NULL, admin_id INT NOT NULL,
+            item_name VARCHAR(255) NOT NULL, description TEXT,
+            price DECIMAL(10,2) NOT NULL DEFAULT 0, stock_quantity INT NOT NULL DEFAULT 0,
+            category VARCHAR(100), is_available TINYINT(1) DEFAULT 1, image_url VARCHAR(500),
+            original_created_at DATETIME, deleted_by VARCHAR(100),
+            deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_admin_deleted (admin_id, deleted_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        $ins = $this->conn->prepare(
+            "INSERT INTO deleted_menu_items
+                (item_id, admin_id, item_name, description, price, stock_quantity,
+                 category, is_available, image_url, original_created_at, deleted_by, deleted_at)
+             VALUES
+                (:item_id, :admin_id, :item_name, :description, :price, :stock_quantity,
+                 :category, :is_available, :image_url, :created_at, :deleted_by, NOW())"
+        );
+        $ins->execute([
+            ':item_id'       => $row['menu_item_id'],
+            ':admin_id'      => $row['admin_id'],
+            ':item_name'     => $row['item_name'],
+            ':description'   => $row['description'] ?? null,
+            ':price'         => $row['price'],
+            ':stock_quantity'=> $row['stock_quantity'],
+            ':category'      => $row['category'] ?? null,
+            ':is_available'  => $row['is_available'],
+            ':image_url'     => $row['image_url'] ?? null,
+            ':created_at'    => $row['created_at'],
+            ':deleted_by'    => $_SESSION['username'] ?? 'admin',
+        ]);
+
         $stmt = $this->conn->prepare("DELETE FROM {$this->table} WHERE menu_item_id = :id AND admin_id = :admin_id");
-        $stmt->bindParam(":id", $menu_item_id);
-        $stmt->bindParam(":admin_id", $this->admin_id);
-        return $stmt->execute();
+        $stmt->execute([':id' => $menu_item_id, ':admin_id' => $this->admin_id]);
+        return true;
     }
 
     public function searchAndFilter($search = '', $category = '', $status = '') {
@@ -311,10 +350,17 @@ class SidebarRenderer {
 
             <!-- Brand / Logo -->
             <div class="logo">
-                <?php include __DIR__ . '/../helpers/ipos_logo.php'; ?>
+                <?php if (!empty($this->logo_url)): ?>
+                    <div class="logo-icon-box" style="background:none;padding:0;overflow:hidden;border-radius:8px;flex-shrink:0;">
+                        <img src="<?= htmlspecialchars('../' . ltrim($this->logo_url, './')) ?>"
+                             alt="Logo" style="width:38px;height:38px;object-fit:cover;border-radius:8px;display:block;">
+                    </div>
+                <?php else: ?>
+    <?php $__lf = __DIR__ . '/../helpers/ipos_logo.php'; if (file_exists($__lf)) { include $__lf; } else { echo '<div class="logo-icon-box" style="width:38px;height:38px;border-radius:9px;background:#9B2C52;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;">iPOS</div>'; } ?>
+<?php endif; ?>
 
                 <div class="logo-text">
-                    <h2>iPOS</h2>
+                    <h2><?= $name ?: 'iPOS' ?></h2>
                     <p>I Pay, I Order, I Serve</p>
                 </div>
             </div>
@@ -362,12 +408,17 @@ class SidebarRenderer {
                     </li>
                     <li class="<?= $is('history') ?>">
                         <a href="order_history.php">
-                            <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span> Order History
+                           <span class="nav-icon"><i class="fa-solid fa-receipt"></i></span> Order History
                         </a>
                     </li>
                     <li class="<?= $is('staffs') ?>">
                         <a href="manage_staffs.php">
-                            <span class="nav-icon"><i class="fa-solid fa-users"></i></span> Manage Staffs
+                           <span class="nav-icon"><i class="fa-solid fa-users"></i></span> Manage Staffs
+                        </a>
+                    </li>
+                    <li class="<?= $is('backup') ?>">
+                        <a href="admin_backup.php">
+                           <span class="nav-icon"><i class="fa-solid fa-cloud-arrow-down"></i></span> Backup &amp; Restore
                         </a>
                     </li>
                 </ul>
@@ -376,7 +427,8 @@ class SidebarRenderer {
                 <ul>
                     <li class="<?= $is('account') ?>">
                         <a href="account_pin_gate.php">
-                            <span class="nav-icon"><i class="fa-solid fa-circle-user"></i></span> Account
+                            <span class="nav-icon"><i class="fa-solid fa-circle-user"></i></span>
+ Account
                         </a>
                     </li>
                     <li class="<?= $is('staff_gate') ?>">
@@ -541,14 +593,14 @@ class SidebarRenderer {
             transform: translateX(5px);
         }
     .nav-icon {
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 7px;
-    font-size: 1.25rem;
+    font-size: 0.85rem;
     flex-shrink: 0;
     transition: background 0.2s, width 0.2s, height 0.2s;
 }
@@ -642,7 +694,6 @@ class SidebarRenderer {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window._logoutInProgress = true;
                     window.location.href = '../logout.php';
                 }
             });
@@ -692,7 +743,7 @@ class SidebarRenderer {
         echo $sidebar_html;
         ?>
         <div class="main" id="mainContent">
-            <?php include __DIR__ . '/../header.php'; ?>
+            <?php $__hf = __DIR__ . '/../header.php'; if (file_exists($__hf)) { include $__hf; } else { $__u = htmlspecialchars($_SESSION['username'] ?? 'Admin'); $__s = htmlspecialchars($_SESSION['fastfood_name'] ?? ''); echo "<div class=\"topbar\"><div class=\"topbar-left\"><h1 class=\"topbar-title\">{$__s}</h1><p class=\"topbar-sub\">{$__u}</p></div></div>"; } ?>
             <div class="page-content">
         <?php
         return ob_get_clean();
@@ -700,7 +751,7 @@ class SidebarRenderer {
     public function renderClose() {
         ob_start(); ?>
         </div><!-- end page-content -->
-        <?php include __DIR__ . '/../footer.php'; ?>
+        <?php $__ff = __DIR__ . '/../footer.php'; if (file_exists($__ff)) { include $__ff; } ?>
         </div><!-- end main -->
         <?php
         return ob_get_clean();

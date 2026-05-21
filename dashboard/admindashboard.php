@@ -310,7 +310,6 @@ document.getElementById('ann-modal-overlay').addEventListener('click', function(
     ═══════════════════════════════ -->
    
 
-    <!-- DEBUG: logo_url=<?= $_SESSION['logo_url'] ?? 'NULL' ?> | logo_shape=<?= $_SESSION['logo_shape'] ?? 'NULL' ?> -->
         <!-- TOPBAR / WELCOME BANNER -->
 <div class="topbar">
   <div style="display:flex; align-items:center; gap:18px;">
@@ -682,8 +681,84 @@ document.addEventListener('DOMContentLoaded', function() {
    instead of actually navigating away. When triggered, show the
    PIN gate overlay so the user must authenticate first.
 ================================================================ */
+history.pushState({ page: 'admin' }, '', window.location.href);
+window.addEventListener('popstate', function(e) {
+    // Re-push so back keeps being intercepted
+    history.pushState({ page: 'admin' }, '', window.location.href);
+    // Show the back button PIN gate overlay
+    document.getElementById('backButtonPinGate').style.display = 'flex';
+    backButtonPin = '';
+    updateBackButtonPinDots(0);
+    document.getElementById('backButtonPinError').style.display = 'none';
+});
 
+let backButtonPin = '';
+function backButtonPinPress(num) {
+    if (backButtonPin.length >= 4) return;
+    backButtonPin += String(num);
+    updateBackButtonPinDots(backButtonPin.length);
+    if (backButtonPin.length === 4) setTimeout(verifyBackButtonPin, 100);
+}
+function backButtonPinBackspace() {
+    backButtonPin = backButtonPin.slice(0, -1);
+    updateBackButtonPinDots(backButtonPin.length);
+}
+function updateBackButtonPinDots(n) {
+    document.querySelectorAll('#backButtonPinDots .pin-dot').forEach((d, i) => d.classList.toggle('filled', i < n));
+}
+function verifyBackButtonPin() {
+    fetch('helpers/admindashboard_helpers.php?action=check_pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'pin=' + encodeURIComponent(backButtonPin)
+    }).then(r => r.json()).then(data => {
+        if (data.success) {
+            document.getElementById('backButtonPinGate').style.display = 'none';
+            backButtonPin = '';
+        } else {
+            document.getElementById('backButtonPinError').style.display = 'block';
+            backButtonPin = '';
+            updateBackButtonPinDots(0);
+            const dots = document.getElementById('backButtonPinDots');
+            dots.classList.add('pin-shake');
+            setTimeout(() => dots.classList.remove('pin-shake'), 500);
+        }
+    });
+}
+
+document.addEventListener('keydown', function(e) {
+    if (document.getElementById('backButtonPinGate').style.display === 'flex') {
+        if (e.key >= '0' && e.key <= '9') backButtonPinPress(parseInt(e.key));
+        if (e.key === 'Backspace') backButtonPinBackspace();
+    }
+});
 </script>
+
+<!-- BACK BUTTON PIN GATE MODAL -->
+<div id="backButtonPinGate" style="position:fixed; inset:0; background:rgba(0,0,0,0.55); backdrop-filter:blur(4px); z-index:9999; display:none; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:24px; padding:36px 32px; width:340px; text-align:center; box-shadow:0 24px 80px rgba(0,0,0,0.3); animation:pinPop 0.3s ease;">
+        <div style="font-size:44px; margin-bottom:10px;">🔐</div>
+        <h2 style="font-size:1.2rem; font-weight:800; color:#2d0a1f; margin-bottom:6px;">Admin Access Required</h2>
+        <p style="font-size:13px; color:#888; margin-bottom:22px;">Enter your 4-digit PIN to continue.<br>Default PIN is <strong>0000</strong>.</p>
+        <div id="backButtonPinDots" style="display:flex; justify-content:center; gap:14px; margin-bottom:22px;">
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+            <div class="pin-dot"></div><div class="pin-dot"></div>
+        </div>
+        <div class="pin-pad">
+            <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
+                <button type="button" class="pin-key"
+                    onclick="<?= $k==='⌫' ? 'backButtonPinBackspace()' : ($k==='' ? '' : "backButtonPinPress($k)") ?>">
+                    <?= $k ?>
+                </button>
+            <?php endforeach; ?>
+        </div>
+        <p id="backButtonPinError" style="color:#dc2626; font-size:13px; margin-top:12px; display:none;">Incorrect PIN. Try again.</p>
+        <button onclick="document.getElementById('backButtonPinGate').style.display='none'; backButtonPin=''; updateBackButtonPinDots(0);"
+                style="margin-top:14px; background:none; border:1.5px solid var(--border-color); padding:8px 24px; border-radius:8px; cursor:pointer; font-size:13px; color:var(--text-secondary); font-family:inherit;">
+            Cancel
+        </button>
+    </div>
+</div>
 
 </body>
 </html>

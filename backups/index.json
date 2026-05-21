@@ -1,5 +1,6 @@
 [
     {
+<<<<<<< HEAD
         "filename": "backup_Latest_withAudit_20260515_113541.sql",
         "label": "Latest_withAudit",
         "created_at": "2026-05-15 11:35:41",
@@ -37,6 +38,58 @@
         "created_at": "2026-05-20 13:03:21",
         "size": 23122,
         "tables": 11,
+=======
+        "filename": "iPOS_Backup_20260521_001503.xlsx",
+        "label": "Excel Export (store_info)",
+        "type": "excel",
+        "created_at": "2026-05-21 00:15:03",
+        "size": 5079,
+        "tables": 1,
+        "created_by": "miles"
+    },
+    {
+        "filename": "iPOS_Backup_20260521_001116.xlsx",
+        "label": "Excel Export (store_info, staff, inventory, orders, revenue)",
+        "type": "excel",
+        "created_at": "2026-05-21 00:11:16",
+        "size": 11608,
+        "tables": 5,
+        "created_by": "miles"
+    },
+    {
+        "filename": "backup_manual_20260521_000942.xlsx",
+        "label": "manual",
+        "type": "manual",
+        "created_at": "2026-05-21 00:09:42",
+        "size": 31049,
+        "tables": 14,
+        "created_by": "miles"
+    },
+    {
+        "filename": "backup_manual_20260521_000916.xlsx",
+        "label": "manual",
+        "type": "manual",
+        "created_at": "2026-05-21 00:09:16",
+        "size": 31049,
+        "tables": 14,
+        "created_by": "miles"
+    },
+    {
+        "filename": "backup_auto_20260521_000911.xlsx",
+        "label": "auto",
+        "type": "auto",
+        "created_at": "2026-05-21 00:09:11",
+        "size": 30760,
+        "tables": 14,
+        "created_by": "system"
+    },
+    {
+        "filename": "backup_sample2_20260520_174822.sql",
+        "label": "sample2",
+        "created_at": "2026-05-20 17:48:22",
+        "size": 29871,
+        "tables": 13,
+>>>>>>> Vales-feature-adminBackupRestoreRecovery
         "created_by": "superadmin"
     },
     {
@@ -48,6 +101,7 @@
         "created_by": "superadmin"
     },
     {
+<<<<<<< HEAD
         "filename": "backup_sample2_20260520_174822.sql",
         "label": "sample2",
         "created_at": "2026-05-20 17:48:22",
@@ -70,5 +124,45 @@
         "size": 38670,
         "tables": 12,
         "created_by": "superadmin"
+=======
+        "filename": "backup_fisrttry_20260520_130321.sql",
+        "label": "fisrttry",
+        "created_at": "2026-05-20 13:03:21",
+        "size": 23122,
+        "tables": 11,
+        "created_by": "superadmin"
+    },
+    {
+        "filename": "backup_number12_20260518_141237.sql",
+        "label": "number12",
+        "created_at": "2026-05-18 14:12:37",
+        "size": 17711,
+        "tables": 10,
+        "created_by": "superadmin"
+    },
+    {
+        "filename": "backup_manual_20260515_140547.sql",
+        "label": "manual",
+        "created_at": "2026-05-15 14:05:47",
+        "size": 10089,
+        "tables": 10,
+        "created_by": "superAdmin"
+    },
+    {
+        "filename": "backup_manual_20260515_113614.sql",
+        "label": "manual",
+        "created_at": "2026-05-15 11:36:14",
+        "size": 7296,
+        "tables": 9,
+        "created_by": "superAdmin"
+    },
+    {
+        "filename": "backup_Latest_withAudit_20260515_113541.sql",
+        "label": "Latest_withAudit",
+        "created_at": "2026-05-15 11:35:41",
+        "size": 7306,
+        "tables": 9,
+        "created_by": "superAdmin"
+>>>>>>> Vales-feature-adminBackupRestoreRecovery
     }
 ]

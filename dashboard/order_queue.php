@@ -45,12 +45,14 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
     <div class="main">
 
-        <div class="topbar">
-            <h1>⏳ Order Queue</h1>
-            <p class="subtitle">Active orders — oldest first</p>
-            <button class="btn-add" onclick="location.reload()" style="margin-top:12px;">
-                🔄 Refresh
-            </button>
+        <?php $__hf = __DIR__ . '/header.php'; if (file_exists($__hf)) { include $__hf; } ?>
+        <div class="page-content">
+        <div style="padding:20px 24px 8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div>
+                <h1 style="font-size:20px;font-weight:800;color:var(--text-primary);margin:0;">⏳ Order Queue</h1>
+                <p style="color:var(--text-secondary);font-size:13px;margin:4px 0 0;">Active orders — oldest first</p>
+            </div>
+            <button class="btn-add" onclick="location.reload()">🔄 Refresh</button>
         </div>
 
         <?php if (empty($orders)): ?>
@@ -113,8 +115,10 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '');
 
         <?php endif; ?>
 
-    </div>
-</div>
+        </div><!-- end page-content -->
+        <?php $__ff = __DIR__ . '/footer.php'; if(file_exists($__ff)) include $__ff; ?>
+    </div><!-- end .main -->
+</div><!-- end .dashboard -->
 
 <!-- ================= PIN MODALS (required by sidebar) ================= -->
 <?php include __DIR__ . '/helpers/pin_modals.php'; ?>
