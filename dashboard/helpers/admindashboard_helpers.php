@@ -191,7 +191,7 @@ class ImageUploader {
         $filename = 'item_' . $this->admin_id . '_' . time() . '.' . $ext;
         $filepath = $this->upload_dir . $filename;
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
-            return ['success' => true, 'filename' => $filename, 'url' => '../uploads/' . $filename];
+            return ['success' => true, 'filename' => $filename, 'url' => 'uploads/' . $filename];
         }
         return ['success' => false, 'message' => 'Failed to save file.'];
     }
@@ -227,8 +227,16 @@ class PINManager {
         $stmt->bindParam(":id", $this->admin_id);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($row && password_verify($entered_pin, $row['dashboard_pin'])) return true;
-        return false;
+        if (!$row) {
+            return false;
+        }
+
+        // Default PIN is 0000 when no dashboard PIN has been set yet.
+        if (empty($row['dashboard_pin'])) {
+            return $entered_pin === '0000';
+        }
+
+        return password_verify($entered_pin, $row['dashboard_pin']);
     }
 
     public function savePIN($pin) {
@@ -442,7 +450,7 @@ class SidebarRenderer {
 
                 <ul>
                     <li>
-                        <a href="#" class="logout-link" onclick="confirmLogout()">
+                        <a href="../logout.php" class="logout-link" onclick="confirmLogout(event); return false;">
                             <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span> Logout
                         </a>
                     </li>
@@ -674,8 +682,14 @@ class SidebarRenderer {
         function openProfileModal()  { const m = document.getElementById('profileModal'); m.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
         function closeProfileModal() { const m = document.getElementById('profileModal'); m.style.display = 'none'; document.body.style.overflow = ''; }
         document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfileModal(); });
+        window.addEventListener('pageshow', () => {
+            if (!window.__iposLoggingOut) {
+                sessionStorage.removeItem('ipos_logging_out');
+            }
+        });
 
-        function confirmLogout() {
+        function confirmLogout(event) {
+            if (event) event.preventDefault();
             Swal.fire({
                 title: 'Logging out?',
                 text: 'Are you sure you want to log out?',
@@ -694,7 +708,9 @@ class SidebarRenderer {
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = '../logout.php';
+                    sessionStorage.setItem('ipos_logging_out', '1');
+                    window.__iposLoggingOut = true;
+                    window.location.replace('../logout.php');
                 }
             });
         }
@@ -789,6 +805,47 @@ class APIHandler {
         }
     }
 
+    private function ensureOrderKitchenColumns(PDO $conn): void {
+        try {
+            $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_staff_id'");
+            if ((int)$chk->fetchColumn() === 0) {
+                $conn->exec("ALTER TABLE orders ADD COLUMN cashier_staff_id INT NULL AFTER queue_number");
+            }
+
+            $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_name'");
+            if ((int)$chk->fetchColumn() === 0) {
+                $conn->exec("ALTER TABLE orders ADD COLUMN cashier_name VARCHAR(100) NULL AFTER cashier_staff_id");
+            }
+
+            $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_staff_id'");
+            if ((int)$chk->fetchColumn() === 0) {
+                $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_staff_id INT NULL AFTER cashier_name");
+            }
+
+            $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_name'");
+            if ((int)$chk->fetchColumn() === 0) {
+                $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_name VARCHAR(100) NULL AFTER kitchen_staff_id");
+            }
+        } catch (Exception $e) {}
+    }
+
+    private function getAdminKitchenName(PDO $conn): string {
+        $name = trim((string)($_SESSION['fullname'] ?? $_SESSION['username'] ?? ''));
+        if ($name !== '') {
+            return $name;
+        }
+
+        $stmt = $conn->prepare("SELECT fullname FROM admins WHERE admin_id = :admin_id LIMIT 1");
+        $stmt->execute([':admin_id' => $this->admin_id]);
+        $name = trim((string)$stmt->fetchColumn());
+
+        return $name !== '' ? $name : 'Kitchen Manager';
+    }
+
     private function handleUpdateOrder() {
         header('Content-Type: application/json');
         $order_id = intval($_POST['order_id'] ?? 0);
@@ -797,6 +854,7 @@ class APIHandler {
         if (!$order_id || !in_array($status, $allowed)) { echo json_encode(['success' => false, 'message' => 'Invalid data.']); exit; }
         $db = new Database(); $conn = $db->connect();
         try {
+            $this->ensureOrderKitchenColumns($conn);
             $conn->beginTransaction();
             $stmt = $conn->prepare("SELECT order_status FROM orders WHERE order_id = :id AND admin_id = :admin_id");
             $stmt->bindParam(":id", $order_id); $stmt->bindParam(":admin_id", $this->admin_id); $stmt->execute();
@@ -813,8 +871,17 @@ class APIHandler {
                 $stmt = $conn->prepare("UPDATE payments SET payment_status = 'Failed' WHERE order_id = :id");
                 $stmt->bindParam(":id", $order_id); $stmt->execute();
             }
-            $stmt = $conn->prepare("UPDATE orders SET order_status = :status WHERE order_id = :id AND admin_id = :admin_id");
-            $stmt->bindParam(":status", $status); $stmt->bindParam(":id", $order_id); $stmt->bindParam(":admin_id", $this->admin_id); $stmt->execute();
+            $kitchenSql = '';
+            $params = [':status' => $status, ':id' => $order_id, ':admin_id' => $this->admin_id];
+            if ($status === 'Served') {
+                $kitchenSql = ', kitchen_staff_id = NULL, kitchen_name = :kitchen_name';
+                $params[':kitchen_name'] = $this->getAdminKitchenName($conn);
+            } elseif (in_array($status, ['Preparing', 'Cancelled'], true)) {
+                $kitchenSql = ', kitchen_staff_id = NULL, kitchen_name = NULL';
+            }
+
+            $stmt = $conn->prepare("UPDATE orders SET order_status = :status{$kitchenSql} WHERE order_id = :id AND admin_id = :admin_id");
+            $stmt->execute($params);
             $conn->commit();
             echo json_encode(['success' => true]);
         } catch (Exception $e) { $conn->rollBack(); echo json_encode(['success' => false, 'message' => $e->getMessage()]); }

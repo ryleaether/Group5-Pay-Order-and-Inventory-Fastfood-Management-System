@@ -37,6 +37,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
         $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($admin && password_verify($password, $admin['password'])) {
+            unset(
+                $_SESSION['staff_id'],
+                $_SESSION['staff_name'],
+                $_SESSION['staff_role'],
+                $_SESSION['staff_admin'],
+                $_SESSION['staff_login_at'],
+                $_SESSION['staff_session_log_id'],
+                $_SESSION['staff_login_active'],
+                $_SESSION['staff_reentry'],
+                $_SESSION['kitchen_pin_unlocked_at']
+            );
             $_SESSION['staff_gate_unlocked'] = time();
             echo json_encode(['success' => true, 'redirect' => 'staff_login.php']);
         } else {
@@ -255,6 +266,9 @@ document.getElementById('gateUsername').focus();
 }());
 
 window.addEventListener('popstate', function() {
+    if (window.__iposLoggingOut || sessionStorage.getItem('ipos_logging_out') === '1') {
+        return;
+    }
     for (let i = 0; i < 50; i++) {
         history.pushState({ gateGuard: true, i: i }, '', window.location.href);
     }
@@ -321,6 +335,10 @@ document.addEventListener('keydown', function(e) {
 
 // On pageshow (including bfcache restore) verify server-side session state.
 window.addEventListener('pageshow', function() {
+    if (sessionStorage.getItem('ipos_logging_out') === '1') {
+        window.location.replace('../login.php');
+        return;
+    }
     fetch('helpers/session_check.php', { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {

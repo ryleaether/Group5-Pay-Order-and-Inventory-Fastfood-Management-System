@@ -68,8 +68,8 @@ if ($action === 'soft_delete') {
             $row = $row->fetch(PDO::FETCH_ASSOC);
             if (!$row) { echo json_encode(['success'=>false,'message'=>'Staff not found.']); exit; }
 
-            $conn->prepare("INSERT INTO deleted_staffs (staff_id, admin_id, fullname, role, status, shift_start, shift_end, original_created_at, deleted_by) VALUES (:staff_id,:admin_id,:fullname,:role,:status,:ss,:se,:created,:by)")
-                ->execute([':staff_id'=>$row['staff_id'],':admin_id'=>$row['admin_id'],':fullname'=>$row['fullname'],':role'=>$row['role'],':status'=>$row['status'],':ss'=>$row['shift_start']??null,':se'=>$row['shift_end']??null,':created'=>$row['created_at'],':by'=>$_SESSION['username']??'admin']);
+            $conn->prepare("INSERT INTO deleted_staffs (staff_id, admin_id, fullname, role, status, shift_start, shift_end, employment_type, original_created_at, deleted_by) VALUES (:staff_id,:admin_id,:fullname,:role,:status,:ss,:se,:et,:created,:by)")
+                ->execute([':staff_id'=>$row['staff_id'],':admin_id'=>$row['admin_id'],':fullname'=>$row['fullname'],':role'=>$row['role'],':status'=>$row['status'],':ss'=>$row['shift_start']??null,':se'=>$row['shift_end']??null,':et'=>$row['employment_type']??'Full-time',':created'=>$row['created_at'],':by'=>$_SESSION['username']??'admin']);
             $conn->prepare("DELETE FROM staffs WHERE staff_id=:id")->execute([':id'=>$id]);
             audit_log($conn, $_SESSION, 'staff_soft_deleted', 'staff', $id, $row['fullname'], 'Moved to trash');
             echo json_encode(['success'=>true,'message'=>'"'.$row['fullname'].'" moved to trash. Recoverable for 30 days.']);
@@ -113,19 +113,26 @@ if ($action === 'restore') {
             $row = $row->fetch(PDO::FETCH_ASSOC);
             if (!$row) { echo json_encode(['success'=>false,'message'=>'Staff not found or recovery window expired.']); exit; }
 
+            $nameConflict = $conn->prepare("SELECT staff_id FROM staffs WHERE admin_id=:aid AND LOWER(TRIM(fullname))=LOWER(TRIM(:name)) LIMIT 1");
+            $nameConflict->execute([':aid'=>$row['admin_id'], ':name'=>$row['fullname']]);
+            if ($nameConflict->fetch(PDO::FETCH_ASSOC)) {
+                echo json_encode(['success'=>false,'message'=>'A staff member with this name already exists. Rename or remove the current staff before restoring.']);
+                exit;
+            }
+
             $conflict = $conn->prepare("SELECT staff_id FROM staffs WHERE staff_id=:id");
             $conflict->execute([':id'=>$row['staff_id']]);
-            $placeholderPin = password_hash('000000', PASSWORD_DEFAULT);
+            $placeholderPin = password_hash('0000', PASSWORD_DEFAULT);
             if ($conflict->rowCount() > 0) {
-                $conn->prepare("INSERT INTO staffs (admin_id,fullname,role,pin,status,shift_start,shift_end,created_at) VALUES (:aid,:name,:role,:pin,'Inactive',:ss,:se,:created)")
-                    ->execute([':aid'=>$row['admin_id'],':name'=>$row['fullname'],':role'=>$row['role'],':pin'=>$placeholderPin,':ss'=>$row['shift_start'],':se'=>$row['shift_end'],':created'=>$row['original_created_at']]);
+                $conn->prepare("INSERT INTO staffs (admin_id,fullname,role,pin,status,shift_start,shift_end,employment_type,created_at) VALUES (:aid,:name,:role,:pin,'Inactive',:ss,:se,:et,:created)")
+                    ->execute([':aid'=>$row['admin_id'],':name'=>$row['fullname'],':role'=>$row['role'],':pin'=>$placeholderPin,':ss'=>$row['shift_start'],':se'=>$row['shift_end'],':et'=>$row['employment_type']??'Full-time',':created'=>$row['original_created_at']]);
             } else {
-                $conn->prepare("INSERT INTO staffs (staff_id,admin_id,fullname,role,pin,status,shift_start,shift_end,created_at) VALUES (:id,:aid,:name,:role,:pin,'Inactive',:ss,:se,:created)")
-                    ->execute([':id'=>$row['staff_id'],':aid'=>$row['admin_id'],':name'=>$row['fullname'],':role'=>$row['role'],':pin'=>$placeholderPin,':ss'=>$row['shift_start'],':se'=>$row['shift_end'],':created'=>$row['original_created_at']]);
+                $conn->prepare("INSERT INTO staffs (staff_id,admin_id,fullname,role,pin,status,shift_start,shift_end,employment_type,created_at) VALUES (:id,:aid,:name,:role,:pin,'Inactive',:ss,:se,:et,:created)")
+                    ->execute([':id'=>$row['staff_id'],':aid'=>$row['admin_id'],':name'=>$row['fullname'],':role'=>$row['role'],':pin'=>$placeholderPin,':ss'=>$row['shift_start'],':se'=>$row['shift_end'],':et'=>$row['employment_type']??'Full-time',':created'=>$row['original_created_at']]);
             }
             $conn->prepare("DELETE FROM deleted_staffs WHERE id=:id AND admin_id=:aid")->execute([':id'=>$id,':aid'=>$admin_id]);
-            audit_log($conn, $_SESSION, 'staff_restored', 'staff', $row['staff_id'], $row['fullname'], 'Restored as Inactive. PIN reset to 000000');
-            echo json_encode(['success'=>true,'message'=>'"'.$row['fullname'].'" restored as Inactive. PIN reset to 000000 — please update it.']);
+            audit_log($conn, $_SESSION, 'staff_restored', 'staff', $row['staff_id'], $row['fullname'], 'Restored as Inactive. PIN reset to 0000');
+            echo json_encode(['success'=>true,'message'=>'"'.$row['fullname'].'" restored as Inactive. PIN reset to 0000. Please update it.']);
         }
     } catch(Exception $e) { echo json_encode(['success'=>false,'message'=>'Restore failed: '.$e->getMessage()]); }
     exit;
@@ -173,7 +180,7 @@ if ($action === 'list') {
             $items = $items->fetchAll(PDO::FETCH_ASSOC);
         }
         if ($type === 'staff' || $type === '') {
-            $staff = $conn->prepare("SELECT id, staff_id, fullname, role, status, deleted_at, deleted_by, GREATEST(0, DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW())) AS days_left, (deleted_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS recoverable FROM deleted_staffs WHERE admin_id=:aid ORDER BY deleted_at DESC");
+            $staff = $conn->prepare("SELECT id, staff_id, fullname, role, status, employment_type, deleted_at, deleted_by, GREATEST(0, DATEDIFF(DATE_ADD(deleted_at, INTERVAL 30 DAY), NOW())) AS days_left, (deleted_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)) AS recoverable FROM deleted_staffs WHERE admin_id=:aid ORDER BY deleted_at DESC");
             $staff->execute([':aid'=>$admin_id]);
             $staff = $staff->fetchAll(PDO::FETCH_ASSOC);
         }
@@ -187,7 +194,13 @@ echo json_encode(['success'=>false,'message'=>"Unknown action: \"{$action}\"."])
 
 function ensureTables(PDO $conn): void {
     $conn->exec("CREATE TABLE IF NOT EXISTS deleted_menu_items (id INT AUTO_INCREMENT PRIMARY KEY, item_id INT NOT NULL, admin_id INT NOT NULL, item_name VARCHAR(255) NOT NULL, description TEXT, price DECIMAL(10,2) NOT NULL DEFAULT 0, stock_quantity INT NOT NULL DEFAULT 0, category VARCHAR(100), is_available TINYINT(1) DEFAULT 1, image_url VARCHAR(500), original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    $conn->exec("CREATE TABLE IF NOT EXISTS deleted_staffs (id INT AUTO_INCREMENT PRIMARY KEY, staff_id INT NOT NULL, admin_id INT NOT NULL, fullname VARCHAR(255) NOT NULL, role VARCHAR(50), status VARCHAR(50), shift_start TIME, shift_end TIME, original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $conn->exec("CREATE TABLE IF NOT EXISTS deleted_staffs (id INT AUTO_INCREMENT PRIMARY KEY, staff_id INT NOT NULL, admin_id INT NOT NULL, fullname VARCHAR(255) NOT NULL, role VARCHAR(50), status VARCHAR(50), shift_start TIME, shift_end TIME, employment_type VARCHAR(50) NOT NULL DEFAULT 'Full-time', original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    try {
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'deleted_staffs' AND COLUMN_NAME = 'employment_type'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE deleted_staffs ADD COLUMN employment_type VARCHAR(50) NOT NULL DEFAULT 'Full-time' AFTER shift_end");
+        }
+    } catch(Exception $e) {}
 }
 function autoPurge(PDO $conn): void {
     try {

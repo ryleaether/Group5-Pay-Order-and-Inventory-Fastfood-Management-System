@@ -67,8 +67,6 @@ $sidebar = new SidebarRenderer(
     <link rel="stylesheet" href="../design/admin.css">
     <?php include __DIR__ . '/helpers/theme_loader.php'; ?>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         .km-back-btn {
@@ -753,26 +751,14 @@ window.openPinModal = function(type) {};
 // ===== KITCHEN BACK PIN =====
 let kmPin = '';
 function showKitchenPinModal() {
-    const isStaff = <?= $via_staff ? 'true' : 'false' ?>;
-    Swal.fire({
-        title: 'Log Out?',
-        text: 'Are you sure you want to log out?',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, log out',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#6b7280',
-        reverseButtons: true
-    }).then((result) => {
-        if (result.isConfirmed) {
-            if (isStaff) {
-                window.location.replace('helpers/staff_helpers.php?action=staff_logout');
-            } else {
-                window.location.replace('../logout.php');
-            }
-        }
-    });
+    kmPin = '';
+    updKmDots(0);
+    const err = document.getElementById('kmPinError');
+    if (err) {
+        err.textContent = 'Incorrect PIN. Try again.';
+        err.style.display = 'none';
+    }
+    document.getElementById('kitchenPinOverlay').style.display = 'flex';
 }
 function hideKitchenPinModal() {
     document.getElementById('kitchenPinOverlay').style.display = 'none';
@@ -794,6 +780,8 @@ function kmPinVerify() {
     const url     = isStaff
         ? 'helpers/staff_helpers.php?action=verify_own_pin'
         : 'helpers/admindashboard_helpers.php?action=check_pin';
+    const errorEl = document.getElementById('kmPinError');
+    if (errorEl) errorEl.style.display = 'none';
 
     fetch(url, {
         method: 'POST',
@@ -805,14 +793,24 @@ function kmPinVerify() {
         if (data.success) {
             window.location.replace(isStaff ? 'staff_login.php' : 'admindashboard.php');
         } else {
-            document.getElementById('kmPinError').style.display = 'block';
+            if (errorEl) {
+                errorEl.textContent = data.message || 'Incorrect PIN. Try again.';
+                errorEl.style.display = 'block';
+            }
             kmPin = ''; updKmDots(0);
             const dots = document.getElementById('kmPinDots');
             dots.classList.add('pin-shake');
             setTimeout(() => dots.classList.remove('pin-shake'), 500);
         }
     })
-    .catch(() => { document.getElementById('kmPinError').textContent = 'Connection error.'; document.getElementById('kmPinError').style.display = 'block'; });
+    .catch(() => {
+        if (errorEl) {
+            errorEl.textContent = 'Connection error.';
+            errorEl.style.display = 'block';
+        }
+        kmPin = '';
+        updKmDots(0);
+    });
 }
 // Keyboard support
 document.addEventListener('keydown', e => {
@@ -827,19 +825,29 @@ document.addEventListener('keydown', e => {
 loadOrders();
 startAutoRefresh();
 
-// On pageshow (including bfcache restore) verify server-side session state.
-window.addEventListener('pageshow', function() {
+function verifyKitchenSession() {
     fetch('helpers/session_check.php', { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
+            if (data.auto_logged_out) {
+                window.location.replace('staff_login.php?reason=shift_ended');
+                return;
+            }
+
             // If neither admin nor authorized staff session present, redirect to login
-            const allowed = data.admin_id || (data.staff_id && data.staff_role === 'Kitchen' && data.staff_admin);
+            const allowed = data.staff_id
+                ? (data.staff_role === 'Kitchen' && data.staff_admin && data.staff_session_valid !== false)
+                : data.admin_id;
             if (!allowed) {
                 window.location.replace('../login.php');
             }
         })
         .catch(() => { window.location.replace('../login.php'); });
-});
+}
+
+// On pageshow (including bfcache restore) verify server-side session state.
+window.addEventListener('pageshow', verifyKitchenSession);
+setInterval(verifyKitchenSession, 15000);
 
 /* ================================================================
    BACK-BUTTON PREVENTION

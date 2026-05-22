@@ -9,8 +9,24 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-$admin_id = $_SESSION['admin_id'];
+$admin_id = isset($_SESSION['staff_admin']) ? (int)$_SESSION['staff_admin'] : (int)$_SESSION['admin_id'];
 $action   = $_GET['action'] ?? 'place_order';
+
+function ensureOrderCashierColumns(PDO $conn): void {
+    try {
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_staff_id'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_staff_id INT NULL AFTER queue_number");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_name'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_name VARCHAR(100) NULL AFTER cashier_staff_id");
+        }
+    } catch (Exception $e) {}
+}
 
 /* ================================================================
    CANCEL ORDER
@@ -111,6 +127,7 @@ if ($cash_paid < $total) {
 
 $db   = new Database();
 $conn = $db->connect();
+ensureOrderCashierColumns($conn);
 
 try {
     $conn->beginTransaction();
@@ -159,14 +176,23 @@ try {
     $queue_number = $stmt->fetch(PDO::FETCH_ASSOC)['next_queue'];
 
     /* ── 5. Create order ── */
+    $cashier_staff_id = null;
+    $cashier_name = null;
+    if (!empty($_SESSION['staff_id']) && ($_SESSION['staff_role'] ?? '') === 'Cashier') {
+        $cashier_staff_id = (int)$_SESSION['staff_id'];
+        $cashier_name = $_SESSION['staff_name'] ?? null;
+    }
+
     $stmt = $conn->prepare("
-        INSERT INTO orders (admin_id, customer_id, order_status, total_amount, queue_number, created_at)
-        VALUES (:admin_id, :customer_id, 'Queued', :total, :queue_number, NOW())
+        INSERT INTO orders (admin_id, customer_id, order_status, total_amount, queue_number, cashier_staff_id, cashier_name, created_at)
+        VALUES (:admin_id, :customer_id, 'Queued', :total, :queue_number, :cashier_staff_id, :cashier_name, NOW())
     ");
-    $stmt->bindParam(":admin_id",     $admin_id);
-    $stmt->bindParam(":customer_id",  $customer_id);
-    $stmt->bindParam(":total",        $total);
-    $stmt->bindParam(":queue_number", $queue_number);
+    $stmt->bindValue(":admin_id",         $admin_id, PDO::PARAM_INT);
+    $stmt->bindValue(":customer_id",      $customer_id, PDO::PARAM_INT);
+    $stmt->bindValue(":total",            $total);
+    $stmt->bindValue(":queue_number",     $queue_number, PDO::PARAM_INT);
+    $stmt->bindValue(":cashier_staff_id", $cashier_staff_id, $cashier_staff_id === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
+    $stmt->bindValue(":cashier_name",     $cashier_name, $cashier_name === null ? PDO::PARAM_NULL : PDO::PARAM_STR);
     $stmt->execute();
     $order_id = $conn->lastInsertId();
 

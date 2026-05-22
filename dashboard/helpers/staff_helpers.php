@@ -187,7 +187,9 @@ if (!empty($staff['shift_start']) && !empty($staff['shift_end'])) {
     }
 
     // Success — set session, reset fail count, mark online
-    $conn->prepare("UPDATE staffs SET login_fail_count=0, last_fail_at=NULL, last_login_at=NOW(), is_online=1 WHERE staff_id=:id")->execute([':id'=>$staff['staff_id']]);
+    $conn->prepare("UPDATE staffs
+                     SET login_fail_count=0, last_fail_at=NULL, last_login_at=NOW(), is_online=1
+                     WHERE staff_id=:id")->execute([':id'=>$staff['staff_id']]);
 
     // Ensure late_minutes column exists (works on older MySQL that lacks IF NOT EXISTS)
 try {
@@ -270,6 +272,33 @@ if (!isset($_SESSION['admin_id'])) {
 }
 $admin_id = (int)$_SESSION['admin_id'];
 
+function normalize_staff_name($name) {
+    return preg_replace('/\s+/', ' ', trim($name));
+}
+
+function staff_name_exists($conn, $admin_id, $fullname, $exclude_id = 0) {
+    $sql = "SELECT staff_id FROM staffs WHERE admin_id=:aid AND LOWER(TRIM(fullname)) = LOWER(:name)";
+    $params = [
+        ':aid' => $admin_id,
+        ':name' => normalize_staff_name($fullname),
+    ];
+
+    if ($exclude_id > 0) {
+        $sql .= " AND staff_id<>:exclude_id";
+        $params[':exclude_id'] = $exclude_id;
+    }
+
+    $sql .= " LIMIT 1";
+    $stmt = $conn->prepare($sql);
+    $stmt->execute($params);
+
+    return (bool)$stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+function is_valid_shift_time($time) {
+    return is_string($time) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $time);
+}
+
 switch ($action) {
 
     case 'list':
@@ -306,7 +335,11 @@ switch ($action) {
         $status      = $_POST['status'] ?? 'Active';
         $shift_start = $_POST['shift_start'] ?? null;
         $shift_end   = $_POST['shift_end'] ?? null;
+        $fullname    = normalize_staff_name($fullname);
         if ($fullname === '') { echo json_encode(['success'=>false,'message'=>'Name is required.']); exit; }
+        if (staff_name_exists($conn, $admin_id, $fullname)) { echo json_encode(['success'=>false,'message'=>'A staff member with this name already exists.']); exit; }
+        if (!is_valid_shift_time($shift_start) || !is_valid_shift_time($shift_end)) { echo json_encode(['success'=>false,'message'=>'Shift start and end are required.']); exit; }
+        if ($shift_start === $shift_end) { echo json_encode(['success'=>false,'message'=>'Shift start and end cannot be the same.']); exit; }
         if ($pin === '') { echo json_encode(['success'=>false,'message'=>'PIN is required for staff login.']); exit; }
         if (strlen($pin) !== 4 || !ctype_digit($pin)) { echo json_encode(['success'=>false,'message'=>'PIN must be exactly 4 digits.']); exit; }
         $hashed = password_hash($pin, PASSWORD_DEFAULT);
@@ -333,10 +366,14 @@ switch ($action) {
         $status      = $_POST['status'] ?? 'Active';
         $shift_start = $_POST['shift_start'] ?? null;
         $shift_end   = $_POST['shift_end'] ?? null;
+        $fullname    = normalize_staff_name($fullname);
         if (!$id || !$fullname) { echo json_encode(['success'=>false,'message'=>'Invalid data.']); exit; }
         $chk = $conn->prepare("SELECT staff_id FROM staffs WHERE staff_id=:id AND admin_id=:aid");
         $chk->execute([':id'=>$id,':aid'=>$admin_id]);
         if (!$chk->fetch()) { echo json_encode(['success'=>false,'message'=>'Not found.']); exit; }
+        if (staff_name_exists($conn, $admin_id, $fullname, $id)) { echo json_encode(['success'=>false,'message'=>'A staff member with this name already exists.']); exit; }
+        if (!is_valid_shift_time($shift_start) || !is_valid_shift_time($shift_end)) { echo json_encode(['success'=>false,'message'=>'Shift start and end are required.']); exit; }
+        if ($shift_start === $shift_end) { echo json_encode(['success'=>false,'message'=>'Shift start and end cannot be the same.']); exit; }
         $employment_type = $_POST['employment_type'] ?? 'Full-time';
         if ($pin !== '') {
             if (strlen($pin) !== 4 || !ctype_digit($pin)) { echo json_encode(['success'=>false,'message'=>'PIN must be 4 digits.']); exit; }
@@ -403,10 +440,6 @@ try {
         } catch(Exception $e) {
             echo json_encode(['success'=>false,'message'=>$e->getMessage()]);
         }
-        break;
-        $id = (int)($_POST['staff_id'] ?? 0);
-        $conn->prepare("UPDATE staffs SET login_fail_count=0,last_fail_at=NULL WHERE staff_id=:id AND admin_id=:aid")->execute([':id'=>$id,':aid'=>$admin_id]);
-        echo json_encode(['success'=>true,'message'=>'Login attempts cleared.']);
         break;
 
     default:

@@ -69,6 +69,10 @@ CREATE TABLE IF NOT EXISTS orders (
     order_status    ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued',
     total_amount    DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     queue_number    INT NOT NULL DEFAULT 0,
+    cashier_staff_id INT NULL,
+    cashier_name    VARCHAR(100) NULL,
+    kitchen_staff_id INT NULL,
+    kitchen_name    VARCHAR(100) NULL,
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id)    REFERENCES admins(admin_id)       ON DELETE CASCADE,
@@ -122,6 +126,10 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ── MIGRATION: run these on existing databases ────────────────────────────
 ALTER TABLE admins   ADD COLUMN IF NOT EXISTS theme_data TEXT NULL;
 ALTER TABLE orders   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+ALTER TABLE orders   ADD COLUMN IF NOT EXISTS cashier_staff_id INT NULL AFTER queue_number;
+ALTER TABLE orders   ADD COLUMN IF NOT EXISTS cashier_name VARCHAR(100) NULL AFTER cashier_staff_id;
+ALTER TABLE orders   ADD COLUMN IF NOT EXISTS kitchen_staff_id INT NULL AFTER cashier_name;
+ALTER TABLE orders   ADD COLUMN IF NOT EXISTS kitchen_name VARCHAR(100) NULL AFTER kitchen_staff_id;
 ALTER TABLE orders   MODIFY COLUMN order_status ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued';
 -- ─────────────────────────────────────────────────────────────────────────
 

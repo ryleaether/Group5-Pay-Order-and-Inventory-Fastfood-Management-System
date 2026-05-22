@@ -11,6 +11,35 @@ $admin_id = $_SESSION['admin_id'];
 $db       = new Database();
 $conn     = $db->connect();
 
+function ensureOrderStaffColumns(PDO $conn): void {
+    try {
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_staff_id'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_staff_id INT NULL AFTER queue_number");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_name'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_name VARCHAR(100) NULL AFTER cashier_staff_id");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_staff_id'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_staff_id INT NULL AFTER cashier_name");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_name'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_name VARCHAR(100) NULL AFTER kitchen_staff_id");
+        }
+    } catch (Exception $e) {}
+}
+ensureOrderStaffColumns($conn);
+
 /* ── FILTERS ── */
 $period = $_GET['period'] ?? 'all';
 $status = $_GET['status'] ?? 'all';
@@ -31,11 +60,15 @@ $stmt = $conn->prepare("
     SELECT o.order_id, o.queue_number, o.order_status, o.total_amount, o.created_at,
            c.table_number, c.name AS customer_name,
            p.receipt_number, p.amount_paid, p.change_given, p.payment_status,
+           COALESCE(o.cashier_name, s.fullname) AS cashier_name,
+           COALESCE(o.kitchen_name, ks.fullname) AS kitchen_name,
            GROUP_CONCAT(oi.item_name, ' ×', oi.quantity ORDER BY oi.item_name SEPARATOR ', ') AS items_summary
     FROM orders o
     LEFT JOIN customers c    ON o.customer_id  = c.customer_id
     LEFT JOIN payments p     ON p.order_id     = o.order_id
     LEFT JOIN order_items oi ON oi.order_id    = o.order_id
+    LEFT JOIN staffs s       ON s.staff_id      = o.cashier_staff_id
+    LEFT JOIN staffs ks      ON ks.staff_id     = o.kitchen_staff_id
     WHERE o.admin_id = :admin_id
     $date_condition
     $status_condition
@@ -270,7 +303,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 <p class="empty-state"><i class="fa-solid fa-box-open" style="margin-right:6px;"></i>No orders found for the selected filters.</p>
             <?php else: ?>
                 <div style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
-                <table class="dash-table" style="table-layout:auto; min-width:820px;">
+                <table class="dash-table" style="table-layout:auto; min-width:1040px;">
                     <thead>
                         <tr>
                             <th style="white-space:nowrap;text-align:center;">Queue #</th>
@@ -279,6 +312,8 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                             <th style="white-space:nowrap;text-align:center;">Cash Paid</th>
                             <th style="white-space:nowrap;text-align:center;">Change</th>
                             <th style="white-space:nowrap;text-align:center;">Receipt</th>
+                            <th style="white-space:nowrap;text-align:center;">Cashier</th>
+                            <th style="white-space:nowrap;text-align:center;">Kitchen Manager</th>
                             <th style="white-space:nowrap;text-align:center;">Status</th>
                             <th style="white-space:nowrap;text-align:center;">Date & Time</th>
                         </tr>
@@ -295,6 +330,12 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                             <td style="white-space:nowrap;text-align:center;">₱<?= number_format($order['change_given'] ?? 0, 2) ?></td>
                             <td style="font-size:11px; color: var(--text-secondary); white-space:nowrap;text-align:center;">
                                 <?= htmlspecialchars($order['receipt_number'] ?? '—') ?>
+                            </td>
+                            <td style="font-size:12px; color: var(--text-secondary); white-space:nowrap;text-align:center;">
+                                <?= htmlspecialchars($order['cashier_name'] ?: 'Before tracking') ?>
+                            </td>
+                            <td style="font-size:12px; color: var(--text-secondary); white-space:nowrap;text-align:center;">
+                                <?= in_array($order['order_status'], ['Served', 'Completed'], true) ? htmlspecialchars($order['kitchen_name'] ?: 'Before tracking') : 'Not served yet' ?>
                             </td>
                             <td style="text-align:center;">
                                 <span class="badge badge-<?= strtolower($order['order_status']) ?>">

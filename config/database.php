@@ -2,18 +2,44 @@
 
 class Database {
     private $host     = "localhost";
-    private $port     = "3308";
+    private $port     = "";
     private $dbname   = "ipos_db";
     private $username = "root";
     private $password = "root";   // ← set your MySQL root password here if needed
 
     public $conn;
 
+    public function __construct() {
+        $localConfigPath = __DIR__ . "/database.local.php";
+
+        if (!file_exists($localConfigPath)) {
+            return;
+        }
+
+        $localConfig = require $localConfigPath;
+
+        if (!is_array($localConfig)) {
+            return;
+        }
+
+        foreach (['host', 'port', 'dbname', 'username', 'password'] as $key) {
+            if (array_key_exists($key, $localConfig)) {
+                $this->{$key} = (string)$localConfig[$key];
+            }
+        }
+    }
+
     public function connect() {
         try {
+            $dsn = "mysql:host={$this->host}";
+            if ($this->port !== "") {
+                $dsn .= ";port={$this->port}";
+            }
+            $dsn .= ";charset=utf8mb4";
+
             // Step 1: Connect WITHOUT selecting a database
             $pdo = new PDO(
-                "mysql:host={$this->host};port={$this->port};charset=utf8mb4",
+                $dsn,
                 $this->username,
                 $this->password
             );
@@ -102,6 +128,10 @@ class Database {
             order_status ENUM('Queued','Preparing','Served','Completed','Cancelled') NOT NULL DEFAULT 'Queued',
             total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
             queue_number INT NOT NULL DEFAULT 0,
+            cashier_staff_id INT NULL,
+            cashier_name VARCHAR(100) NULL,
+            kitchen_staff_id INT NULL,
+            kitchen_name VARCHAR(100) NULL,
             created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             FOREIGN KEY (admin_id)    REFERENCES admins(admin_id)       ON DELETE CASCADE,
