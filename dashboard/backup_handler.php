@@ -439,12 +439,13 @@ function buildOwnerBackupSheets(PDO $conn, int $admin_id, string $label, string 
             $employmentCol = columnExists($conn, 'staffs', 'employment_type') ? 'employment_type' : "'Full-time' AS employment_type";
             $onlineCol = columnExists($conn, 'staffs', 'is_online') ? 'is_online' : "0 AS is_online";
             $lastLoginCol = columnExists($conn, 'staffs', 'last_login_at') ? 'last_login_at' : "NULL AS last_login_at";
-            $staffRows = fetchRows($conn, "SELECT fullname, role, status, {$employmentCol}, shift_start, shift_end, {$lastLoginCol}, {$onlineCol}, created_at FROM staffs WHERE admin_id = :admin_id ORDER BY fullname", [':admin_id' => $admin_id]);
+           $staffCodeCol = columnExists($conn, 'staffs', 'staff_code') ? 'staff_code' : "'' AS staff_code";
+$staffRows = fetchRows($conn, "SELECT staff_code, fullname, role, status, {$employmentCol}, shift_start, shift_end, {$lastLoginCol}, {$onlineCol}, created_at FROM staffs WHERE admin_id = :admin_id ORDER BY fullname", [':admin_id' => $admin_id]);
             $rows = [];
             foreach ($staffRows as $r) {
-                $rows[] = [$r['fullname'] ?? '', $r['role'] ?? '', $r['status'] ?? '', $r['employment_type'] ?? 'Full-time', $r['shift_start'] ?? '', $r['shift_end'] ?? '', yesNo($r['is_online'] ?? 0), friendlyDate($r['last_login_at'] ?? ''), friendlyDate($r['created_at'] ?? '')];
+                $rows[] = [$r['staff_code'] ?? '—', $r['fullname'] ?? '', $r['role'] ?? '', $r['status'] ?? '', $r['employment_type'] ?? 'Full-time', $r['shift_start'] ?? '', $r['shift_end'] ?? '', yesNo($r['is_online'] ?? 0), friendlyDate($r['last_login_at'] ?? ''), friendlyDate($r['created_at'] ?? '')];
             }
-            $sheets[] = ['name' => 'Staff Directory', 'headers' => ['Staff Name','Role','Status','Employment Type','Shift Start','Shift End','Currently Online','Last Login','Added On'], 'rows' => $rows];
+            $sheets[] = ['name' => 'Staff Directory', 'headers' => ['Staff Code','Staff Name','Role','Status','Employment Type','Shift Start','Shift End','Currently Online','Last Login','Added On'], 'rows' => $rows];
 
             if (tableExists($conn, 'staff_sessions')) {
                 $hasLate = columnExists($conn, 'staff_sessions', 'late_minutes');
