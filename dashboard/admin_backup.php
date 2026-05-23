@@ -55,7 +55,30 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
 <?php $__tl = __DIR__.'/helpers/theme_loader.php'; if(file_exists($__tl)) include $__tl; ?>
 <style>
 :root { --accent:#9B2C52; --accent-dark:#7a1f3e; --accent-light:#fdf2f8; }
-.br-wrap { max-width:1100px; margin:0 auto; padding:0 4px 60px; }
+.br-wrap { width:100%; padding:0 0 60px; box-sizing:border-box; }
+
+@media (max-width: 1200px) {
+    .br-wrap { padding:0 16px 60px; }
+    .stat-grid { grid-template-columns:repeat(2,1fr); }
+    .check-grid { grid-template-columns:repeat(3,1fr); }
+}
+@media (max-width: 900px) {
+    .br-hero { flex-direction:column; align-items:flex-start; gap:10px; padding:20px; }
+    .stat-grid { grid-template-columns:repeat(2,1fr); }
+    .check-grid { grid-template-columns:repeat(2,1fr); }
+    .rev-grid { grid-template-columns:repeat(2,1fr); }
+    .br-tabs { overflow-x:auto; white-space:nowrap; }
+    .br-tab { padding:10px 16px; font-size:12px; }
+}
+@media (max-width: 600px) {
+    .stat-grid { grid-template-columns:1fr 1fr; }
+    .check-grid { grid-template-columns:1fr 1fr; }
+    .rev-grid { grid-template-columns:1fr 1fr; }
+    .br-hero h1 { font-size:16px; }
+    .pill { padding:5px 10px; font-size:11px; }
+    .btn { padding:8px 12px; font-size:12px; }
+    .trash-tabs { flex-direction:column; }
+}
 
 /* Hero */
 .br-hero { background:linear-gradient(135deg,var(--accent-dark),var(--accent)); border-radius:16px; padding:28px 32px; margin-bottom:22px; color:#fff; display:flex; align-items:center; gap:16px; }
@@ -230,7 +253,7 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
         <div class="notice notice-blue" style="margin-bottom:0;">
             <i class="fa-solid fa-clock-rotate-left"></i>
             <span><strong>Auto-backup</strong> runs every 24 hours automatically in the background.</span>
-        </div>
+        </div><button class="pill"        data-period="today"   onclick="setBkPeriod(this)">Today</button>
     </div>
 
     <!-- Backup History -->

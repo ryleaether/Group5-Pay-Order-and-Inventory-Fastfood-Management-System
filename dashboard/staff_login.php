@@ -316,23 +316,23 @@ include __DIR__ . '/helpers/theme_loader.php';
             <div id="role-badge" class="selected-role-badge"></div>
             <h2>Enter your credentials</h2>
             <p class="sub">Use the name and PIN assigned by your admin.</p>
+<label class="field-label" style="text-align:center; display:block;">Staff ID</label>
+            <input type="text" id="staff-code" class="text-input" placeholder="e.g. 001" autocomplete="off" style="text-align:center; font-size:20px; font-weight:700; letter-spacing:4px; font-family:monospace;">
 
-            <label class="field-label">Your Full Name</label>
-            <input type="text" id="staff-name" class="text-input" placeholder="e.g. Juan Dela Cruz" autocomplete="off">
-
-            <label class="field-label" style="text-align:center; display:block;">PIN</label>
+            <label class="field-label" style="text-align:center; display:block; margin-top:8px;">PIN</label>
             <div class="pin-dots-row" id="pinDots">
                 <div class="pin-dot"></div><div class="pin-dot"></div>
                 <div class="pin-dot"></div><div class="pin-dot"></div>
             </div>
             <div class="pin-pad">
-                <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
-                    <button type="button" class="pin-key"
-                        onclick="<?= $k==='⌫' ? 'pinBack()' : ($k==='' ? '' : "pinPress($k)") ?>">
-                        <?= $k ?>
-                    </button>
-                <?php endforeach; ?>
-            </div>
+    <?php foreach([1,2,3,4,5,6,7,8,9,'',0,'⌫'] as $k): ?>
+        <button type="button" class="pin-key"
+            onmousedown="event.preventDefault()"
+            onclick="<?= $k==='⌫' ? 'pinBack()' : ($k==='' ? '' : "pinPress($k)") ?>">
+            <?= $k ?>
+        </button>
+    <?php endforeach; ?>
+</div>
 
             <div class="error-msg" id="errMsg"></div>
             <button class="btn-back" onclick="goBack()">← Back to Staff Login</button>
@@ -437,7 +437,7 @@ function selectRole(role, el) {
         document.getElementById('step-pin').style.display  = 'block';
         const icons = { Cashier: '🧾', Kitchen: '🍳' };
         document.getElementById('role-badge').textContent = icons[role] + ' ' + role;
-        document.getElementById('staff-name').focus();
+        document.getElementById('staff-code').focus();
         pinValue = ''; updateDots();
         document.getElementById('errMsg').style.display = 'none';
     }, 160);
@@ -447,6 +447,7 @@ function goBack() {
     document.getElementById('step-pin').style.display  = 'none';
     document.getElementById('step-role').style.display = 'block';
     pinValue = ''; updateDots();
+    document.getElementById('staff-code').value = '';
     document.getElementById('errMsg').style.display = 'none';
 }
 
@@ -514,11 +515,15 @@ document.addEventListener('keydown', e => {
         return;
     }
     if (document.getElementById('step-pin').style.display === 'none') return;
+
+    // ✅ Don't intercept keys while Staff ID input is focused
+    if (document.activeElement === document.getElementById('staff-code')) return;
+
     if (e.key >= '0' && e.key <= '9') pinPress(parseInt(e.key));
     if (e.key === 'Backspace') pinBack();
     if (e.key === 'Enter') {
-        const name = document.getElementById('staff-name').value.trim();
-        if (name && pinValue.length === 4) attemptLogin();
+        const code = document.getElementById('staff-code').value.trim();
+        if (code && pinValue.length === 4) attemptLogin();
     }
 });
 
@@ -533,14 +538,14 @@ function showError(msg) {
 }
 
 function attemptLogin() {
-    const name = document.getElementById('staff-name').value.trim();
-    if (!name) { showError('Please enter your full name.'); return; }
+    const code = document.getElementById('staff-code').value.trim().toUpperCase();
+    if (!code) { showError('Please enter your Staff ID.'); return; }
 
     const body = new URLSearchParams({
-        admin_id: ADMIN_ID,
-        fullname: name,
-        pin:      pinValue,
-        role:     selectedRole,
+        admin_id:   ADMIN_ID,
+        staff_code: code,
+        pin:        pinValue,
+        role:       selectedRole,
     });
 
     fetch('helpers/staff_helpers.php?action=staff_login', { method: 'POST', body })
