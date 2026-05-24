@@ -1,1 +1,4 @@
 config/database.local.php
+dashboard/uploads/
+uploads/
+backups/

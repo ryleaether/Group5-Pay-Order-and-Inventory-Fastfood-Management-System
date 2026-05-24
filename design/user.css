@@ -60,6 +60,7 @@ html, body {
     font-weight: 700;
     letter-spacing: 0.5px;
     background: linear-gradient(90deg, var(--accent), #fbbf24);
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     cursor: pointer;
@@ -261,6 +262,7 @@ html, body {
     color: var(--text3);
     display: -webkit-box;
     -webkit-line-clamp: 1;
+    line-clamp: 1;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }

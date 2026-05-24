@@ -1290,8 +1290,14 @@ body {
 /* SIDEBAR COLLAPSE */
 .sidebar {
     transition: width 0.3s ease !important;
-    overflow: hidden !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(255,255,255,0.15) transparent !important;
 }
+
+.sidebar::-webkit-scrollbar { width: 4px !important; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15) !important; border-radius: 4px !important; }
 
 .sidebar.sidebar-collapsed {
     width: 64px !important;
@@ -1312,16 +1318,33 @@ body {
     display: none !important;
 }
 
-/* Hide nav link text but keep icon */
+/* Nav links: icons only, no hover transform */
 .sidebar.sidebar-collapsed .sidebar-nav ul li a {
     justify-content: center !important;
     padding: 10px 0 !important;
     font-size: 0 !important;
+    transform: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+    background: transparent !important;
+}
+
+.sidebar.sidebar-collapsed .sidebar-nav ul li a:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    background: rgba(255,255,255,0.08) !important;
+    border-color: transparent !important;
+}
+
+.sidebar.sidebar-collapsed .sidebar-nav ul li.active a {
+    background: var(--sidebar-active-bg) !important;
 }
 
 .sidebar.sidebar-collapsed .nav-icon {
     font-size: 1.2rem !important;
-    width: auto !important;
+    width: 32px !important;
+    height: 32px !important;
+    background: transparent !important;
 }
 
 /* Center logo */

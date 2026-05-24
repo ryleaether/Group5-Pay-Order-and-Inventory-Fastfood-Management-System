@@ -366,8 +366,9 @@ $sidebar = new SidebarRenderer(
         <div class="staff-table-wrap">
             <table class="staff-table">
                 <thead>
-                    <tr>
+                   <tr>
                         <th style="text-align:center;">Staff Member</th>
+                        <th style="text-align:center;">Staff ID</th>
                         <th style="text-align:center;">Role</th>
                         <th style="text-align:center;">Shift</th>
                         <th style="text-align:center;">Attendance</th>
@@ -452,6 +453,11 @@ $sidebar = new SidebarRenderer(
         </div>
         <input type="hidden" id="editStaffId" value="">
 
+        <div class="modal-field">
+            <label class="modal-label"><i class="fa-solid fa-id-badge"></i> Staff ID *</label>
+            <input class="modal-input" type="text" id="mStaffCode" maxlength="10" placeholder="e.g. 001, CSH1, KIT2">
+            <div class="pin-hint">This is what staff will type to log in instead of their name.</div>
+        </div>
         <div class="modal-field">
             <label class="modal-label"><i class="fa-solid fa-id-card"></i> Full Name *</label>
             <input class="modal-input" type="text" id="mFullname" placeholder="Staff full name">
@@ -623,6 +629,7 @@ function renderTable() {
                     </div>
                 </div>
             </td>
+            <td><span style="font-size:13px;font-weight:700;background:#f3f4f6;padding:4px 12px;border-radius:20px;color:#374151;font-family:monospace;">${escHtml(s.staff_code || '—')}</span></td>
             <td>${roleBadge}</td>
             <td>${shift}</td>
             <td>${getShiftStatus(s)}</td>
@@ -648,6 +655,7 @@ const staffManager = {
         document.getElementById('modalTitle').textContent = 'Add Staff';
         document.getElementById('modalIcon').className = 'fa-solid fa-user-plus';
         document.getElementById('editStaffId').value = '';
+       document.getElementById('mStaffCode').value = '';
         document.getElementById('mFullname').value = '';
         document.getElementById('mRole').value = 'Cashier';
         document.getElementById('mStatus').value = 'Active';
@@ -666,6 +674,7 @@ const staffManager = {
         document.getElementById('modalTitle').textContent = 'Edit Staff';
         document.getElementById('modalIcon').className = 'fa-solid fa-user-pen';
         document.getElementById('editStaffId').value = staffId;
+        document.getElementById('mStaffCode').value = s.staff_code || '';
         document.getElementById('mFullname').value = s.fullname || '';
         const roleSelect = document.getElementById('mRole');
         roleSelect.value = ['Cashier', 'Kitchen'].includes(s.role) ? s.role : 'Cashier';
@@ -704,6 +713,7 @@ const staffManager = {
 
     async saveStaff() {
         const staffId    = document.getElementById('editStaffId').value;
+       const staffCode  = document.getElementById('mStaffCode').value.trim().toUpperCase();
         const fullname   = document.getElementById('mFullname').value.trim();
         const role       = document.getElementById('mRole').value;
         const status     = document.getElementById('mStatus').value;
@@ -712,6 +722,10 @@ const staffManager = {
         const pin        = document.getElementById('mPin').value.trim();
         const isEdit     = !!staffId;
 
+        if (!staffCode) { showStaffToast('Staff ID is required', 'error'); return; }
+        if (!/^[A-Z0-9]{1,10}$/.test(staffCode)) { showStaffToast('Staff ID must be letters and numbers only, max 10 characters', 'error'); return; }
+        const duplicateCode = allStaffs.find(s => s.staff_id != staffId && (s.staff_code || '').toUpperCase() === staffCode);
+        if (duplicateCode) { showStaffToast('This Staff ID is already taken', 'error'); return; }
         if (!fullname) { showStaffToast('Full name is required', 'error'); return; }
         const normalizedName = fullname.replace(/\s+/g, ' ').toLowerCase();
         const duplicateStaff = allStaffs.find(s =>
@@ -739,7 +753,7 @@ const staffManager = {
 
         const employmentType = document.getElementById('mEmploymentType').value;
         const action = isEdit ? 'edit' : 'add';
-        const params = new URLSearchParams({ action, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
+       const params = new URLSearchParams({ action, staff_code: staffCode, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
         if (pin) params.append('pin', pin);
         if (isEdit) params.append('staff_id', staffId);
 
