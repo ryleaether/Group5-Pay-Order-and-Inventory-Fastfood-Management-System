@@ -455,7 +455,7 @@ $sidebar = new SidebarRenderer(
 
         <div class="modal-field">
             <label class="modal-label"><i class="fa-solid fa-id-badge"></i> Staff ID *</label>
-            <input class="modal-input" type="text" id="mStaffCode" maxlength="10" placeholder="e.g. 001, CSH1, KIT2">
+            <input class="modal-input" type="text" id="mStaffCode" maxlength="20" placeholder="e.g. 001, CSH1, KIT2">
             <div class="pin-hint">This is what staff will type to log in instead of their name.</div>
         </div>
         <div class="modal-field">

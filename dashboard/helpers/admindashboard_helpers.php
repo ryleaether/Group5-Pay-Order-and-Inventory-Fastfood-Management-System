@@ -132,7 +132,7 @@ class MenuItem {
             $params[':search'] = '%' . $search . '%';
         }
         if (!empty($category)) {
-            $sql .= " AND category = :category";
+            $sql .= " AND UPPER(category) = UPPER(:category)";
             $params[':category'] = $category;
         }
         if ($status !== '') {
@@ -146,7 +146,7 @@ class MenuItem {
     }
 
     public function getCategories() {
-        $stmt = $this->conn->prepare("SELECT DISTINCT category FROM {$this->table} WHERE admin_id = :admin_id ORDER BY category");
+        $stmt = $this->conn->prepare("SELECT DISTINCT UPPER(category) AS category FROM {$this->table} WHERE admin_id = :admin_id ORDER BY category");
         $stmt->bindParam(":admin_id", $this->admin_id);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
@@ -284,7 +284,7 @@ class MenuDashboardHelper {
         return $this->menu_item->create(
             $post_data['item_name'] ?? '', $post_data['description'] ?? '',
             $post_data['price'] ?? 0, $post_data['stock_quantity'] ?? 0,
-            $post_data['category'] ?? '', $is_available, $image_url
+            strtoupper(trim($post_data['category'] ?? '')), $is_available, $image_url
         );
     }
 
@@ -301,7 +301,7 @@ class MenuDashboardHelper {
         return $this->menu_item->update(
             $menu_item_id, $post_data['item_name'] ?? '', $post_data['description'] ?? '',
             $post_data['price'] ?? 0, $post_data['stock_quantity'] ?? 0,
-            $post_data['category'] ?? '', $is_available, $image_url
+            strtoupper(trim($post_data['category'] ?? '')), $is_available, $image_url
         );
     }
 }
@@ -929,7 +929,7 @@ class APIHandler {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->sendError('Invalid request method'); return; }
         $this->dashboard->getMenuItemHandler()->create(
             $_POST['item_name'] ?? '', $_POST['description'] ?? '', $_POST['price'] ?? 0,
-            $_POST['stock_quantity'] ?? 0, $_POST['category'] ?? '',
+            $_POST['stock_quantity'] ?? 0, strtoupper(trim($_POST['category'] ?? '')),
             isset($_POST['is_available']) ? 1 : 0,
             !empty($_POST['image_url']) ? trim($_POST['image_url']) : null
         );
@@ -946,7 +946,7 @@ class APIHandler {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->dashboard->getMenuItemHandler()->update(
                 $_POST['menu_item_id'] ?? null, $_POST['item_name'] ?? '', $_POST['description'] ?? '',
-                $_POST['price'] ?? 0, $_POST['stock_quantity'] ?? 0, $_POST['category'] ?? '',
+                $_POST['price'] ?? 0, $_POST['stock_quantity'] ?? 0, strtoupper(trim($_POST['category'] ?? '')),
                 isset($_POST['is_available']) ? 1 : 0,
                 !empty($_POST['image_url']) ? trim($_POST['image_url']) : null
             );

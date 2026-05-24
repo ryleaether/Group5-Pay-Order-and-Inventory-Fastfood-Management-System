@@ -125,7 +125,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                                 <?= $item['is_available'] ? 'Available' : 'Unavailable' ?>
                             </span>
                         </div>
-                        <div class="category"><?= htmlspecialchars($item['category']) ?></div>
+                        <div class="category"><?= htmlspecialchars(strtoupper($item['category'])) ?></div>
                         <div class="price">₱<?= number_format($item['price'], 2) ?></div>
                         <div class="stock">Stock: <?= $item['stock_quantity'] ?></div>
                         <div class="actions">
@@ -144,6 +144,13 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
  <?= $sidebar->renderClose() ?>
 </div><!-- end .dashboard -->
 </div>
+
+<!-- Category datalist for add/edit modals -->
+<datalist id="categoryList">
+    <?php foreach ($categories as $cat): ?>
+        <option value="<?= htmlspecialchars(strtoupper($cat)) ?>">
+    <?php endforeach; ?>
+</datalist>
 
 <!-- ================= ADD MODAL ================= -->
 <div id="menuModal" class="modal">
@@ -174,7 +181,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                     <textarea           name="description"     placeholder="Description (optional)" autocomplete="off"></textarea>
                     <input type="number" name="price"          placeholder="Price (₱)" step="0.01" min="0" required autocomplete="off">
                     <input type="number" name="stock_quantity" placeholder="Stock Quantity" min="0" required autocomplete="off">
-                    <input type="text"   name="category"       placeholder="Category" required autocomplete="off">
+                    <input type="text"   name="category"       placeholder="Category" required autocomplete="off" list="categoryList" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
                     <label class="check-label">
                         <input type="checkbox" name="is_available" value="1" checked>
                         Available (visible to customers)
@@ -219,7 +226,7 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                     <textarea           name="description"     id="edit_desc"     placeholder="Description" autocomplete="off"></textarea>
                     <input type="number" name="price"          id="edit_price"    placeholder="Price (₱)" step="0.01" min="0" required autocomplete="off">
                     <input type="number" name="stock_quantity" id="edit_stock"    placeholder="Stock Quantity" min="0" required autocomplete="off">
-                    <input type="text"   name="category"       id="edit_category" placeholder="Category" required autocomplete="off">
+                    <input type="text"   name="category"       id="edit_category" placeholder="Category" required autocomplete="off" list="categoryList" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
                     <label class="check-label">
                         <input type="checkbox" name="is_available" id="edit_available" value="1">
                         Available (visible to customers)
@@ -407,7 +414,7 @@ function openEditModal(id) {
             document.getElementById('edit_desc').value        = item.description || '';
             document.getElementById('edit_price').value       = item.price;
             document.getElementById('edit_stock').value       = item.stock_quantity;
-            document.getElementById('edit_category').value    = item.category;
+            document.getElementById('edit_category').value    = (item.category || '').toUpperCase();
             document.getElementById('edit_available').checked = item.is_available == 1;
             document.getElementById('edit_image_url').value   = item.image_url || '';
             document.getElementById('editUploadStatus').textContent = '';
@@ -624,7 +631,7 @@ function fetchMenu() {
                             ${item.is_available == 1 ? 'Available' : 'Unavailable'}
                         </span>
                     </div>
-                    <div class="category">${escHtml(item.category)}</div>
+                    <div class="category">${escHtml((item.category||"").toUpperCase())}</div>
                     <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
                     <div class="stock">Stock: ${item.stock_quantity}</div>
                     <div class="actions">
