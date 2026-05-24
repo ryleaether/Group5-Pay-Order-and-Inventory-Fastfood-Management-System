@@ -4,15 +4,75 @@ require_once __DIR__ . "/../../config/database.php";
 
 header('Content-Type: application/json');
 
-if (!isset($_SESSION['admin_id'])) {
+if (
+    empty($_SESSION['admin_id'])
+    && !(
+        !empty($_SESSION['staff_id'])
+        && ($_SESSION['staff_role'] ?? '') === 'Kitchen'
+        && !empty($_SESSION['staff_admin'])
+    )
+) {
     echo json_encode(['success' => false, 'message' => 'Not authenticated']);
     exit;
 }
 
 $db       = new Database();
 $conn     = $db->connect();
-$admin_id = $_SESSION['admin_id'];
+$admin_id = !empty($_SESSION['staff_admin']) ? (int)$_SESSION['staff_admin'] : (int)$_SESSION['admin_id'];
 $action   = $_GET['action'] ?? '';
+
+function ensureOrderStaffColumns(PDO $conn): void {
+    try {
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_staff_id'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_staff_id INT NULL AFTER queue_number");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'cashier_name'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN cashier_name VARCHAR(100) NULL AFTER cashier_staff_id");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_staff_id'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_staff_id INT NULL AFTER cashier_name");
+        }
+
+        $chk = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'orders' AND COLUMN_NAME = 'kitchen_name'");
+        if ((int)$chk->fetchColumn() === 0) {
+            $conn->exec("ALTER TABLE orders ADD COLUMN kitchen_name VARCHAR(100) NULL AFTER kitchen_staff_id");
+        }
+    } catch (Exception $e) {}
+}
+ensureOrderStaffColumns($conn);
+
+function getKitchenActor(PDO $conn, int $admin_id): array {
+    if (!empty($_SESSION['staff_id']) && ($_SESSION['staff_role'] ?? '') === 'Kitchen') {
+        $staffId = (int)$_SESSION['staff_id'];
+        $name = trim((string)($_SESSION['staff_name'] ?? ''));
+
+        if ($name === '') {
+            $stmt = $conn->prepare("SELECT fullname FROM staffs WHERE staff_id = :sid AND admin_id = :aid LIMIT 1");
+            $stmt->execute([':sid' => $staffId, ':aid' => $admin_id]);
+            $name = trim((string)$stmt->fetchColumn());
+        }
+
+        return [$staffId, $name !== '' ? $name : 'Kitchen Staff'];
+    }
+
+    $name = trim((string)($_SESSION['fullname'] ?? $_SESSION['username'] ?? ''));
+    if ($name === '') {
+        $stmt = $conn->prepare("SELECT fullname FROM admins WHERE admin_id = :aid LIMIT 1");
+        $stmt->execute([':aid' => $admin_id]);
+        $name = trim((string)$stmt->fetchColumn());
+    }
+
+    return [null, $name !== '' ? $name : 'Kitchen Manager'];
+}
 
 // ─────────────────────────────────────────────
 // GET ALL ACTIVE ORDERS
@@ -28,9 +88,10 @@ if ($action === 'get_orders') {
                 o.created_at,
                 c.name         AS customer_name,
                 COALESCE(c.table_number, '—') AS table_number,
-                a.fullname     AS cashier_name
+                COALESCE(o.cashier_name, s.fullname, a.fullname) AS cashier_name
             FROM orders o
             LEFT JOIN customers c ON o.customer_id = c.customer_id
+            LEFT JOIN staffs    s ON s.staff_id    = o.cashier_staff_id
             LEFT JOIN admins    a ON o.admin_id     = a.admin_id
             WHERE o.admin_id = :admin_id
               AND (
@@ -106,20 +167,31 @@ if ($action === 'update_status' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        [$kitchenStaffId, $kitchenName] = getKitchenActor($conn, $admin_id);
+        $kitchenSql = '';
+        $params = [':status' => $newStatus, ':id' => $order_id, ':admin' => $admin_id];
+        if ($newStatus === 'Served') {
+            $kitchenSql = ', kitchen_staff_id = :kitchen_staff_id, kitchen_name = :kitchen_name';
+            $params[':kitchen_staff_id'] = $kitchenStaffId;
+            $params[':kitchen_name'] = $kitchenName;
+        } elseif (in_array($newStatus, ['Queued', 'Preparing'], true)) {
+            $kitchenSql = ', kitchen_staff_id = NULL, kitchen_name = NULL';
+        }
+
         // Try with updated_at first, fall back without it
         try {
             $upd = $conn->prepare(
-                "UPDATE orders SET order_status = :status, updated_at = NOW()
+                "UPDATE orders SET order_status = :status{$kitchenSql}, updated_at = NOW()
                  WHERE order_id = :id AND admin_id = :admin"
             );
-            $upd->execute([':status' => $newStatus, ':id' => $order_id, ':admin' => $admin_id]);
+            $upd->execute($params);
         } catch (Exception $ex) {
             // updated_at column may not exist on old installs
             $upd = $conn->prepare(
-                "UPDATE orders SET order_status = :status
+                "UPDATE orders SET order_status = :status{$kitchenSql}
                  WHERE order_id = :id AND admin_id = :admin"
             );
-            $upd->execute([':status' => $newStatus, ':id' => $order_id, ':admin' => $admin_id]);
+            $upd->execute($params);
         }
 
         echo json_encode(['success' => true]);

@@ -17,7 +17,7 @@ $admin_id = (int)$_SESSION['admin_id'];
 
 // Ensure soft-delete tables
 foreach (["CREATE TABLE IF NOT EXISTS deleted_menu_items (id INT AUTO_INCREMENT PRIMARY KEY, item_id INT NOT NULL, admin_id INT NOT NULL, item_name VARCHAR(255) NOT NULL, description TEXT, price DECIMAL(10,2) NOT NULL DEFAULT 0, stock_quantity INT NOT NULL DEFAULT 0, category VARCHAR(100), is_available TINYINT(1) DEFAULT 1, image_url VARCHAR(500), original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
-          "CREATE TABLE IF NOT EXISTS deleted_staffs (id INT AUTO_INCREMENT PRIMARY KEY, staff_id INT NOT NULL, admin_id INT NOT NULL, fullname VARCHAR(255) NOT NULL, role VARCHAR(50), status VARCHAR(50), shift_start TIME, shift_end TIME, original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"] as $sql) {
+          "CREATE TABLE IF NOT EXISTS deleted_staffs (id INT AUTO_INCREMENT PRIMARY KEY, staff_id INT NOT NULL, admin_id INT NOT NULL, fullname VARCHAR(255) NOT NULL, role VARCHAR(50), status VARCHAR(50), shift_start TIME, shift_end TIME, employment_type VARCHAR(50) NOT NULL DEFAULT 'Full-time', original_created_at DATETIME, deleted_by VARCHAR(100), deleted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, INDEX idx_adm (admin_id, deleted_at)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"] as $sql) {
     try { $conn->exec($sql); } catch(Exception $e) {}
 }
 
@@ -184,7 +184,7 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
     <div class="br-hero-icon"><i class="fa-solid fa-cloud-arrow-down"></i></div>
     <div>
         <h1>Backup &amp; Restore</h1>
-        <p>Excel backups of everything in your store &middot; Sales reports &middot; Recover deleted records</p>
+        <p>Readable Excel backups for this store account only &middot; Sales reports &middot; Recover deleted records</p>
     </div>
 </div>
 
@@ -218,8 +218,8 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
 
     <!-- Create Backup (full width) -->
     <div class="br-card">
-        <div class="br-card-title"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Create Excel Backup</div>
-        <p class="br-card-sub">Full Excel export of everything in your store: Store Info, Staff, Inventory, Orders, Order Items, Revenue, Deleted Items &amp; Staff — each in its own sheet.</p>
+        <div class="br-card-title"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Create Store Account Excel Backup</div>
+        <p class="br-card-sub">Owner-friendly Excel backup for this store only: profile, staff, attendance, menu inventory, orders, payments, revenue, deleted records, and activity logs.</p>
         <div style="display:flex;gap:10px;margin-bottom:12px;">
             <input type="text" id="backup-label" placeholder="Label (e.g. before-update)"
                 style="flex:1;border:1.5px solid var(--border-color);border-radius:8px;padding:9px 13px;font-size:13px;background:var(--card-bg);color:var(--text-primary);">
@@ -288,7 +288,7 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
     <!-- Download Excel Card -->
     <div class="br-card">
         <div class="br-card-title"><i class="fa-solid fa-file-excel" style="color:#16a34a;"></i> Download Excel Backup</div>
-        <p class="br-card-sub">Choose which sections to include in your spreadsheet export.</p>
+        <p class="br-card-sub">Choose which sections to include. The spreadsheet includes this store account only and uses readable business labels.</p>
         <div style="font-size:11px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">INCLUDE SECTIONS</div>
         <div class="check-grid">
             <label class="check-item"><input type="checkbox" class="sl-cb" value="store_info" checked><span class="check-icon" style="background:#ede9fe;color:#6d28d9;"><i class="fa-solid fa-store"></i></span><span class="check-text">Store Info</span></label>

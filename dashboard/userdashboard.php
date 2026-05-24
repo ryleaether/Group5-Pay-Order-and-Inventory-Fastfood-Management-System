@@ -53,6 +53,22 @@ foreach ($all_items as $item) {
     if (!in_array($cat, $categories)) $categories[] = $cat;
 }
 
+function menu_item_image_src(?string $url): string {
+    $url = trim((string)$url);
+    if ($url === '') return '';
+    if (preg_match('/^(?:https?:)?\/\//i', $url) || preg_match('/^data:image\//i', $url)) return $url;
+
+    $url = str_replace('\\', '/', $url);
+    $url = preg_replace('#^\./#', '', $url);
+    while (strpos($url, '../') === 0) {
+        $url = substr($url, 3);
+    }
+    if (strpos($url, 'dashboard/uploads/') === 0) {
+        $url = substr($url, strlen('dashboard/'));
+    }
+    return $url;
+}
+
 // Helper: convert #rrggbb to rgba(r,g,b,alpha) for theme bridge
 function hexToRgba($hex, $alpha) {
     $hex = ltrim($hex, '#');
@@ -245,7 +261,7 @@ function hexToRgba($hex, $alpha) {
                          onclick="addToOrder(<?= $item['menu_item_id'] ?>, '<?= addslashes($item['item_name']) ?>', <?= $item['price'] ?>, <?= $item['stock_quantity'] ?>)">
 
                         <?php if (!empty($item['image_url'])): ?>
-                            <img src="<?= htmlspecialchars($item['image_url']) ?>"
+                            <img src="<?= htmlspecialchars(menu_item_image_src($item['image_url'])) ?>"
                                  alt="<?= htmlspecialchars($item['item_name']) ?>"
                                  class="pos-item-img">
                         <?php else: ?>
@@ -843,19 +859,29 @@ function showToast(message, type = 'info') {
 /* Init display */
 document.getElementById('orderNumDisplay').textContent = '#' + orderCounter;
 
-// On pageshow (including bfcache restore) verify server-side session state.
-window.addEventListener('pageshow', function() {
+function verifyCashierSession() {
     fetch('helpers/session_check.php', { cache: 'no-store' })
         .then(r => r.json())
         .then(data => {
+            if (data.auto_logged_out) {
+                window.location.replace('staff_login.php?reason=shift_ended');
+                return;
+            }
+
             // Allow if admin OR staff cashier assigned to same admin and gate unlocked when required
-            const isAllowed = data.admin_id || (data.staff_id && data.staff_role === 'Cashier' && data.staff_admin);
+            const isAllowed = data.staff_id
+                ? (data.staff_role === 'Cashier' && data.staff_admin && data.staff_session_valid !== false)
+                : data.admin_id;
             if (!isAllowed) {
                 window.location.replace('../login.php');
             }
         })
         .catch(() => { window.location.replace('../login.php'); });
-});
+}
+
+// On pageshow (including bfcache restore) verify server-side session state.
+window.addEventListener('pageshow', verifyCashierSession);
+setInterval(verifyCashierSession, 15000);
 
 /* ================================================================
    BACK-BUTTON PREVENTION

@@ -341,7 +341,7 @@ $sidebar = new SidebarRenderer(
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" id="searchInput" placeholder="Search by name or role…" oninput="filterStaffs()">
             </div>
-            <button class="btn-add-staff" onclick="openAddModal()">
+            <button type="button" class="btn-add-staff" onclick="staffManager.openAddModal()">
                 <i class="fa-solid fa-plus"></i> Add Staff
             </button>
         </div>
@@ -483,26 +483,26 @@ $sidebar = new SidebarRenderer(
         </div>
         <div class="modal-row">
             <div class="modal-field">
-                <label class="modal-label"><i class="fa-solid fa-clock"></i> Shift Start</label>
-                <input class="modal-input" type="time" id="mShiftStart">
+                <label class="modal-label"><i class="fa-solid fa-clock"></i> Shift Start *</label>
+                <input class="modal-input" type="time" id="mShiftStart" required>
             </div>
             <div class="modal-field">
-                <label class="modal-label"><i class="fa-solid fa-clock"></i> Shift End</label>
-                <input class="modal-input" type="time" id="mShiftEnd">
+                <label class="modal-label"><i class="fa-solid fa-clock"></i> Shift End *</label>
+                <input class="modal-input" type="time" id="mShiftEnd" required>
             </div>
         </div>
         <div class="modal-field">
             <label class="modal-label"><i class="fa-solid fa-key"></i> PIN <span id="pinLabel">(4 digits, required)</span></label>
             <input class="modal-input" type="password" id="mPin" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="4-digit PIN">
-            <span class="pin-show-toggle" onclick="togglePinVisibility()"><i class="fa-solid fa-eye" id="pinEyeIcon"></i> Show PIN</span>
+            <span class="pin-show-toggle" onclick="staffManager.togglePinVisibility()"><i class="fa-solid fa-eye" id="pinEyeIcon"></i> Show PIN</span>
             <div class="pin-hint" id="pinHint">Staff will use this PIN to log in.</div>
         </div>
 
         <div class="modal-actions">
-            <button class="modal-btn modal-btn-cancel" onclick="closeModal()">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="staffManager.closeModal()">
                 <i class="fa-solid fa-xmark"></i> Cancel
             </button>
-            <button class="modal-btn modal-btn-save" onclick="saveStaff()">
+            <button type="button" class="modal-btn modal-btn-save" onclick="staffManager.saveStaff()">
                 <i class="fa-solid fa-floppy-disk"></i> Save Staff
             </button>
         </div>
@@ -515,13 +515,13 @@ $sidebar = new SidebarRenderer(
         <div style="font-size:48px; margin-bottom:12px;">🗑️</div>
         <h3 style="font-size:18px; font-weight:800; margin-bottom:8px;">Remove Staff?</h3>
         <p style="color:var(--text-secondary); font-size:14px; margin-bottom:24px;">
-            This will permanently remove <strong id="deleteStaffName"></strong> from your team.
+            This will move <strong id="deleteStaffName"></strong> to trash. You can restore this staff member within 30 days.
         </p>
         <div class="modal-actions">
-            <button class="modal-btn modal-btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('show')">
+            <button type="button" class="modal-btn modal-btn-cancel" onclick="document.getElementById('deleteModal').classList.remove('show')">
                 Cancel
             </button>
-            <button class="modal-btn" style="background:#dc2626;color:white;" onclick="confirmDelete()">
+            <button type="button" class="modal-btn" style="background:#dc2626;color:white;" onclick="confirmDelete()">
                 <i class="fa-solid fa-trash"></i> Remove
             </button>
         </div>
@@ -591,7 +591,7 @@ function renderTable() {
     }
 
     tbody.innerHTML = filtered.map(s => {
-        const initial = s.fullname.charAt(0).toUpperCase();
+        const initial = String(s.fullname || '').charAt(0).toUpperCase();
         const isOnline = s.is_online == 1;
         const roleBadge = s.role === 'Cashier'
             ? `<span class="role-badge role-cashier"><i class="fa-solid fa-cash-register"></i> Cashier</span>`
@@ -612,6 +612,7 @@ function renderTable() {
                             background:#22c55e;border:2px solid white;
                             box-shadow:0 0 0 0 rgba(34,197,94,0.7);animation:pulse-online 1.5s infinite;"></span>`
             : '';
+        const safeFullnameAttr = escHtml(String(s.fullname || '')).replace(/"/g, '&quot;');
 
         return `<tr>
             <td>
@@ -628,11 +629,11 @@ function renderTable() {
             <td>${employmentBadge}</td>
             <td>
                 <div class="staff-action-btns">
-                    <button class="btn-icon btn-edit" onclick="openEditModal(${s.staff_id})" title="Edit">
+                    <button type="button" class="btn-icon btn-edit" onclick="staffManager.openEditModal(this.dataset.staffId)" data-staff-id="${s.staff_id}" title="Edit">
     <i class="fa-solid fa-pen"></i>
 </button>
             
-                    <button class="btn-icon btn-delete" onclick="openDeleteModal(${s.staff_id}, '${escHtml(s.fullname)}')" title="Remove">
+                    <button type="button" class="btn-icon btn-delete" onclick="openDeleteModal(this.dataset.staffId, this.dataset.staffFullname)" data-staff-id="${s.staff_id}" data-staff-fullname="${safeFullnameAttr}" title="Remove">
                         <i class="fa-solid fa-trash"></i>
                     </button>
                 </div>
@@ -642,104 +643,126 @@ function renderTable() {
 }
 
 // ===== ADD / EDIT MODAL =====
-function openAddModal() {
-    document.getElementById('modalTitle').textContent = 'Add Staff';
-    document.getElementById('modalIcon').className = 'fa-solid fa-user-plus';
-    document.getElementById('editStaffId').value = '';
-    document.getElementById('mFullname').value = '';
-    document.getElementById('mRole').value = 'Cashier';
-    document.getElementById('mStatus').value = 'Active';
-    document.getElementById('mShiftStart').value = '';
-    document.getElementById('mShiftEnd').value = '';
-    document.getElementById('mEmploymentType').value = 'Full-time';
-    document.getElementById('mPin').value = '';
-    document.getElementById('pinLabel').textContent = '(4 digits, required)';
-    document.getElementById('pinHint').textContent = 'Staff will use this PIN to log in.';
-    document.getElementById('staffModal').classList.add('show');
-}
+const staffManager = {
+    openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Add Staff';
+        document.getElementById('modalIcon').className = 'fa-solid fa-user-plus';
+        document.getElementById('editStaffId').value = '';
+        document.getElementById('mFullname').value = '';
+        document.getElementById('mRole').value = 'Cashier';
+        document.getElementById('mStatus').value = 'Active';
+        document.getElementById('mShiftStart').value = '';
+        document.getElementById('mShiftEnd').value = '';
+        document.getElementById('mEmploymentType').value = 'Full-time';
+        document.getElementById('mPin').value = '';
+        document.getElementById('pinLabel').textContent = '(4 digits, required)';
+        document.getElementById('pinHint').textContent = 'Staff will use this PIN to log in.';
+        document.getElementById('staffModal').classList.add('show');
+    },
 
-function openEditModal(staffId) {
-    const s = allStaffs.find(x => x.staff_id == staffId);
-    if (!s) return;
-    document.getElementById('modalTitle').textContent = 'Edit Staff';
-    document.getElementById('modalIcon').className = 'fa-solid fa-user-pen';
-    document.getElementById('editStaffId').value = staffId;
-    document.getElementById('mFullname').value = s.fullname;
-    document.getElementById('mRole').value = s.role;
-    document.getElementById('mStatus').value = s.status;
-    document.getElementById('mShiftStart').value = s.shift_start || '';
-    document.getElementById('mShiftEnd').value = s.shift_end || '';
-    document.getElementById('mPin').value = '';
-    document.getElementById('pinLabel').textContent = '(leave blank to keep current PIN)';
-    document.getElementById('pinHint').textContent = 'Only fill if you want to change the PIN.';
+    openEditModal(staffId) {
+        const s = allStaffs.find(x => x.staff_id == staffId);
+        if (!s) return;
+        document.getElementById('modalTitle').textContent = 'Edit Staff';
+        document.getElementById('modalIcon').className = 'fa-solid fa-user-pen';
+        document.getElementById('editStaffId').value = staffId;
+        document.getElementById('mFullname').value = s.fullname || '';
+        const roleSelect = document.getElementById('mRole');
+        roleSelect.value = ['Cashier', 'Kitchen'].includes(s.role) ? s.role : 'Cashier';
+        const statusSelect = document.getElementById('mStatus');
+        statusSelect.value = ['Active', 'Inactive'].includes(s.status) ? s.status : 'Active';
+        document.getElementById('mShiftStart').value = s.shift_start || '';
+        document.getElementById('mShiftEnd').value = s.shift_end || '';
+        document.getElementById('mPin').value = '';
+        document.getElementById('pinLabel').textContent = '(leave blank to keep current PIN)';
+        document.getElementById('pinHint').textContent = 'Only fill if you want to change the PIN.';
 
-    const etSelect = document.getElementById('mEmploymentType');
-    const etValue = (s.employment_type || 'Full-time').trim();
-    for (let opt of etSelect.options) {
-        opt.selected = opt.value === etValue;
-    }
-
-    document.getElementById('staffModal').classList.add('show');
-}
-
-function closeModal() {
-    document.getElementById('staffModal').classList.remove('show');
-}
-
-function togglePinVisibility() {
-    const input = document.getElementById('mPin');
-    const icon  = document.getElementById('pinEyeIcon');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fa-solid fa-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'fa-solid fa-eye';
-    }
-}
-
-async function saveStaff() {
-    const staffId    = document.getElementById('editStaffId').value;
-    const fullname   = document.getElementById('mFullname').value.trim();
-    const role       = document.getElementById('mRole').value;
-    const status     = document.getElementById('mStatus').value;
-    const shiftStart = document.getElementById('mShiftStart').value;
-    const shiftEnd   = document.getElementById('mShiftEnd').value;
-    const pin        = document.getElementById('mPin').value.trim();
-    const isEdit     = !!staffId;
-
-    if (!fullname) { showStaffToast('Full name is required', 'error'); return; }
-    if (!isEdit && (!pin || !/^\d{4}$/.test(pin))) {
-        showStaffToast('PIN must be exactly 4 digits', 'error'); return;
-    }
-    if (pin && !/^\d{4}$/.test(pin)) {
-        showStaffToast('PIN must be exactly 4 digits', 'error'); return;
-    }
-
-   const employmentType = document.getElementById('mEmploymentType').value;
-    const action = isEdit ? 'edit' : 'add';
-    const params = new URLSearchParams({ action, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
-    if (pin) params.append('pin', pin);
-    if (isEdit) params.append('staff_id', staffId);
-
-    try {
-        const res  = await fetch('helpers/staff_helpers.php', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params.toString()
-        });
-        const data = await res.json();
-        if (data.success) {
-            showStaffToast(isEdit ? 'Staff updated! ✅' : 'Staff added! 🎉', 'success');
-            closeModal();
-            loadStaffs();
-        } else {
-            showStaffToast(data.message || 'Failed to save', 'error');
+        const etSelect = document.getElementById('mEmploymentType');
+        const etValue = ['Full-time', 'Part-time'].includes((s.employment_type || 'Full-time').trim()) ? s.employment_type.trim() : 'Full-time';
+        for (let opt of etSelect.options) {
+            opt.selected = opt.value === etValue;
         }
-    } catch(e) {
-        showStaffToast('Connection error', 'error');
+
+        document.getElementById('staffModal').classList.add('show');
+    },
+
+    closeModal() {
+        document.getElementById('staffModal').classList.remove('show');
+    },
+
+    togglePinVisibility() {
+        const input = document.getElementById('mPin');
+        const icon  = document.getElementById('pinEyeIcon');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.className = 'fa-solid fa-eye-slash';
+        } else {
+            input.type = 'password';
+            icon.className = 'fa-solid fa-eye';
+        }
+    },
+
+    async saveStaff() {
+        const staffId    = document.getElementById('editStaffId').value;
+        const fullname   = document.getElementById('mFullname').value.trim();
+        const role       = document.getElementById('mRole').value;
+        const status     = document.getElementById('mStatus').value;
+        const shiftStart = document.getElementById('mShiftStart').value;
+        const shiftEnd   = document.getElementById('mShiftEnd').value;
+        const pin        = document.getElementById('mPin').value.trim();
+        const isEdit     = !!staffId;
+
+        if (!fullname) { showStaffToast('Full name is required', 'error'); return; }
+        const normalizedName = fullname.replace(/\s+/g, ' ').toLowerCase();
+        const duplicateStaff = allStaffs.find(s =>
+            s.staff_id != staffId &&
+            String(s.fullname || '').trim().replace(/\s+/g, ' ').toLowerCase() === normalizedName
+        );
+        if (duplicateStaff) {
+            showStaffToast('A staff member with this name already exists', 'error');
+            return;
+        }
+        if (!shiftStart || !shiftEnd) {
+            showStaffToast('Shift start and end are required', 'error');
+            return;
+        }
+        if (shiftStart === shiftEnd) {
+            showStaffToast('Shift start and end cannot be the same', 'error');
+            return;
+        }
+        if (!isEdit && (!pin || !/^\d{4}$/.test(pin))) {
+            showStaffToast('PIN must be exactly 4 digits', 'error'); return;
+        }
+        if (pin && !/^\d{4}$/.test(pin)) {
+            showStaffToast('PIN must be exactly 4 digits', 'error'); return;
+        }
+
+        const employmentType = document.getElementById('mEmploymentType').value;
+        const action = isEdit ? 'edit' : 'add';
+        const params = new URLSearchParams({ action, fullname, role, status, employment_type: employmentType, shift_start: shiftStart || '', shift_end: shiftEnd || '' });
+        if (pin) params.append('pin', pin);
+        if (isEdit) params.append('staff_id', staffId);
+
+        try {
+            const res  = await fetch('helpers/staff_helpers.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: params.toString()
+            });
+            const data = await res.json();
+            if (data.success) {
+                showStaffToast(isEdit ? 'Staff updated! ✅' : 'Staff added! 🎉', 'success');
+                this.closeModal();
+                loadStaffs();
+            } else {
+                showStaffToast(data.message || 'Failed to save', 'error');
+            }
+        } catch(e) {
+            showStaffToast('Connection error', 'error');
+        }
     }
-}
+};
+window.staffManager = staffManager;
 
 
 // ===== DELETE =====
@@ -752,14 +775,15 @@ function openDeleteModal(staffId, name) {
 async function confirmDelete() {
     const staffId = document.getElementById('deleteStaffId').value;
     try {
-        const res  = await fetch('helpers/staff_helpers.php', {
+        const params = new URLSearchParams({ action: 'soft_delete', type: 'staff', id: staffId });
+        const res  = await fetch('soft_delete_handler.php', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `action=delete&staff_id=${staffId}`
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+            body: params.toString()
         });
         const data = await res.json();
         if (data.success) {
-            showStaffToast('Staff removed', 'success');
+            showStaffToast(data.message || 'Staff moved to trash', 'success');
             document.getElementById('deleteModal').classList.remove('show');
             loadStaffs();
         } else {

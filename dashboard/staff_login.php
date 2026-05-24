@@ -19,6 +19,7 @@ if (!isset($_SESSION['admin_id'])) {
 // staff_login_active  = persistent flag set below; survives refresh.
 $has_token = !empty($_SESSION['staff_gate_unlocked']) || !empty($_SESSION['staff_reentry']);
 $already_active = !empty($_SESSION['staff_login_active']);
+$fresh_gate_entry = !empty($_SESSION['staff_gate_unlocked']);
 
 if (!$has_token && !$already_active) {
     header("Location: staff_gate.php");
@@ -30,8 +31,20 @@ if (!$has_token && !$already_active) {
 unset($_SESSION['staff_gate_unlocked'], $_SESSION['staff_reentry']);
 $_SESSION['staff_login_active'] = true;
 
+if ($fresh_gate_entry) {
+    unset(
+        $_SESSION['staff_id'],
+        $_SESSION['staff_name'],
+        $_SESSION['staff_role'],
+        $_SESSION['staff_admin'],
+        $_SESSION['staff_login_at'],
+        $_SESSION['staff_session_log_id'],
+        $_SESSION['kitchen_pin_unlocked_at']
+    );
+}
+
 // If staff already logged in, route them directly
-if (!empty($_SESSION['staff_id']) && !empty($_SESSION['staff_role'])) {
+if (!$fresh_gate_entry && !empty($_SESSION['staff_id']) && !empty($_SESSION['staff_role'])) {
     $r = $_SESSION['staff_role'];
     header("Location: " . ($r === 'Kitchen' ? 'kitchen_dashboard.php' : 'userdashboard.php'));
     exit;
@@ -42,6 +55,10 @@ $db   = new Database();
 $conn = $db->connect();
 
 $fastfood = $_SESSION['fastfood_name'] ?? 'iPOS';
+$staffNotice = '';
+if (($_GET['reason'] ?? '') === 'shift_ended') {
+    $staffNotice = 'You were automatically logged out because your shift has ended.';
+}
 
 // Load theme for this admin
 include __DIR__ . '/helpers/theme_loader.php';
@@ -185,6 +202,36 @@ include __DIR__ . '/helpers/theme_loader.php';
             padding: 10px 14px; font-size: 13px; margin-bottom: 14px; display: none;
         }
 
+        .staff-notice {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            background: var(--accent-light);
+            color: var(--accent-dark);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent);
+            border-radius: 12px;
+            padding: 11px 13px;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 18px;
+        }
+        .staff-notice-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--accent);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+            margin-top: 1px;
+        }
+
         .btn-back {
             width: 100%; padding: 11px; background: none;
             border: 1.5px solid var(--border-color); border-radius: 10px;
@@ -238,6 +285,12 @@ include __DIR__ . '/helpers/theme_loader.php';
 </div>
 
     <div class="card">
+        <?php if ($staffNotice !== ''): ?>
+            <div class="staff-notice">
+                <span class="staff-notice-icon">i</span>
+                <span><?= htmlspecialchars($staffNotice) ?></span>
+            </div>
+        <?php endif; ?>
 
         <!-- ── STEP 1: Pick Role ── -->
         <div id="step-role">

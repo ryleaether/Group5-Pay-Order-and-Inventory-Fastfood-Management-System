@@ -8,6 +8,7 @@
 
 $_tl_id = null;
 if (isset($admin_id) && $admin_id)   $_tl_id = (int)$admin_id;
+elseif (isset($_SESSION['staff_admin'])) $_tl_id = (int)$_SESSION['staff_admin'];
 elseif (isset($_SESSION['admin_id'])) $_tl_id = (int)$_SESSION['admin_id'];
 
 $_tl = null;

@@ -682,7 +682,15 @@ document.addEventListener('DOMContentLoaded', function() {
    PIN gate overlay so the user must authenticate first.
 ================================================================ */
 history.pushState({ page: 'admin' }, '', window.location.href);
+window.addEventListener('pageshow', function() {
+    if (window.__iposLoggingOut || sessionStorage.getItem('ipos_logging_out') === '1') {
+        window.location.replace('../login.php');
+    }
+});
 window.addEventListener('popstate', function(e) {
+    if (window.__iposLoggingOut || sessionStorage.getItem('ipos_logging_out') === '1') {
+        return;
+    }
     // Re-push so back keeps being intercepted
     history.pushState({ page: 'admin' }, '', window.location.href);
     // Show the back button PIN gate overlay
