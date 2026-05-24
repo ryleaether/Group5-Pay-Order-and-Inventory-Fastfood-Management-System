@@ -358,17 +358,9 @@ class SidebarRenderer {
 
             <!-- Brand / Logo -->
             <div class="logo">
-                <?php if (!empty($this->logo_url)): ?>
-                    <div class="logo-icon-box" style="background:none;padding:0;overflow:hidden;border-radius:8px;flex-shrink:0;">
-                        <img src="<?= htmlspecialchars('../' . ltrim($this->logo_url, './')) ?>"
-                             alt="Logo" style="width:38px;height:38px;object-fit:cover;border-radius:8px;display:block;">
-                    </div>
-                <?php else: ?>
-    <?php $__lf = __DIR__ . '/../helpers/ipos_logo.php'; if (file_exists($__lf)) { include $__lf; } else { echo '<div class="logo-icon-box" style="width:38px;height:38px;border-radius:9px;background:#9B2C52;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;">iPOS</div>'; } ?>
-<?php endif; ?>
-
+                <?php $__lf = __DIR__ . '/../helpers/ipos_logo.php'; if (file_exists($__lf)) { include $__lf; } else { echo '<div class="logo-icon-box" style="width:38px;height:38px;border-radius:9px;background:#9B2C52;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;">iPOS</div>'; } ?>
                 <div class="logo-text">
-                    <h2><?= $name ?: 'iPOS' ?></h2>
+                    <h2>iPOS</h2>
                     <p>I Pay, I Order, I Serve</p>
                 </div>
             </div>
@@ -519,7 +511,7 @@ class SidebarRenderer {
         /* ===== SIDEBAR — uses CSS vars, changed by theme ===== */
         .sidebar {
             width: 240px;
-            min-height: 100vh;
+            height: 100vh;
             background: var(--sidebar-bg);
             display: flex;
             flex-direction: column;
@@ -527,8 +519,16 @@ class SidebarRenderer {
             position: fixed;
             top: 0; left: 0;
             overflow-y: auto;
+            overflow-x: hidden;
             z-index: 100;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.15) transparent;
+            transition: width 0.25s ease;
+            overscroll-behavior: contain;
         }
+        .sidebar::-webkit-scrollbar { width: 4px; }
+        .sidebar::-webkit-scrollbar-track { background: transparent; }
+        .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 4px; }
         .logo { display: flex; align-items: center; gap: 10px; padding: 1.2rem 1.2rem 1rem; }
         .logo-icon-box {
             width: 40px; height: 40px;
@@ -626,22 +626,49 @@ class SidebarRenderer {
     background: rgba(248, 113, 113, 0.25) !important;
 }
 
-/* ── Collapsed: remove box, center icon ── */
-.sidebar.collapsed .nav-icon {
-    background: transparent !important;
-    border-radius: 0;
-    width: auto;
-    height: auto;
-    justify-content: center;
+/* ── Collapsed sidebar ── */
+.sidebar.sidebar-collapsed {
+    width: 60px;
 }
-
-.sidebar.collapsed .sidebar-nav ul li a {
-    justify-content: center;
-    padding: 0.6rem 0;
+.sidebar.sidebar-collapsed .logo-text,
+.sidebar.sidebar-collapsed .user-info,
+.sidebar.sidebar-collapsed .profile-edit-btn,
+.sidebar.sidebar-collapsed .sidebar-section-label,
+.sidebar.sidebar-collapsed .sidebar-nav ul li a span:not(.nav-icon) {
+    display: none;
 }
-
-.sidebar.collapsed .logout-link .nav-icon {
+.sidebar.sidebar-collapsed .logo {
+    justify-content: center;
+    padding: 1rem 0;
+}
+.sidebar.sidebar-collapsed .sidebar-profile {
+    justify-content: center;
+    padding: 0.75rem 0;
+    margin: 0.5rem 0.4rem;
+}
+.sidebar.sidebar-collapsed .sidebar-nav {
+    padding: 0 0.3rem;
+}
+.sidebar.sidebar-collapsed .sidebar-nav ul li a {
+    justify-content: center;
+    padding: 0.65rem 0;
+    border-radius: 9px;
+    pointer-events: auto;
+}
+.sidebar.sidebar-collapsed .sidebar-nav ul li a:hover {
+    transform: none;
+}
+.sidebar.sidebar-collapsed .nav-icon {
     background: transparent !important;
+    width: 32px;
+    height: 32px;
+    margin: 0 auto;
+}
+.sidebar.sidebar-collapsed .logout-link .nav-icon {
+    background: transparent !important;
+}
+.sidebar.sidebar-collapsed .sidebar-divider {
+    margin: 0.5rem 0.4rem;
 }
         .activity-link { color: rgba(255,255,255,0.6) !important; }
         .activity-link:hover { background: rgba(255,255,255,0.1) !important; color: #fff !important; }

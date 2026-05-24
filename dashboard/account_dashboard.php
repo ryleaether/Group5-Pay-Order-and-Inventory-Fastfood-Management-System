@@ -66,15 +66,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['_action']) && $_POST[
             )");
             try { $conn->exec("ALTER TABLE admin_extended ADD COLUMN profile_photo VARCHAR(500) NULL"); } catch(Exception $ex) {}
 
+           // Check if row exists first
+            $chk = $conn->query("SELECT COUNT(*) FROM admin_extended WHERE admin_id=$admin_id");
+            $exists = (int)$chk->fetchColumn();
+
             if ($applyTo === 'avatar') {
-                $s = $conn->prepare("INSERT INTO admin_extended (admin_id, profile_photo) VALUES (:id,:url) ON DUPLICATE KEY UPDATE profile_photo=:url2");
-                $s->execute([':id'=>$admin_id,':url'=>$url,':url2'=>$url]);
+                if ($exists) {
+                    $conn->exec("UPDATE admin_extended SET profile_photo='$url' WHERE admin_id=$admin_id");
+                } else {
+                    $conn->exec("INSERT INTO admin_extended (admin_id, profile_photo) VALUES ($admin_id, '$url')");
+                }
             } elseif ($applyTo === 'logo') {
-                $s = $conn->prepare("INSERT INTO admin_extended (admin_id, logo_url) VALUES (:id,:url) ON DUPLICATE KEY UPDATE logo_url=:url2");
-                $s->execute([':id'=>$admin_id,':url'=>$url,':url2'=>$url]);
-            } else { // both
-                $s = $conn->prepare("INSERT INTO admin_extended (admin_id, logo_url, profile_photo) VALUES (:id,:url,:url2) ON DUPLICATE KEY UPDATE logo_url=:url3, profile_photo=:url4");
-                $s->execute([':id'=>$admin_id,':url'=>$url,':url2'=>$url,':url3'=>$url,':url4'=>$url]);
+                if ($exists) {
+                    $conn->exec("UPDATE admin_extended SET logo_url='$url' WHERE admin_id=$admin_id");
+                } else {
+                    $conn->exec("INSERT INTO admin_extended (admin_id, logo_url) VALUES ($admin_id, '$url')");
+                }
+            } else {
+                if ($exists) {
+                    $conn->exec("UPDATE admin_extended SET logo_url='$url', profile_photo='$url' WHERE admin_id=$admin_id");
+                } else {
+                    $conn->exec("INSERT INTO admin_extended (admin_id, logo_url, profile_photo) VALUES ($admin_id, '$url', '$url')");
+                }
             }
            if ($applyTo === 'logo' || $applyTo === 'both') {
                 $_SESSION['logo_url']   = $url;
@@ -119,8 +132,25 @@ $birPermit    = $extProfile['bir_permit'] ?? '';
 $logoShape    = $extProfile['logo_shape'] ?? 'circle';
 $logoUrl      = $extProfile['logo_url'] ?? '';
 $profilePhoto = $extProfile['profile_photo'] ?? '';
-// TEMPORARY DEBUG — remove after fixing
-echo '<!-- DEBUG: profilePhoto=[' . $profilePhoto . '] logoUrl=[' . $logoUrl . '] -->';
+
+// Clean path helper — works no matter how the path was saved
+function cleanPhotoUrl($path) {
+    if (empty($path)) return '';
+    $path = ltrim($path, './');   // strip leading ./ or ../
+    $path = ltrim($path, '/');    // strip leading /
+    return '../' . $path;         // always prefix with ../
+}
+
+// Force fresh read
+$freshStmt = $conn->query("SELECT profile_photo, logo_url FROM admin_extended WHERE admin_id=$admin_id");
+$freshRow  = $freshStmt ? $freshStmt->fetch(PDO::FETCH_ASSOC) : [];
+$profilePhoto = $freshRow['profile_photo'] ?? $profilePhoto;
+$logoUrl      = $freshRow['logo_url']      ?? $logoUrl;
+
+$heroPhotoUrl    = cleanPhotoUrl($profilePhoto) ?: cleanPhotoUrl($logoUrl);
+$profilePhotoUrl = cleanPhotoUrl($profilePhoto);
+$logoDisplayUrl  = cleanPhotoUrl($logoUrl);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -477,22 +507,15 @@ echo '<!-- DEBUG: profilePhoto=[' . $profilePhoto . '] logoUrl=[' . $logoUrl . '
 
         <!-- Profile Hero -->
         <div class="profile-hero">
-            <div class="profile-hero-avatar" id="heroAvatar" onclick="document.getElementById('heroFileInput').click()" title="Click to change photo">
-             <?php 
-$heroPhoto = $profilePhoto ?: $logoUrl;
-$heroPhotoUrl = $heroPhoto ? '../' . ltrim($heroPhoto, './') : '';
-?>
-<?php if ($heroPhotoUrl): ?>
-  <img src="<?= htmlspecialchars($heroPhotoUrl) ?>" alt="Profile" id="heroAvatarImg" style="width:100%;height:100%;object-fit:cover;">
+<div class="profile-hero-avatar" id="heroAvatar">
+            <?php if ($heroPhotoUrl): ?>
+    <img src="<?= htmlspecialchars($heroPhotoUrl) ?>" alt="Profile" style="width:100%;height:100%;object-fit:cover;">
 <?php else: ?>
     <span id="heroAvatarInitial"><?= htmlspecialchars($initial) ?></span>
 <?php endif; ?>
-                <div class="avatar-camera-overlay">
-                    <i class="fa-solid fa-camera"></i>
-                    <span>CHANGE</span>
-                </div>
+            
             </div>
-            <input type="file" id="heroFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none;" onchange="heroAvatarChange(this)">
+           
             <div class="profile-hero-info">
                 <h2><?= htmlspecialchars($adminName) ?></h2>
                 <p><i class="fa-solid fa-at"></i> <?= htmlspecialchars($username) ?> &middot; <?= htmlspecialchars($email) ?></p>
@@ -521,16 +544,12 @@ $heroPhotoUrl = $heroPhoto ? '../' . ltrim($heroPhoto, './') : '';
                                     border:3px solid var(--border-color); overflow:hidden;
                                     cursor:pointer; position:relative;
                                     box-shadow:0 4px 16px rgba(0,0,0,0.12);">
-                            <?php
-                          $profilePhoto = $extProfile['profile_photo'] ?? '';
-$displayPhoto = $profilePhoto ?: ($extProfile['logo_url'] ?? '');
-$displayPhotoUrl = $displayPhoto ? '../' . ltrim($displayPhoto, './') : '';
-if ($displayPhotoUrl): ?>
-  <img src="<?= htmlspecialchars($displayPhotoUrl) ?>"
-                                     style="width:100%;height:100%;object-fit:cover;">
+                            <?php if ($profilePhotoUrl): ?>
+                                <img src="<?= htmlspecialchars($profilePhotoUrl) ?>" style="width:100%;height:100%;object-fit:cover;">
                             <?php else: ?>
                                 <span id="profileAvatarInitial"><?= htmlspecialchars($initial) ?></span>
                             <?php endif; ?>
+
                             <div style="position:absolute;inset:0;background:rgba(0,0,0,0.45);
                                         border-radius:50%;display:flex;flex-direction:column;
                                         align-items:center;justify-content:center;color:white;
@@ -696,9 +715,9 @@ if ($displayPhotoUrl): ?>
                 <div class="logo-upload-zone" id="uploadZone" onclick="document.getElementById('logoFileInput').click()">
                     <div class="logo-upload-preview" id="logoPreview"
                          style="border-radius: <?= $logoShape==='circle'?'50%':($logoShape==='rounded'?'14px':'4px') ?>;">
-                        <?php if ($logoUrl): ?>
-                            <img src="<?= htmlspecialchars($logoUrl) ?>" alt="Logo" id="logoPreviewImg">
-                        <?php else: ?>
+                      <?php if ($logoDisplayUrl): ?>
+                            <img src="<?= htmlspecialchars($logoDisplayUrl) ?>" alt="Logo" id="logoPreviewImg">
+                            <?php else: ?>
                             <div class="placeholder"><i class="fa-solid fa-camera fa-lg" style="color:var(--text-secondary);"></i></div>
                         <?php endif; ?>
                     </div>
@@ -995,9 +1014,23 @@ function profilePhotoChange(input) {
         fetch('account_dashboard.php', { method:'POST', body: fd })
             .then(r => r.json())
             .then(data => {
-                if (data.success) {
+               if (data.success) {
                     showToastAcct('Profile photo updated! 📸', 'success');
-                    setTimeout(() => location.reload(), 1200);
+                    // Update hero banner immediately
+                    const heroAv = document.getElementById('heroAvatar');
+                    if (heroAv) {
+                        const hImg = heroAv.querySelector('img');
+                        if (hImg) hImg.src = e.target.result;
+                        else {
+                            const hSpan = heroAv.querySelector('span');
+                            if (hSpan) hSpan.remove();
+                            const ni = document.createElement('img');
+                            ni.src = e.target.result;
+                            ni.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+                            heroAv.insertBefore(ni, heroAv.firstChild);
+                        }
+                    }
+                    setTimeout(() => location.href = location.href.split('?')[0] + '?t=' + Date.now(), 1800);
                 }
                 else showToastAcct(data.message || 'Upload failed', 'error');
             })
@@ -1028,21 +1061,9 @@ function previewLogo(input) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const prev = document.getElementById('logoPreview');
+        const radii = { circle: '50%', square: '4px', rounded: '14px' };
+        prev.style.borderRadius = radii[currentShape] || '50%';
         prev.innerHTML = `<img src="${e.target.result}" alt="Logo" style="width:100%;height:100%;object-fit:cover;">`;
-       // Update sidebar profile photo
-        const sidebarAvatarImg = document.querySelector('.sidebar .user-avatar img, .sidebar .admin-avatar img');
-        const sidebarAvatarWrap = document.querySelector('.sidebar .user-avatar, .sidebar .admin-avatar');
-        if (sidebarAvatarImg) {
-            sidebarAvatarImg.src = e.target.result;
-        } else if (sidebarAvatarWrap) {
-            sidebarAvatarWrap.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-        }
-
-        // Update topbar/header photo
-        const topbarAvatarImg = document.querySelector('.topbar .user-avatar img, .topbar img[alt="logo"]');
-        if (topbarAvatarImg) {
-            topbarAvatarImg.src = e.target.result;
-        }
     };
     reader.readAsDataURL(selectedLogoFile);
 }
@@ -1062,7 +1083,7 @@ function uploadLogo() {
         .then(data => {
             if (data.success) {
                 showToastAcct('Logo uploaded! 🖼️', 'success');
-                setTimeout(() => location.reload(), 1200);
+                setTimeout(() => location.href = location.href.split('?')[0] + '?t=' + Date.now(), 1800);
             } else {
                 showToastAcct(data.message || 'Upload failed', 'error');
             }
