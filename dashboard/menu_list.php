@@ -29,6 +29,8 @@ $items      = $menu_handler->searchAndFilter($search, $category, $status);
 $categories = $menu_handler->getCategories();
 $allItems   = $menu_handler->getAll();
 $hasAnyItems= !empty($allItems);
+$menuFlash  = $_SESSION['menu_flash'] ?? null;
+unset($_SESSION['menu_flash']);
 
 $noResultsMessage = '';
 if (empty($items)) {
@@ -46,13 +48,57 @@ function menu_item_image_src(?string $url): string {
 
     $url = str_replace('\\', '/', $url);
     $url = preg_replace('#^\./#', '', $url);
+    $url = preg_replace('#^/+#', '', $url);
     while (strpos($url, '../') === 0) {
         $url = substr($url, 3);
     }
-    if (strpos($url, 'dashboard/uploads/') === 0) {
-        $url = substr($url, strlen('dashboard/'));
+
+    $candidates = [];
+    if (strpos($url, 'dashboard/') === 0) {
+        $candidates[] = substr($url, strlen('dashboard/'));
     }
-    return $url;
+    $candidates[] = $url;
+
+    $basename = basename($url);
+    if ($basename !== '' && $basename !== '.' && $basename !== '..') {
+        $candidates[] = 'uploads/' . $basename;
+        $candidates[] = 'helpers/uploads/' . $basename;
+    }
+
+    foreach (array_unique($candidates) as $candidate) {
+        $fullPath = __DIR__ . '/' . ltrim($candidate, '/');
+        if (is_file($fullPath)) {
+            return $candidate;
+        }
+    }
+
+    return '';
+}
+
+function menu_item_image_fallbacks(?string $url): string {
+    $url = trim((string)$url);
+    if ($url === '' || preg_match('/^(?:https?:)?\/\//i', $url) || preg_match('/^data:image\//i', $url)) return '';
+
+    $url = str_replace('\\', '/', $url);
+    $url = preg_replace('#^\./#', '', $url);
+    $url = preg_replace('#^/+#', '', $url);
+    while (strpos($url, '../') === 0) {
+        $url = substr($url, 3);
+    }
+
+    $candidates = [];
+    if (strpos($url, 'dashboard/') === 0) {
+        $candidates[] = substr($url, strlen('dashboard/'));
+    }
+    $candidates[] = $url;
+
+    $basename = basename($url);
+    if ($basename !== '' && $basename !== '.' && $basename !== '..') {
+        $candidates[] = 'uploads/' . $basename;
+        $candidates[] = 'helpers/uploads/' . $basename;
+    }
+
+    return implode('|', array_unique(array_filter($candidates)));
 }
 
 $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adminProfile['fullname'] ?? $_SESSION['username'] ?? '');
@@ -106,15 +152,25 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
             <a href="#" class="btn-add" onclick="openAddModal(); return false;">+ Add New Item</a>
         </div>
 
+        <?php if (!empty($menuFlash)): ?>
+            <div class="menu-alert <?= ($menuFlash['type'] ?? '') === 'success' ? 'success' : 'error' ?>">
+                <i class="fa-solid <?= ($menuFlash['type'] ?? '') === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation' ?>"></i>
+                <?= htmlspecialchars($menuFlash['message'] ?? '') ?>
+            </div>
+        <?php endif; ?>
+
         <div class="menu-grid" id="menuGrid">
             <?php if (!empty($items)): ?>
                 <?php foreach ($items as $item): ?>
+                    <?php $imageSrc = menu_item_image_src($item['image_url'] ?? ''); ?>
                     <div class="menu-card">
                         <div class="menu-img-wrap">
-                            <?php if (!empty($item['image_url'])): ?>
-                               <img src="<?= htmlspecialchars(menu_item_image_src($item['image_url'])) ?>"
+                            <?php if ($imageSrc !== ''): ?>
+                               <img src="<?= htmlspecialchars($imageSrc) ?>"
                                      alt="<?= htmlspecialchars($item['item_name']) ?>"
-                                     class="menu-img">
+                                     class="menu-img"
+                                     data-fallbacks="<?= htmlspecialchars(menu_item_image_fallbacks($item['image_url'] ?? '')) ?>"
+                                     onerror="handleMenuImageError(this)">
                             <?php else: ?>
                                 <div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>
                             <?php endif; ?>
@@ -126,6 +182,9 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                             </span>
                         </div>
                         <div class="category"><?= htmlspecialchars($item['category']) ?></div>
+                        <?php if (!empty($item['description'])): ?>
+                            <div class="menu-desc"><?= htmlspecialchars($item['description']) ?></div>
+                        <?php endif; ?>
                         <div class="price">₱<?= number_format($item['price'], 2) ?></div>
                         <div class="stock">Stock: <?= $item['stock_quantity'] ?></div>
                         <div class="actions">
@@ -144,6 +203,12 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
  <?= $sidebar->renderClose() ?>
 </div><!-- end .dashboard -->
 </div>
+
+<datalist id="menuCategoryOptions">
+    <?php foreach ($categories as $cat): ?>
+        <option value="<?= htmlspecialchars(strtoupper((string)$cat)) ?>"></option>
+    <?php endforeach; ?>
+</datalist>
 
 <!-- ================= ADD MODAL ================= -->
 <div id="menuModal" class="modal">
@@ -170,11 +235,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                            onchange="handleImageUpload(this, 'add')">
                 </div>
                 <div class="modal-fields">
-                    <input type="text"   name="item_name"      placeholder="Item Name"      required autocomplete="off">
+                    <input type="text"   name="item_name"      id="add_name" placeholder="Item Name" class="js-uppercase" required autocomplete="off">
                     <textarea           name="description"     placeholder="Description (optional)" autocomplete="off"></textarea>
                     <input type="number" name="price"          placeholder="Price (₱)" step="0.01" min="0" required autocomplete="off">
                     <input type="number" name="stock_quantity" placeholder="Stock Quantity" min="0" required autocomplete="off">
-                    <input type="text"   name="category"       placeholder="Category" required autocomplete="off">
+                    <input type="text"   name="category"       id="add_category" list="menuCategoryOptions" placeholder="Category" class="js-uppercase" required autocomplete="off">
                     <label class="check-label">
                         <input type="checkbox" name="is_available" value="1" checked>
                         Available (visible to customers)
@@ -215,11 +280,11 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
                 </div>
                 <!-- RIGHT: Fields -->
                 <div class="modal-fields">
-                    <input type="text"   name="item_name"      id="edit_name"     placeholder="Item Name"      required autocomplete="off">
+                    <input type="text"   name="item_name"      id="edit_name"     placeholder="Item Name" class="js-uppercase" required autocomplete="off">
                     <textarea           name="description"     id="edit_desc"     placeholder="Description" autocomplete="off"></textarea>
                     <input type="number" name="price"          id="edit_price"    placeholder="Price (₱)" step="0.01" min="0" required autocomplete="off">
                     <input type="number" name="stock_quantity" id="edit_stock"    placeholder="Stock Quantity" min="0" required autocomplete="off">
-                    <input type="text"   name="category"       id="edit_category" placeholder="Category" required autocomplete="off">
+                    <input type="text"   name="category"       id="edit_category" list="menuCategoryOptions" placeholder="Category" class="js-uppercase" required autocomplete="off">
                     <label class="check-label">
                         <input type="checkbox" name="is_available" id="edit_available" value="1">
                         Available (visible to customers)
@@ -321,6 +386,9 @@ $sidebar = new SidebarRenderer($admin_id, $_SESSION['fastfood_name'] ?? '', $adm
 </div>
 
 <script>
+const menuNameIndex = <?= json_encode(array_map(function($item) {
+    return ['id' => (int)$item['menu_item_id'], 'name' => strtoupper(trim((string)$item['item_name']))];
+}, $allItems), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) ?>;
 /* ── MODAL OPEN/CLOSE ── */
 function toggleSidebar() {
     const sidebar = document.querySelector('.sidebar');
@@ -345,14 +413,105 @@ function closeAccountModal()  { document.getElementById('accountModal').classLis
 function closePinModal()      { document.getElementById('pinModal').classList.remove('show'); }
 function closeSetupPinModal() { document.getElementById('setupPinModal').classList.remove('show'); }
 
+function uppercaseField(input) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    input.value = input.value.toUpperCase();
+    if (start !== null && end !== null) input.setSelectionRange(start, end);
+}
+
+function normalizedMenuName(value) {
+    return String(value || '').trim().toUpperCase();
+}
+
+function hasDuplicateMenuName(name, exceptId = null) {
+    const normalized = normalizedMenuName(name);
+    if (!normalized) return false;
+    return menuNameIndex.some(item => item.name === normalized && String(item.id) !== String(exceptId || ''));
+}
+
+function validateMenuForm(form, exceptId = null) {
+    const nameInput = form.querySelector('[name="item_name"]');
+    const categoryInput = form.querySelector('[name="category"]');
+    if (nameInput) {
+        nameInput.value = normalizedMenuName(nameInput.value);
+        if (hasDuplicateMenuName(nameInput.value, exceptId)) {
+            showMenuNotice('A menu item with that name already exists.', 'error');
+            nameInput.focus();
+            return false;
+        }
+    }
+    if (categoryInput) categoryInput.value = normalizedMenuName(categoryInput.value);
+    return true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.js-uppercase').forEach(input => {
+        input.addEventListener('input', () => uppercaseField(input));
+        input.addEventListener('blur', () => { input.value = normalizedMenuName(input.value); });
+    });
+
+    document.getElementById('addForm')?.addEventListener('submit', function(e) {
+        if (!validateMenuForm(this)) e.preventDefault();
+    });
+
+    document.getElementById('editForm')?.addEventListener('submit', function(e) {
+        const editId = document.getElementById('edit_id')?.value || null;
+        if (!validateMenuForm(this, editId)) e.preventDefault();
+    });
+});
+
 function menuImageSrc(url) {
     url = String(url || '').trim();
     if (!url) return '';
     if (/^(https?:)?\/\//i.test(url) || /^data:image\//i.test(url)) return url;
     url = url.replace(/\\/g, '/').replace(/^\.\//, '');
+    url = url.replace(/^\/+/, '');
     while (url.startsWith('../')) url = url.slice(3);
-    if (url.startsWith('dashboard/uploads/')) url = url.slice('dashboard/'.length);
+    if (url.startsWith('dashboard/')) url = url.slice('dashboard/'.length);
+    if (!url.includes('/')) return 'uploads/' + url;
     return url;
+}
+
+function menuImageFallbacks(url) {
+    url = String(url || '').trim();
+    if (!url || /^(https?:)?\/\//i.test(url) || /^data:image\//i.test(url)) return [];
+    url = url.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '');
+    while (url.startsWith('../')) url = url.slice(3);
+
+    const candidates = [];
+    if (url.startsWith('dashboard/')) candidates.push(url.slice('dashboard/'.length));
+    candidates.push(url);
+
+    const basename = url.split('/').pop();
+    if (basename) {
+        candidates.push('uploads/' + basename);
+        candidates.push('helpers/uploads/' + basename);
+    }
+
+    return [...new Set(candidates.filter(Boolean))];
+}
+
+function menuImageFallbackAttr(url) {
+    return escHtml(menuImageFallbacks(url).join('|'));
+}
+
+function handleMenuImageError(img) {
+    const tried = img.dataset.triedFallbacks ? img.dataset.triedFallbacks.split('|') : [];
+    const fallbacks = String(img.dataset.fallbacks || '').split('|').filter(Boolean);
+    const next = fallbacks.find(src => src !== img.getAttribute('src') && !tried.includes(src));
+
+    if (next) {
+        tried.push(next);
+        img.dataset.triedFallbacks = tried.join('|');
+        img.src = next;
+        return;
+    }
+
+    const wrap = img.closest('.menu-img-wrap');
+    if (wrap) {
+        wrap.innerHTML = '<div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>';
+    }
 }
 
 /* Expose globally for sidebar onclick */
@@ -615,7 +774,7 @@ function fetchMenu() {
                 <div class="menu-card">
                     <div class="menu-img-wrap">
                         ${item.image_url
-                            ? `<img src="${escHtml(menuImageSrc(item.image_url))}" alt="${escHtml(item.item_name)}" class="menu-img">`
+                            ? `<img src="${escHtml(menuImageSrc(item.image_url))}" alt="${escHtml(item.item_name)}" class="menu-img" data-fallbacks="${menuImageFallbackAttr(item.image_url)}" onerror="handleMenuImageError(this)">`
                             : `<div class="menu-img-placeholder"><i class="fa-solid fa-utensils"></i></div>`}
                     </div>
                     <div class="menu-header">
@@ -625,6 +784,7 @@ function fetchMenu() {
                         </span>
                     </div>
                     <div class="category">${escHtml(item.category)}</div>
+                    ${item.description ? `<div class="menu-desc">${escHtml(item.description)}</div>` : ''}
                     <div class="price">₱${parseFloat(item.price).toLocaleString('en-PH', {minimumFractionDigits:2})}</div>
                     <div class="stock">Stock: ${item.stock_quantity}</div>
                     <div class="actions">

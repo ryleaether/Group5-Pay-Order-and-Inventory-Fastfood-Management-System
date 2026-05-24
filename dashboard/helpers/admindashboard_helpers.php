@@ -33,8 +33,32 @@ class MenuItem {
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    private function normalizeName($value) {
+        return strtoupper(trim((string)$value));
+    }
+
+    public function nameExists($item_name, $exclude_id = null) {
+        $name = $this->normalizeName($item_name);
+        if ($name === '') return false;
+
+        $sql = "SELECT COUNT(*) FROM {$this->table}
+                WHERE admin_id = :admin_id AND UPPER(TRIM(item_name)) = :name";
+        $params = [':admin_id' => $this->admin_id, ':name' => $name];
+
+        if ($exclude_id !== null && $exclude_id !== '') {
+            $sql .= " AND menu_item_id <> :exclude_id";
+            $params[':exclude_id'] = (int)$exclude_id;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return (int)$stmt->fetchColumn() > 0;
+    }
+
     public function create($item_name, $description, $price, $stock_quantity, $category, $is_available, $image_url = null) {
         $is_available = $is_available ? 1 : 0;
+        $item_name = $this->normalizeName($item_name);
+        $category = $this->normalizeName($category);
         $sql = "INSERT INTO {$this->table}
                 (admin_id, item_name, description, price, stock_quantity, category, is_available, image_url)
                 VALUES (:admin_id, :name, :desc, :price, :stock_quantity, :category, :is_available, :image_url)";
@@ -52,6 +76,8 @@ class MenuItem {
 
     public function update($menu_item_id, $item_name, $description, $price, $stock_quantity, $category, $is_available, $image_url = null) {
         $is_available = $is_available ? 1 : 0;
+        $item_name = $this->normalizeName($item_name);
+        $category = $this->normalizeName($category);
         if (empty($image_url)) {
             $existing = $this->getById($menu_item_id);
             $image_url = $existing['image_url'] ?? null;
@@ -425,6 +451,11 @@ class SidebarRenderer {
 
                 <div class="sidebar-section-label">Activity</div>
                 <ul>
+                    <li class="<?= $is('activity_log') ?>">
+                        <a href="activity_log.php">
+                            <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span> Activity Log
+                        </a>
+                    </li>
                     <li class="<?= $is('account') ?>">
                         <a href="account_pin_gate.php">
                             <span class="nav-icon"><i class="fa-solid fa-circle-user"></i></span>
@@ -927,12 +958,21 @@ class APIHandler {
 
     private function handleAddMenu() {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { $this->sendError('Invalid request method'); return; }
-        $this->dashboard->getMenuItemHandler()->create(
+        $menuHandler = $this->dashboard->getMenuItemHandler();
+        $itemName = $_POST['item_name'] ?? '';
+
+        if ($menuHandler->nameExists($itemName)) {
+            $_SESSION['menu_flash'] = ['type' => 'error', 'message' => 'A menu item with that name already exists.'];
+            header("Location: ../menu_list.php"); exit;
+        }
+
+        $menuHandler->create(
             $_POST['item_name'] ?? '', $_POST['description'] ?? '', $_POST['price'] ?? 0,
             $_POST['stock_quantity'] ?? 0, $_POST['category'] ?? '',
             isset($_POST['is_available']) ? 1 : 0,
             !empty($_POST['image_url']) ? trim($_POST['image_url']) : null
         );
+        $_SESSION['menu_flash'] = ['type' => 'success', 'message' => 'Menu item added successfully.'];
         header("Location: ../menu_list.php"); exit;
     }
 
@@ -944,12 +984,22 @@ class APIHandler {
             exit;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $this->dashboard->getMenuItemHandler()->update(
-                $_POST['menu_item_id'] ?? null, $_POST['item_name'] ?? '', $_POST['description'] ?? '',
+            $menuHandler = $this->dashboard->getMenuItemHandler();
+            $menuItemId = $_POST['menu_item_id'] ?? null;
+            $itemName = $_POST['item_name'] ?? '';
+
+            if ($menuHandler->nameExists($itemName, $menuItemId)) {
+                $_SESSION['menu_flash'] = ['type' => 'error', 'message' => 'A menu item with that name already exists.'];
+                header("Location: ../menu_list.php"); exit;
+            }
+
+            $menuHandler->update(
+                $menuItemId, $_POST['item_name'] ?? '', $_POST['description'] ?? '',
                 $_POST['price'] ?? 0, $_POST['stock_quantity'] ?? 0, $_POST['category'] ?? '',
                 isset($_POST['is_available']) ? 1 : 0,
                 !empty($_POST['image_url']) ? trim($_POST['image_url']) : null
             );
+            $_SESSION['menu_flash'] = ['type' => 'success', 'message' => 'Menu item updated successfully.'];
             header("Location: ../menu_list.php"); exit;
         }
     }

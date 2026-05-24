@@ -499,6 +499,41 @@ body {
     font-weight: 500;
 }
 
+.menu-desc {
+    min-height: 28px;
+    margin: 0 0 8px;
+    color: var(--text-secondary);
+    font-size: 11px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.menu-alert {
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.menu-alert.success {
+    background: #ecfdf3;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.menu-alert.error {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
 .price {
     font-size: 17px;
     font-weight: 800;
@@ -662,6 +697,10 @@ body {
 }
 
 .modal-fields textarea { resize: none; height: 72px; }
+
+.js-uppercase {
+    text-transform: uppercase;
+}
 
 .check-label {
     display: flex;
