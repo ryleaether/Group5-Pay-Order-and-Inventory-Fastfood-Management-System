@@ -60,13 +60,31 @@ function menu_item_image_src(?string $url): string {
 
     $url = str_replace('\\', '/', $url);
     $url = preg_replace('#^\./#', '', $url);
+    $url = preg_replace('#^/+#', '', $url);
     while (strpos($url, '../') === 0) {
         $url = substr($url, 3);
     }
-    if (strpos($url, 'dashboard/uploads/') === 0) {
-        $url = substr($url, strlen('dashboard/'));
+
+    $candidates = [];
+    if (strpos($url, 'dashboard/') === 0) {
+        $candidates[] = substr($url, strlen('dashboard/'));
     }
-    return $url;
+    $candidates[] = $url;
+
+    $basename = basename($url);
+    if ($basename !== '' && $basename !== '.' && $basename !== '..') {
+        $candidates[] = 'uploads/' . $basename;
+        $candidates[] = 'helpers/uploads/' . $basename;
+    }
+
+    foreach (array_unique($candidates) as $candidate) {
+        $fullPath = __DIR__ . '/' . ltrim($candidate, '/');
+        if (is_file($fullPath)) {
+            return $candidate;
+        }
+    }
+
+    return '';
 }
 
 // Helper: convert #rrggbb to rgba(r,g,b,alpha) for theme bridge
@@ -255,13 +273,14 @@ function hexToRgba($hex, $alpha) {
         <div class="pos-items-grid" id="itemsGrid">
             <?php if (!empty($all_items)): ?>
                 <?php foreach ($all_items as $item): ?>
+                    <?php $imageSrc = menu_item_image_src($item['image_url'] ?? ''); ?>
                     <div class="pos-item-card"
                          data-category="<?= htmlspecialchars($item['category']) ?>"
                          data-name="<?= strtolower(htmlspecialchars($item['item_name'])) ?>"
                          onclick="addToOrder(<?= $item['menu_item_id'] ?>, '<?= addslashes($item['item_name']) ?>', <?= $item['price'] ?>, <?= $item['stock_quantity'] ?>)">
 
-                        <?php if (!empty($item['image_url'])): ?>
-                            <img src="<?= htmlspecialchars(menu_item_image_src($item['image_url'])) ?>"
+                        <?php if ($imageSrc !== ''): ?>
+                            <img src="<?= htmlspecialchars($imageSrc) ?>"
                                  alt="<?= htmlspecialchars($item['item_name']) ?>"
                                  class="pos-item-img">
                         <?php else: ?>

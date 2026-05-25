@@ -372,12 +372,13 @@ $sidebar = new SidebarRenderer(
                         <th style="text-align:center;">Role</th>
                         <th style="text-align:center;">Shift</th>
                         <th style="text-align:center;">Attendance</th>
+                        <th style="text-align:center;">Status</th>
                         <th style="text-align:center;">Employment</th>
                         <th style="text-align:center;">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="staffTableBody">
-                    <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--text-secondary);">
+                    <tr><td colspan="8" style="text-align:center; padding:40px; color:var(--text-secondary);">
                         <i class="fa-solid fa-spinner fa-spin"></i> Loading staffs…
                     </td></tr>
                 </tbody>
@@ -586,7 +587,7 @@ function renderTable() {
 
     const tbody = document.getElementById('staffTableBody');
     if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="6">
+        tbody.innerHTML = `<tr><td colspan="8">
             <div class="staff-empty">
                 <i class="fa-solid fa-users-slash"></i>
                 <p>No staffs found</p>
@@ -633,6 +634,7 @@ function renderTable() {
             <td>${roleBadge}</td>
             <td>${shift}</td>
             <td>${getShiftStatus(s)}</td>
+            <td>${getLoginStatus(s)}</td>
             <td>${employmentBadge}</td>
             <td>
                 <div class="staff-action-btns">
@@ -808,11 +810,7 @@ async function confirmDelete() {
 
 // ===== HELPERS =====
 function getShiftStatus(s) {
-    const today = new Date().toLocaleDateString('en-CA');
-    const lastLogin = s.last_login_at ? s.last_login_at.slice(0, 10) : null;
-    const loggedInToday = lastLogin === today;
-
-    if (s.is_online == 1 || loggedInToday) {
+    if (s.is_online == 1) {
         return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#16a34a;">
                     <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;"></span>
                     Present
@@ -822,6 +820,20 @@ function getShiftStatus(s) {
     return `<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#dc2626;">
                 <span style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
                 Absent
+            </span>`;
+}
+
+function getLoginStatus(s) {
+    if (s.is_online == 1) {
+        return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:#dcfce7;color:#166534;font-size:12px;font-weight:800;">
+                    <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:pulse-online 1.5s infinite;"></span>
+                    Online
+                </span>`;
+    }
+
+    return `<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;background:#f3f4f6;color:#6b7280;font-size:12px;font-weight:800;">
+                <span style="width:8px;height:8px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+                Offline
             </span>`;
 }
 

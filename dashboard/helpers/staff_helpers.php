@@ -307,9 +307,70 @@ function is_valid_shift_time($time) {
     return is_string($time) && preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/', $time);
 }
 
+function staff_shift_has_ended_for_login(array $staff, ?string $loginAt): bool {
+    if (empty($staff['shift_start']) || empty($staff['shift_end'])) {
+        return false;
+    }
+
+    try {
+        $now = new DateTime('now');
+        $baseDate = $loginAt ? (new DateTime($loginAt))->format('Y-m-d') : date('Y-m-d');
+        $shiftStart = new DateTime($baseDate . ' ' . $staff['shift_start']);
+        $shiftEnd = new DateTime($baseDate . ' ' . $staff['shift_end']);
+
+        if ($shiftEnd <= $shiftStart) {
+            $shiftEnd->modify('+1 day');
+        }
+
+        return $now >= $shiftEnd;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+function expire_ended_staff_sessions(PDO $conn, int $admin_id): void {
+    try {
+        $stmt = $conn->prepare("
+            SELECT staff_id, shift_start, shift_end
+            FROM staffs
+            WHERE admin_id = :aid AND is_online = 1
+        ");
+        $stmt->execute([':aid' => $admin_id]);
+        $onlineStaff = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($onlineStaff as $staff) {
+            $sess = $conn->prepare("
+                SELECT session_id, login_at
+                FROM staff_sessions
+                WHERE staff_id = :sid AND admin_id = :aid AND logout_at IS NULL
+                ORDER BY login_at DESC, session_id DESC
+                LIMIT 1
+            ");
+            $sess->execute([':sid' => (int)$staff['staff_id'], ':aid' => $admin_id]);
+            $session = $sess->fetch(PDO::FETCH_ASSOC);
+
+            if (!$session || staff_shift_has_ended_for_login($staff, $session['login_at'] ?? null)) {
+                $conn->prepare("UPDATE staffs SET is_online = 0 WHERE staff_id = :sid AND admin_id = :aid")
+                     ->execute([':sid' => (int)$staff['staff_id'], ':aid' => $admin_id]);
+
+                $conn->prepare("
+                    UPDATE staff_sessions
+                    SET logout_at = NOW(),
+                        duration_minutes = TIMESTAMPDIFF(MINUTE, login_at, NOW())
+                    WHERE staff_id = :sid
+                      AND admin_id = :aid
+                      AND logout_at IS NULL
+                ")->execute([':sid' => (int)$staff['staff_id'], ':aid' => $admin_id]);
+            }
+        }
+    } catch (Exception $e) {}
+}
+
 switch ($action) {
 
     case 'list':
+        expire_ended_staff_sessions($conn, $admin_id);
+
         $search = trim($_GET['search'] ?? '');
         $role   = $_GET['role'] ?? '';
         $status = $_GET['status'] ?? '';

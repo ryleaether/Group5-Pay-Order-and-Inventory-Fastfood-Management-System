@@ -388,6 +388,8 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
 <script>
 const H = 'backup_handler.php';
 const T = 'soft_delete_handler.php';
+const cssVar = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const themeAccent = () => cssVar('--accent') || '#be185d';
 let bkPeriod='all', bkFrom=null, bkTo=null;
 let slPeriod='all', slFrom=null, slTo=null;
 let slDownloadPeriod='today';
@@ -675,7 +677,7 @@ async function trashAct(action,type,id) {
                 Swal.fire({
                     icon:'success',title:'Restored!',text:d.message,
                     showConfirmButton:true,confirmButtonText:'Go to Menu',
-                    confirmButtonColor:'#9B2C52',
+                    confirmButtonColor:themeAccent(),
                     showDenyButton:true,denyButtonText:'Stay here',denyButtonColor:'#6b7280',
                     timer:8000
                 }).then(result=>{ if(result.isConfirmed) window.location.href='menu_list.php'; else loadTrash('items'); });
@@ -683,7 +685,7 @@ async function trashAct(action,type,id) {
                 Swal.fire({
                     icon:'success',title:'Restored!',text:d.message,
                     showConfirmButton:true,confirmButtonText:'Go to Manage Staff',
-                    confirmButtonColor:'#9B2C52',
+                    confirmButtonColor:themeAccent(),
                     showDenyButton:true,denyButtonText:'Stay here',denyButtonColor:'#6b7280',
                     timer:8000
                 }).then(result=>{ if(result.isConfirmed) window.location.href='manage_staffs.php'; else loadTrash('staff'); });
