@@ -54,6 +54,7 @@ $storeName = htmlspecialchars($adminProfile['fastfood_name'] ?? $_SESSION['fastf
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <?php $__tl = __DIR__.'/helpers/theme_loader.php'; if(file_exists($__tl)) include $__tl; ?>
 <style>
+/* theme vars injected by theme_loader.php above */
 .br-wrap { width:100%; padding:0 0 60px; box-sizing:border-box; }
 
 @media (max-width: 1200px) {

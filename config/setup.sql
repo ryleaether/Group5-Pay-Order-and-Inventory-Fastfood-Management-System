@@ -205,3 +205,6 @@ ALTER TABLE admins
 ADD COLUMN logo_shape VARCHAR(20) DEFAULT 'circle';
 SELECT admin_id, username, logo_url, logo_shape FROM admins WHERE username = 'anarose';
 ALTER TABLE admins ADD COLUMN dashboard_pin VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE staffs ADD COLUMN staff_code VARCHAR(20) NULL AFTER admin_id;
+ALTER TABLE staffs ADD UNIQUE KEY unique_staff_code (admin_id, staff_code);

@@ -19,7 +19,7 @@ $conn = $db->connect();
 $conn->exec("CREATE TABLE IF NOT EXISTS staffs (
     staff_id         INT AUTO_INCREMENT PRIMARY KEY,
     admin_id         INT NOT NULL,
-    staff_code       VARCHAR(10) NULL,
+    staff_code       VARCHAR(20) NULL,
     fullname         VARCHAR(100) NOT NULL,
     role             ENUM('Cashier','Kitchen') NOT NULL DEFAULT 'Cashier',
     pin              VARCHAR(255) NULL,
@@ -32,7 +32,8 @@ $conn->exec("CREATE TABLE IF NOT EXISTS staffs (
     is_online        TINYINT(1) NOT NULL DEFAULT 0,
     employment_type  ENUM('Full-time','Part-time') NOT NULL DEFAULT 'Full-time',
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
+    FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE,
+    UNIQUE KEY unique_staff_code (admin_id, staff_code)
 )");
 
 // Staff sessions log table
@@ -48,7 +49,7 @@ $conn->exec("CREATE TABLE IF NOT EXISTS staff_sessions (
 
 // Silently add/migrate columns for existing installations
 $migrations = [
-    "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS staff_code VARCHAR(10) NULL",
+    "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS staff_code VARCHAR(20) NULL AFTER admin_id",
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS shift_start TIME NULL",
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS shift_end TIME NULL",
     "ALTER TABLE staffs ADD COLUMN IF NOT EXISTS login_fail_count INT NOT NULL DEFAULT 0",
@@ -78,12 +79,21 @@ try {
     }
 } catch (Exception $e) {}
 
-// Fallback: add staff_code via information_schema check
+// Fallback: add staff_code via information_schema check and ensure unique key
 try {
     $chkSc = $conn->query("SELECT COUNT(*) FROM information_schema.COLUMNS
         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staffs' AND COLUMN_NAME = 'staff_code'");
     if ((int)$chkSc->fetchColumn() === 0) {
-        $conn->exec("ALTER TABLE staffs ADD COLUMN staff_code VARCHAR(10) NULL");
+        $conn->exec("ALTER TABLE staffs ADD COLUMN staff_code VARCHAR(20) NULL AFTER admin_id");
+    }
+} catch (Exception $e) {}
+
+// Add unique key for (admin_id, staff_code) if not already present
+try {
+    $chkUk = $conn->query("SELECT COUNT(*) FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'staffs' AND INDEX_NAME = 'unique_staff_code'");
+    if ((int)$chkUk->fetchColumn() === 0) {
+        $conn->exec("ALTER TABLE staffs ADD UNIQUE KEY unique_staff_code (admin_id, staff_code)");
     }
 } catch (Exception $e) {}
 
@@ -407,8 +417,8 @@ switch ($action) {
         if ($staff_code === '') {
             echo json_encode(['success' => false, 'message' => 'Staff ID is required.']); exit;
         }
-        if (!preg_match('/^[A-Z0-9]{1,10}$/', $staff_code)) {
-            echo json_encode(['success' => false, 'message' => 'Staff ID must be letters and numbers only, max 10 characters.']); exit;
+        if (!preg_match('/^[A-Z0-9]{1,20}$/', $staff_code)) {
+            echo json_encode(['success' => false, 'message' => 'Staff ID must be letters and numbers only, max 20 characters.']); exit;
         }
         if (staff_code_exists($conn, $admin_id, $staff_code)) {
             echo json_encode(['success' => false, 'message' => 'This Staff ID is already in use.']); exit;
@@ -485,8 +495,8 @@ switch ($action) {
         if ($staff_code === '') {
             echo json_encode(['success' => false, 'message' => 'Staff ID is required.']); exit;
         }
-        if (!preg_match('/^[A-Z0-9]{1,10}$/', $staff_code)) {
-            echo json_encode(['success' => false, 'message' => 'Staff ID must be letters and numbers only, max 10 characters.']); exit;
+        if (!preg_match('/^[A-Z0-9]{1,20}$/', $staff_code)) {
+            echo json_encode(['success' => false, 'message' => 'Staff ID must be letters and numbers only, max 20 characters.']); exit;
         }
         if (staff_code_exists($conn, $admin_id, $staff_code, $id)) {
             echo json_encode(['success' => false, 'message' => 'This Staff ID is already in use.']); exit;

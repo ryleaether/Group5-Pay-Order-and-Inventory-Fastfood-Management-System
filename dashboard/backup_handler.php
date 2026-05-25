@@ -439,19 +439,21 @@ function buildOwnerBackupSheets(PDO $conn, int $admin_id, string $label, string 
             $employmentCol = columnExists($conn, 'staffs', 'employment_type') ? 'employment_type' : "'Full-time' AS employment_type";
             $onlineCol = columnExists($conn, 'staffs', 'is_online') ? 'is_online' : "0 AS is_online";
             $lastLoginCol = columnExists($conn, 'staffs', 'last_login_at') ? 'last_login_at' : "NULL AS last_login_at";
-           $staffCodeCol = columnExists($conn, 'staffs', 'staff_code') ? 'staff_code' : "'' AS staff_code";
-$staffRows = fetchRows($conn, "SELECT staff_code, fullname, role, status, {$employmentCol}, shift_start, shift_end, {$lastLoginCol}, {$onlineCol}, created_at FROM staffs WHERE admin_id = :admin_id ORDER BY fullname", [':admin_id' => $admin_id]);
+            $staffCodeCol = columnExists($conn, 'staffs', 'staff_code') ? 'staff_code' : "'' AS staff_code";
+            $staffRows = fetchRows($conn, "SELECT {$staffCodeCol}, fullname, role, status, {$employmentCol}, shift_start, shift_end, {$lastLoginCol}, {$onlineCol}, created_at FROM staffs WHERE admin_id = :admin_id ORDER BY fullname", [':admin_id' => $admin_id]);
             $rows = [];
             foreach ($staffRows as $r) {
-                $rows[] = [$r['staff_code'] ?? '—', $r['fullname'] ?? '', $r['role'] ?? '', $r['status'] ?? '', $r['employment_type'] ?? 'Full-time', $r['shift_start'] ?? '', $r['shift_end'] ?? '', yesNo($r['is_online'] ?? 0), friendlyDate($r['last_login_at'] ?? ''), friendlyDate($r['created_at'] ?? '')];
+                $onlineLabel = ($r['status'] ?? '') === 'Active' ? (($r['is_online'] ?? 0) ? 'Online' : 'Offline') : 'Inactive';
+                $rows[] = [$r['staff_code'] ?? '—', $r['fullname'] ?? '', $r['role'] ?? '', $r['status'] ?? '', $r['employment_type'] ?? 'Full-time', $r['shift_start'] ?? '', $r['shift_end'] ?? '', $onlineLabel, friendlyDate($r['last_login_at'] ?? ''), friendlyDate($r['created_at'] ?? '')];
             }
-            $sheets[] = ['name' => 'Staff Directory', 'headers' => ['Staff Code','Staff Name','Role','Status','Employment Type','Shift Start','Shift End','Currently Online','Last Login','Added On'], 'rows' => $rows];
+            $sheets[] = ['name' => 'Staff Directory', 'headers' => ['Staff Code','Staff Name','Role','Status','Employment Type','Shift Start','Shift End','Online Status','Last Login','Added On'], 'rows' => $rows];
 
             if (tableExists($conn, 'staff_sessions')) {
                 $hasLate = columnExists($conn, 'staff_sessions', 'late_minutes');
                 $lateCol = $hasLate ? 'ss.late_minutes' : '0';
+                $scAttCol = columnExists($conn, 'staffs', 'staff_code') ? 's.staff_code' : "'' AS staff_code";
                 $sessionRows = fetchRows($conn, "
-                    SELECT s.fullname, s.role, ss.login_at, ss.logout_at, ss.duration_minutes, {$lateCol} AS late_minutes
+                    SELECT {$scAttCol}, s.fullname, s.role, ss.login_at, ss.logout_at, ss.duration_minutes, {$lateCol} AS late_minutes
                     FROM staff_sessions ss
                     JOIN staffs s ON s.staff_id = ss.staff_id
                     WHERE ss.admin_id = :admin_id
@@ -460,9 +462,9 @@ $staffRows = fetchRows($conn, "SELECT staff_code, fullname, role, status, {$empl
                 ", [':admin_id' => $admin_id]);
                 $rows = [];
                 foreach ($sessionRows as $r) {
-                    $rows[] = [$r['fullname'], $r['role'], friendlyDate($r['login_at']), friendlyDate($r['logout_at']), $r['duration_minutes'] ?? '', $r['late_minutes'] ?? 0];
+                    $rows[] = [$r['staff_code'] ?? '—', $r['fullname'], $r['role'], friendlyDate($r['login_at']), friendlyDate($r['logout_at']), $r['duration_minutes'] ?? '', $r['late_minutes'] ?? 0];
                 }
-                $sheets[] = ['name' => 'Staff Attendance', 'headers' => ['Staff Name','Role','Login Time','Logout Time','Minutes Worked','Minutes Late'], 'rows' => $rows];
+                $sheets[] = ['name' => 'Staff Attendance', 'headers' => ['Staff Code','Staff Name','Role','Login Time','Logout Time','Minutes Worked','Minutes Late'], 'rows' => $rows];
             }
         } catch (Exception $e) { addErrorSheet($sheets, 'Staff Directory', $e); }
     }
@@ -482,10 +484,19 @@ $staffRows = fetchRows($conn, "SELECT staff_code, fullname, role, status, {$empl
 
     if ($has('orders')) {
         try {
-            $cashierCol = columnExists($conn, 'orders', 'cashier_name') ? 'o.cashier_name' : "NULL AS cashier_name";
-            $kitchenCol = columnExists($conn, 'orders', 'kitchen_name') ? 'o.kitchen_name' : "NULL AS kitchen_name";
+            $cashierNameCol  = columnExists($conn, 'orders', 'cashier_name')     ? 'o.cashier_name'     : "NULL AS cashier_name";
+            $kitchenNameCol  = columnExists($conn, 'orders', 'kitchen_name')     ? 'o.kitchen_name'     : "NULL AS kitchen_name";
+            $cashierIdCol    = columnExists($conn, 'orders', 'cashier_staff_id') ? 'o.cashier_staff_id' : "NULL AS cashier_staff_id";
+            $kitchenIdCol    = columnExists($conn, 'orders', 'kitchen_staff_id') ? 'o.kitchen_staff_id' : "NULL AS kitchen_staff_id";
+            $hasStaffCode    = columnExists($conn, 'staffs', 'staff_code');
+            $cashierCodeExpr = $hasStaffCode ? 'sc.staff_code' : 'NULL';
+            $kitchenCodeExpr = $hasStaffCode ? 'sk.staff_code' : 'NULL';
             $orderRows = fetchRows($conn, "
-                SELECT o.order_id, o.queue_number, o.order_status, o.total_amount, {$cashierCol}, {$kitchenCol},
+                SELECT o.order_id, o.queue_number, o.order_status, o.total_amount,
+                       {$cashierNameCol}, {$kitchenNameCol},
+                       {$cashierIdCol}, {$kitchenIdCol},
+                       {$cashierCodeExpr} AS cashier_code,
+                       {$kitchenCodeExpr} AS kitchen_code,
                        c.name AS customer_name, c.table_number,
                        p.payment_method, p.amount_paid, p.change_given, p.receipt_number, p.payment_status,
                        GROUP_CONCAT(CONCAT(oi.item_name, ' x', oi.quantity) ORDER BY oi.order_item_id SEPARATOR ', ') AS items,
@@ -494,15 +505,27 @@ $staffRows = fetchRows($conn, "SELECT staff_code, fullname, role, status, {$empl
                 LEFT JOIN customers c ON c.customer_id = o.customer_id
                 LEFT JOIN payments p ON p.order_id = o.order_id
                 LEFT JOIN order_items oi ON oi.order_id = o.order_id
+                LEFT JOIN staffs sc ON sc.staff_id = o.cashier_staff_id AND sc.admin_id = o.admin_id
+                LEFT JOIN staffs sk ON sk.staff_id = o.kitchen_staff_id AND sk.admin_id = o.admin_id
                 WHERE o.admin_id = :admin_id {$dateFilter}
                 GROUP BY o.order_id
                 ORDER BY o.created_at DESC
             ", array_merge([':admin_id' => $admin_id], $dateParams));
             $rows = [];
             foreach ($orderRows as $r) {
-                $rows[] = [$r['queue_number'], friendlyDate($r['created_at']), $r['order_status'], $r['customer_name'] ?: 'Walk-in', $r['table_number'] ?: '', $r['items'] ?: '', moneyValue($r['total_amount']), moneyValue($r['amount_paid']), moneyValue($r['change_given']), $r['payment_method'] ?: '', $r['payment_status'] ?: '', $r['receipt_number'] ?: '', $r['cashier_name'] ?: 'Before tracking', in_array($r['order_status'], ['Served', 'Completed'], true) ? ($r['kitchen_name'] ?: 'Before tracking') : 'Not served yet'];
+                $cashierCode = $r['cashier_code'] ?? '';
+                $kitchenCode = $r['kitchen_code'] ?? '';
+                $isServed    = in_array($r['order_status'], ['Served', 'Completed'], true);
+                $rows[] = [
+                    $r['queue_number'], friendlyDate($r['created_at']), $r['order_status'],
+                    $r['customer_name'] ?: 'Walk-in', $r['table_number'] ?: '', $r['items'] ?: '',
+                    moneyValue($r['total_amount']), moneyValue($r['amount_paid']), moneyValue($r['change_given']),
+                    $r['payment_method'] ?: '', $r['payment_status'] ?: '', $r['receipt_number'] ?: '',
+                    $cashierCode ?: '', $r['cashier_name'] ?: 'Before tracking',
+                    $kitchenCode ?: '', $isServed ? ($r['kitchen_name'] ?: 'Before tracking') : 'Not served yet',
+                ];
             }
-            $sheets[] = ['name' => 'Orders', 'headers' => ['Queue Number','Date and Time','Status','Customer','Table','Items Ordered','Order Total','Cash Paid','Change Given','Payment Method','Payment Status','Receipt Number','Cashier','Kitchen Manager'], 'rows' => $rows];
+            $sheets[] = ['name' => 'Orders', 'headers' => ['Queue Number','Date and Time','Status','Customer','Table','Items Ordered','Order Total','Cash Paid','Change Given','Payment Method','Payment Status','Receipt Number','Cashier Code','Cashier Name','Kitchen Code','Kitchen Manager'], 'rows' => $rows];
         } catch (Exception $e) { addErrorSheet($sheets, 'Orders', $e); }
     }
 
